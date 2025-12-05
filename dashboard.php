@@ -99,8 +99,7 @@
     .brand-logo {
       width: 40px;
       height: 40px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+ 
       display: flex;
       align-items: center;
       justify-content: center;
@@ -414,18 +413,7 @@
       <span class="brand-text">Spicer</span>
     </a>
 
-    <div class="user-panel">
-      <div class="user-panel-image">
-        <i class="fas fa-user"></i>
-      </div>
-      <div class="user-panel-info">
-        <div class="name">Admin User</div>
-        <div class="status">
-          <span class="status-dot online"></span>
-          Online
-        </div>
-      </div>
-    </div>
+ 
 
     <nav class="mt-2">
       <ul class="sidebar-menu">
