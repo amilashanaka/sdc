@@ -6,24 +6,159 @@
   <title>Spicer Consulting Device Login</title>
 
   <!-- Bootstrap 5.3 (jsDelivr CDN) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="" crossorigin="anonymous">
-  <!-- Bootstrap Icons (optional) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* Professional, subtle background */
-    :root{--card-radius:16px}
-    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f6f8fb 0%, #e9eef6 100%);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
-    .login-wrapper{max-width:980px;width:100%;padding:2rem}
-    .brand-logo{width:56px;height:56px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-    .device-meta{font-size:.9rem;color:#6c757d}
-    .card{border-radius:var(--card-radius);box-shadow:0 6px 24px rgba(16,24,40,0.08)}
-    .form-control:focus{box-shadow:0 0 0 .15rem rgba(13,110,253,.12)}
-    .help-text{font-size:.85rem;color:#6c757d}
-    .small-muted{font-size:.78rem;color:#9aa3b2}
-    /* center column */
-    .left-illustration{background:linear-gradient(180deg,#0d6efd20, transparent);border-right:1px solid rgba(13,110,253,0.04);}
-    @media (max-width:991px){.left-illustration{display:none}}
+    :root {
+      --card-radius: 16px;
+      --primary-color: #0d6efd;
+      --text-muted: #6c757d;
+      --text-subtle: #9aa3b2;
+      --bg-gradient-start: #f6f8fb;
+      --bg-gradient-end: #e9eef6;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .login-wrapper {
+      max-width: 980px;
+      width: 100%;
+      padding: 2rem;
+    }
+
+    .brand-logo {
+      width: 100px; 
+ 
+ 
+ 
+    }
+
+    .brand-logo img {
+      max-width: 40px;
+      max-height: 40px;
+    }
+
+    .device-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      border-radius: var(--card-radius);
+      box-shadow: 0 6px 24px rgba(16, 24, 40, 0.08);
+      border: none;
+    }
+
+    .form-control {
+      border-radius: 0.375rem;
+    }
+
+    .form-control:focus {
+      box-shadow: 0 0 0 0.25rem rgba(var(--primary-color), 0.25);
+      border-color: var(--primary-color);
+    }
+
+    .help-text {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .small-muted {
+      font-size: 0.8125rem;
+      color: var(--text-subtle);
+    }
+
+    .left-illustration {
+      background: linear-gradient(180deg, rgba(var(--primary-color), 0.1) 0%, transparent 100%);
+      border-right: 1px solid rgba(var(--primary-color), 0.05);
+    }
+
+    @media (max-width: 991px) {
+      .left-illustration {
+        display: none;
+      }
+    }
+
+    .list-unstyled li i {
+      color: var(--primary-color);
+    }
+
+    .btn-primary {
+      border-radius: 0.375rem;
+      font-weight: 600;
+    }
+
+    footer a {
+      text-decoration: none;
+      color: var(--primary-color);
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Dark mode adjustments */
+    [data-bs-theme="dark"] {
+      --bg-gradient-start: #1a1d21;
+      --bg-gradient-end: #2c3035;
+      --text-muted: #adb5bd;
+      --text-subtle: #6c757d;
+    }
+
+    [data-bs-theme="dark"] body {
+      background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    }
+
+    [data-bs-theme="dark"] .card {
+      background-color: #212529;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-bs-theme="dark"] .left-illustration {
+      background: linear-gradient(180deg, rgba(var(--primary-color), 0.2) 0%, transparent 100%);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme="dark"] .brand-logo {
+      background-color: #343a40;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme="dark"] .form-control {
+      background-color: #343a40;
+      border-color: #495057;
+      color: #ffffff;
+    }
+
+    [data-bs-theme="dark"] .form-control:focus {
+      border-color: var(--primary-color);
+    }
+
+    [data-bs-theme="dark"] .input-group .btn-outline-secondary {
+      border-color: #495057;
+      color: #adb5bd;
+    }
+
+    [data-bs-theme="dark"] .input-group .btn-outline-secondary:hover {
+      background-color: #495057;
+    }
+
+    [data-bs-theme="dark"] .border-top {
+      border-color: #495057 !important;
+    }
   </style>
 </head>
 <body>
@@ -32,65 +167,63 @@
       <div class="row g-0">
         <!-- Left illustration / info (hidden on small screens) -->
         <div class="col-lg-5 left-illustration d-flex flex-column justify-content-center p-5">
-          <div class="mb-3 d-flex align-items-center gap-3">
-            <div class="brand-logo bg-white border  align-items-center ">
-               <img src="./assets/img/logo.png" style="max-width: 100px;">
+          <div class="mb-4 d-flex align-items-center gap-3">
+            <div class="brand-logo">
+              <img src="./assets/img/logo.png" alt="Spicer Consulting Logo">
             </div>
-        
+            <div>
+              <h5 class="mb-0 fw-semibold">Spicer Consulting</h5>
+              <div class="device-meta">Serial Number: SC 24123 • Firmware: 1.2.0</div>
+            </div>
           </div>
 
-              <div class="mt-3">
-              <h5 class="mb-0">Spicer Consulting</h5>
-              <div class="device-meta">Serila Number : SC 24123 • Firmware: 1.2.0</div>
-            </div>
+          <h4 class="mt-4 fw-bold">Administrator Access</h4>
+          <p class="help-text mb-4">Manage device settings and user accounts securely.</p>
 
-          <h4 class="mt-4">Administrator access</h4>
-          <p class="help-text">Manage device settings and user accounts</p>
-
-          <ul class="list-unstyled small-muted mt-3">
-            <li class="mb-2"><i class="bi bi-shield-lock-fill me-2"></i> 16 ADC Channel Support</li>
-            <li class="mb-2"><i class="bi bi-graph-up me-2"></i> Debug all attched modules </li>
-            <li class="mb-2"><i class="bi bi-wifi me-2"></i> Monitor device Helth</li>
+          <ul class="list-unstyled small-muted">
+            <li class="mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Supports 16 ADC Channels</li>
+            <li class="mb-3"><i class="bi bi-graph-up me-2"></i>Debug All Attached Modules</li>
+            <li class="mb-3"><i class="bi bi-wifi me-2"></i>Monitor Device Health</li>
           </ul>
 
-          <div class="mt-4 small-muted">IP: <strong>192.168.0.1</strong> ·Provisioned on: <strong>2025-12-05</strong></div>
+          <div class="mt-auto small-muted">IP: <strong>192.168.0.1</strong> • Provisioned on: <strong>2025-12-05</strong></div>
         </div>
 
         <!-- Right: login form -->
         <div class="col-lg-7 p-4 p-lg-5">
-          <div class="d-flex justify-content-between align-items-start mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
-              <h3 class="mb-0">Admin Login</h3>
-              <div class="small-muted">Enter your administrator credentials to continue</div>
+              <h3 class="mb-1 fw-bold">Admin Login</h3>
+              <div class="small-muted">Enter your administrator credentials to continue.</div>
             </div>
 
             <div class="text-end">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="themeToggle" aria-label="Toggle dark mode">
-                <label class="form-check-label small-muted" for="themeToggle">Dark</label>
+                <label class="form-check-label small-muted" for="themeToggle">Dark Mode</label>
               </div>
             </div>
           </div>
 
           <form id="loginForm" class="needs-validation" novalidate>
             <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
+              <label for="username" class="form-label fw-medium">Username</label>
               <input type="text" class="form-control" id="username" value="admin" required aria-describedby="userHelp">
               <div class="invalid-feedback">Please enter your username.</div>
               <div id="userHelp" class="form-text help-text">Default: <code>admin</code></div>
             </div>
 
             <div class="mb-3 position-relative">
-              <label for="password" class="form-label">Password</label>
+              <label for="password" class="form-label fw-medium">Password</label>
               <div class="input-group">
                 <input type="password" class="form-control" id="password" minlength="4" required aria-describedby="pwHelp">
-                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password"><i class="bi bi-eye"></i></button>
-                <div class="invalid-feedback">Please enter your password.</div>
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility"><i class="bi bi-eye"></i></button>
               </div>
+              <div class="invalid-feedback">Please enter a valid password (minimum 4 characters).</div>
               <div id="pwHelp" class="form-text help-text">Password is case-sensitive.</div>
             </div>
 
-            <div class="row align-items-center mb-3">
+            <div class="row align-items-center mb-4">
               <div class="col-auto">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" id="remember">
@@ -98,95 +231,89 @@
                 </div>
               </div>
               <div class="col text-end small-muted">
-                <a href="#" class="link-primary">Forgot password?</a>
+                <a href="#" class="text-decoration-none">Forgot password?</a>
               </div>
             </div>
 
-            <div class="d-grid mb-3">
-              <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
+            <div class="d-grid mb-4">
+              <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
             </div>
 
- 
-
-       
-
-            <div class="border-top pt-3 d-flex justify-content-between align-items-center">
-              <div class="small-muted">Last login: <strong id="lastLogin">—</strong></div>
-              <div class="small-muted">Build <strong>2025-12-05</strong></div>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center small-muted">
+              <div>Last login: <strong id="lastLogin">—</strong></div>
+              <div>Build: <strong>2025-12-05</strong></div>
             </div>
           </form>
 
-          <footer class="mt-3 small-muted text-center">Need help? Visit <a href="#">support.acme.example</a></footer>
+          <footer class="mt-4 small-muted text-center">Need help? Visit <a href="#">support.spicerconsulting.com</a></footer>
         </div>
       </div>
     </div>
   </main>
 
   <!-- Bootstrap JS bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
   <script>
-    // Simple form validation and interactions
-    (function(){
-      'use strict'
+    (function() {
+      'use strict';
 
       // Form validation on submit
       const form = document.getElementById('loginForm');
-      form.addEventListener('submit', function(e){
-        if (!form.checkValidity()){
-          e.preventDefault();
-          e.stopPropagation();
-        } else {
-          e.preventDefault();
-          // NOTE: replace below with real auth call
-          const username = document.getElementById('username').value;
-          const password = document.getElementById('password').value;
-          // Mock response for demo
-          if (username === 'admin' && password === 'admin'){
-            showToast('Login successful — redirecting...');
-            // simulate redirect
-            setTimeout(()=>{ window.location.href = '/admin'; }, 800);
-          } else {
-            showToast('Invalid username or password', true);
-          }
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
         }
-        form.classList.add('was-validated');
+
+        // Mock authentication (replace with real auth logic)
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        if (username === 'admin' && password === 'admin') {
+          showToast('Login successful — redirecting...', 'success');
+          setTimeout(() => { window.location.href = '/admin'; }, 800);
+        } else {
+          showToast('Invalid username or password', 'danger');
+        }
       });
 
-      // Password reveal
+      // Password toggle
       const togglePw = document.getElementById('togglePassword');
       const pwField = document.getElementById('password');
-      togglePw.addEventListener('click', function(){
+      togglePw.addEventListener('click', function() {
         const type = pwField.getAttribute('type') === 'password' ? 'text' : 'password';
         pwField.setAttribute('type', type);
         this.querySelector('i').classList.toggle('bi-eye');
         this.querySelector('i').classList.toggle('bi-eye-slash');
       });
 
-      // Theme toggle (light/dark) using data-bs-theme
+      // Theme toggle
       const themeToggle = document.getElementById('themeToggle');
-      themeToggle.addEventListener('change', e=>{
+      themeToggle.addEventListener('change', e => {
         document.documentElement.setAttribute('data-bs-theme', e.target.checked ? 'dark' : 'light');
       });
 
-      // Small toast utility
-      function showToast(message, isError=false){
-        // create ephemeral toast
+      // Toast utility
+      function showToast(message, variant = 'success') {
         const toast = document.createElement('div');
-        toast.className = 'position-fixed bottom-0 end-0 m-3 p-3 rounded shadow-sm';
-        toast.style.zIndex = 1080;
-        toast.innerHTML = `<div class="d-flex align-items-center gap-2 ${isError ? 'text-danger' : 'text-success'}">
-          <i class="bi ${isError ? 'bi-x-circle-fill' : 'bi-check-circle-fill'} fs-4"></i>
-          <div>${message}</div>
-        </div>`;
+        toast.className = `toast align-items-center text-bg-${variant} border-0 position-fixed bottom-0 end-0 m-3`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
         document.body.appendChild(toast);
-        setTimeout(()=>{ toast.classList.add('opacity-0'); toast.style.transition='opacity .45s'; }, 2000);
-        setTimeout(()=>{ toast.remove(); }, 2600);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
       }
 
-      // Display a mocked last login (for demo)
+      // Mock last login
       document.getElementById('lastLogin').textContent = new Date().toLocaleString();
-
     })();
   </script>
 </body>
