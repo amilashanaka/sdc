@@ -16,10 +16,12 @@
     :root {
       --primary-color: #0d6efd;
       --sidebar-width: 250px;
+      --sidebar-width-collapsed: 70px;
       --header-height: 60px;
       --text-muted: #6c757d;
       --bg-light: #f8f9fa;
       --border-color: #dee2e6;
+      --transition-speed: 0.3s;
     }
 
     [data-bs-theme="dark"] {
@@ -37,6 +39,7 @@
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       overflow-x: hidden;
+      transition: padding-left var(--transition-speed) ease;
     }
 
     /* Header */
@@ -52,7 +55,7 @@
       display: flex;
       align-items: center;
       padding: 0 1.5rem;
-      transition: left 0.3s ease;
+      transition: left var(--transition-speed) ease;
     }
 
     [data-bs-theme="dark"] .main-header {
@@ -78,7 +81,8 @@
       background: #fff;
       border-right: 1px solid var(--border-color);
       overflow-y: auto;
-      transition: left 0.3s ease;
+      overflow-x: hidden;
+      transition: width var(--transition-speed) ease;
       z-index: 1001;
     }
 
@@ -94,12 +98,13 @@
       border-bottom: 1px solid var(--border-color);
       text-decoration: none;
       color: inherit;
+      transition: padding var(--transition-speed) ease;
+      white-space: nowrap;
     }
 
     .brand-logo {
       width: 40px;
       height: 40px;
- 
       display: flex;
       align-items: center;
       justify-content: center;
@@ -114,6 +119,8 @@
     .brand-text {
       font-weight: 700;
       font-size: 1.125rem;
+      transition: opacity var(--transition-speed) ease, width var(--transition-speed) ease;
+      overflow: hidden;
     }
 
     .sidebar-menu {
@@ -123,6 +130,7 @@
 
     .nav-item {
       margin: 0.25rem 0.75rem;
+      position: relative;
     }
 
     .nav-link {
@@ -136,6 +144,8 @@
       transition: all 0.2s ease;
       font-weight: 500;
       font-size: 0.9375rem;
+      white-space: nowrap;
+      overflow: hidden;
     }
 
     [data-bs-theme="dark"] .nav-link {
@@ -156,6 +166,7 @@
       width: 20px;
       text-align: center;
       font-size: 1rem;
+      flex-shrink: 0;
     }
 
     .nav-link .right {
@@ -174,6 +185,9 @@
       text-transform: uppercase;
       color: var(--text-muted);
       letter-spacing: 0.5px;
+      transition: opacity var(--transition-speed) ease;
+      white-space: nowrap;
+      overflow: hidden;
     }
 
     .nav-treeview {
@@ -204,7 +218,7 @@
       padding: 1.5rem;
       min-height: calc(100vh - var(--header-height));
       background: var(--bg-light);
-      transition: margin-left 0.3s ease;
+      transition: margin-left var(--transition-speed) ease;
     }
 
     .content-header {
@@ -222,6 +236,112 @@
       padding: 0;
       margin: 0;
       font-size: 0.875rem;
+    }
+
+    /* Collapsed State */
+    body.sidebar-collapse {
+      --sidebar-width: var(--sidebar-width-collapsed);
+    }
+
+    body.sidebar-collapse .main-sidebar {
+      width: var(--sidebar-width-collapsed);
+    }
+
+    body.sidebar-collapse .main-header,
+    body.sidebar-collapse .content-wrapper {
+      left: var(--sidebar-width-collapsed);
+      margin-left: var(--sidebar-width-collapsed);
+    }
+
+    body.sidebar-collapse .brand-link {
+      padding: 1rem 0.5rem;
+      justify-content: center;
+    }
+
+    body.sidebar-collapse .brand-text,
+    body.sidebar-collapse .nav-link span:not(.right),
+    body.sidebar-collapse .nav-header {
+      opacity: 0;
+      width: 0;
+      visibility: hidden;
+    }
+
+    body.sidebar-collapse .nav-link {
+      padding: 0.75rem 0.5rem;
+      justify-content: center;
+    }
+
+    body.sidebar-collapse .nav-link .right {
+      display: none;
+    }
+
+    body.sidebar-collapse .nav-treeview {
+      position: absolute;
+      left: calc(var(--sidebar-width-collapsed) + 5px);
+      top: 0;
+      min-width: 200px;
+      background: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1002;
+      padding: 0.5rem 0;
+    }
+
+    [data-bs-theme="dark"] body.sidebar-collapse .nav-treeview {
+      background: #1a1d21;
+    }
+
+    body.sidebar-collapse .nav-treeview .nav-link {
+      padding: 0.6rem 1rem;
+      padding-left: 1rem;
+      justify-content: flex-start;
+    }
+
+    body.sidebar-collapse .nav-treeview .nav-link i {
+      font-size: 0.875rem;
+      margin-right: 0.5rem;
+    }
+
+    body.sidebar-collapse .has-treeview:hover .nav-treeview {
+      display: block;
+    }
+
+    body.sidebar-collapse .nav-item {
+      position: relative;
+    }
+
+    /* Tooltip for collapsed state */
+    body.sidebar-collapse .nav-link {
+      position: relative;
+    }
+
+    body.sidebar-collapse .nav-link::after {
+      content: attr(data-title);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: #333;
+      color: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+      z-index: 1003;
+      pointer-events: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-bs-theme="dark"] body.sidebar-collapse .nav-link::after {
+      background: #495057;
+    }
+
+    body.sidebar-collapse .nav-link:hover::after {
+      opacity: 1;
+      visibility: visible;
     }
 
     /* Info Boxes */
@@ -329,16 +449,6 @@
     }
 
     /* Responsive */
-    body.sidebar-collapse .main-sidebar {
-      left: calc(var(--sidebar-width) * -1);
-    }
-
-    body.sidebar-collapse .main-header,
-    body.sidebar-collapse .content-wrapper {
-      margin-left: 0;
-      left: 0;
-    }
-
     @media (max-width: 991px) {
       .main-sidebar {
         left: calc(var(--sidebar-width) * -1);
@@ -352,54 +462,14 @@
 
       body.sidebar-open .main-sidebar {
         left: 0;
+        width: var(--sidebar-width);
       }
-    }
 
-    /* User Panel */
-    .user-panel {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .user-panel-image {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-    }
-
-    .user-panel-info {
-      flex: 1;
-    }
-
-    .user-panel-info .name {
-      font-weight: 600;
-      font-size: 0.9375rem;
-    }
-
-    .user-panel-info .status {
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 0.25rem;
-    }
-
-    .status-dot.online {
-      background: #28a745;
+      body.sidebar-open .main-header,
+      body.sidebar-open .content-wrapper {
+        left: var(--sidebar-width);
+        margin-left: var(--sidebar-width);
+      }
     }
   </style>
 </head>
@@ -413,30 +483,28 @@
       <span class="brand-text">Spicer</span>
     </a>
 
- 
-
     <nav class="mt-2">
       <ul class="sidebar-menu">
         <li class="nav-item">
-          <a href="#" class="nav-link active">
+          <a href="#" class="nav-link active" data-title="Dashboard">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Device Status">
             <i class="fas fa-microchip"></i>
             <span>Device Status</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="ADC Channels">
             <i class="fas fa-chart-line"></i>
             <span>ADC Channels</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Modules">
             <i class="fas fa-plug"></i>
             <span>Modules</span>
           </a>
@@ -444,32 +512,32 @@
 
         <li class="nav-header">System</li>
         <li class="nav-item has-treeview">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Settings">
             <i class="fas fa-cog"></i>
             <span>Settings</span>
             <i class="fas fa-angle-right right"></i>
           </a>
           <ul class="nav-treeview">
             <li class="nav-item">
-              <a href="#" class="nav-link">
+              <a href="#" class="nav-link" data-title="General Settings">
                 <i class="fas fa-circle"></i>
                 <span>General</span>
               </a>
             </li>
             <li class="nav-item">
-              <a href="#" class="nav-link active">
+              <a href="#" class="nav-link active" data-title="Device Settings">
                 <i class="fas fa-circle"></i>
                 <span>Device</span>
               </a>
             </li>
             <li class="nav-item">
-              <a href="#" class="nav-link">
+              <a href="#" class="nav-link" data-title="Security Settings">
                 <i class="fas fa-circle"></i>
                 <span>Security</span>
               </a>
             </li>
             <li class="nav-item">
-              <a href="#" class="nav-link">
+              <a href="#" class="nav-link" data-title="Notifications">
                 <i class="fas fa-circle"></i>
                 <span>Notifications</span>
               </a>
@@ -477,19 +545,19 @@
           </ul>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="User Management">
             <i class="fas fa-users"></i>
             <span>User Management</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Network">
             <i class="fas fa-network-wired"></i>
             <span>Network</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Logs">
             <i class="fas fa-file-alt"></i>
             <span>Logs</span>
           </a>
@@ -497,13 +565,13 @@
 
         <li class="nav-header">Support</li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Documentation">
             <i class="fas fa-book"></i>
             <span>Documentation</span>
           </a>
         </li>
         <li class="nav-item">
-          <a href="#" class="nav-link">
+          <a href="#" class="nav-link" data-title="Support">
             <i class="fas fa-life-ring"></i>
             <span>Support</span>
           </a>
@@ -791,10 +859,22 @@
   <script>
     // Sidebar toggle
     const sidebarToggle = document.getElementById('sidebarToggle');
+    let isCollapsed = false;
+
     sidebarToggle.addEventListener('click', () => {
       if (window.innerWidth > 991) {
+        // Desktop toggle
         document.body.classList.toggle('sidebar-collapse');
+        isCollapsed = document.body.classList.contains('sidebar-collapse');
+        
+        // Update toggle icon
+        if (isCollapsed) {
+          sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        } else {
+          sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
+        }
       } else {
+        // Mobile toggle
         document.body.classList.toggle('sidebar-open');
       }
     });
@@ -808,20 +888,35 @@
     // Submenu handling
     document.querySelectorAll('.has-treeview > .nav-link').forEach(link => {
       link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const parent = link.parentElement;
-        const isOpen = parent.classList.contains('menu-open');
-        
-        // Close all other submenus
-        document.querySelectorAll('.nav-item.menu-open').forEach(item => {
-          if (item !== parent) {
-            item.classList.remove('menu-open');
-          }
-        });
-        
-        // Toggle current submenu
-        parent.classList.toggle('menu-open');
+        // Don't prevent default on collapsed sidebar - show hover tooltip instead
+        if (!document.body.classList.contains('sidebar-collapse') || window.innerWidth <= 991) {
+          e.preventDefault();
+          const parent = link.parentElement;
+          const isOpen = parent.classList.contains('menu-open');
+          
+          // Close all other submenus
+          document.querySelectorAll('.nav-item.menu-open').forEach(item => {
+            if (item !== parent) {
+              item.classList.remove('menu-open');
+            }
+          });
+          
+          // Toggle current submenu
+          parent.classList.toggle('menu-open');
+        }
       });
+    });
+
+    // Close submenus when clicking outside (for collapsed sidebar)
+    document.addEventListener('click', (e) => {
+      if (document.body.classList.contains('sidebar-collapse') && window.innerWidth > 991) {
+        const navItems = document.querySelectorAll('.nav-item.menu-open');
+        if (!e.target.closest('.nav-item')) {
+          navItems.forEach(item => {
+            item.classList.remove('menu-open');
+          });
+        }
+      }
     });
 
     // Auto-open Settings submenu on page load (since Device is active)
@@ -864,6 +959,15 @@
             max: 100
           }
         }
+      }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 991) {
+        // On mobile, ensure sidebar is not in collapsed state
+        document.body.classList.remove('sidebar-collapse');
+        sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
       }
     });
   </script>
