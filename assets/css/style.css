@@ -172,8 +172,7 @@
     }
 
     [data-bs-theme="dark"] .brand-logo {
-      background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-      box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+      
     }
 
     [data-bs-theme="dark"] .form-control {
