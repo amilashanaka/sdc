@@ -6,7 +6,7 @@ define('DB_HOST','localhost');
 
 define('DB_USER','root');
 define('DB_PASS', '');
-define('DB_NAME','tenx');
+define('DB_NAME','sdc');
 
 
 // define('DB_USER','u710400283_tenx');

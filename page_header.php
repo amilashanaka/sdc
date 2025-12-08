@@ -1,6 +1,6 @@
  
 <?php 
-include_once '../inc/messages.php';
+include_once './inc/messages.php';
 
 ?>
 <div class="content-header">

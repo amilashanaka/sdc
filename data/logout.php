@@ -7,5 +7,5 @@ unset($_SESSION['login_name']);
 unset($_SESSION['role']);
 
 session_destroy();
-header('Location: ../../admin/index');
+header('Location: ../index');
 exit();
