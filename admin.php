@@ -1,45 +1,44 @@
-<?php 
+<?php
 include_once './header.php';
-include_once '../controllers/index.php';
+include_once './controllers/index.php';
 
 // Initialize variables
 $profile_image = null;
+// Use a null coalesce operator for cleaner initialization
 $id = isset($_GET['id']) ? base64_decode($_GET['id']) : 0;
 $role = isset($_GET['role']) ? base64_decode($_GET['role']) : 0;
 $row = null;
 $user_list = null;
-$user_act = isset($_SESSION['login']) ? $_SESSION['login'] : 0;
-$user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 0;
+$user_act = $_SESSION['login'] ?? 0;
+$user_role = $_SESSION['role'] ?? 0;
 
 // Comprehensive form configuration
 $form_config = [
     'heading' => 'Admin',
     'form_action' => 'data/register_admin.php',
-    'assign_action' => 'data/asign_clients.php',
     'upload_action' => './data/upload_profile_pic.php',
     'change_admin_action' => 'data/change_admin.php',
-    
-    // Tab configuration
+
+    // Tab configuration - tab3 (Assign Clients) is removed
     'tabs' => [
         'tab1' => [
             'id' => 'tab-1',
             'label' => 'Profile',
-            'active' => true
+            'active' => true,
+            'permission' => 'can_edit_profile' // New config key for tab access control
         ],
         'tab2' => [
             'id' => 'tab-2',
             'label' => 'Reset Password',
+            'permission' => 'can_reset_password', // New config key for tab access control
             'role_specific_labels' => [
                 3 => 'Reset Pin'
             ]
-        ],
-        'tab3' => [
-            'id' => 'tab-3',
-            'label' => 'Assign Clients'
         ]
+      
     ],
-    
-    // Button configuration
+
+    // Button configuration (unchanged)
     'buttons' => [
         'add_new' => [
             'text' => 'Add New',
@@ -73,8 +72,8 @@ $form_config = [
             'confirm_message' => 'Are you sure you want to login as this user?'
         ]
     ],
-    
-    // Profile statistics configuration
+
+    // Profile statistics configuration (unchanged)
     'profile_stats' => [
         'role_1_2' => [ // Roles less than 3
             'my_team' => ['label' => 'My Team', 'value' => '10'],
@@ -87,8 +86,8 @@ $form_config = [
             'my_clients' => ['label' => 'My clients', 'value' => '80']
         ]
     ],
-    
-    // Form inputs configuration
+
+    // Form inputs configuration (unchanged)
     'inputs' => [
         'f1' => ['type' => 'h', 'skip' => true],
         'f2' => ['label' => 'User Name*', 'type' => 'text', 'required' => true, 'class' => 'form-control'],
@@ -101,38 +100,38 @@ $form_config = [
         'f10' => ['label' => 'Address', 'type' => 'textarea', 'class' => 'form-control'],
         'f11' => ['label' => 'National Insurance number', 'type' => 'text', 'class' => 'form-control'],
         'pwd' => [
-            'label' => 'Password*', 
-            'type' => 'password', 
+            'label' => 'Password*',
+            'type' => 'password',
             'class' => 'form-control',
             'role_specific' => [
                 3 => ['label' => 'Pin', 'type' => 'number']
             ]
         ],
         'pwd_conf' => [
-            'label' => 'Confirm Password*', 
-            'type' => 'password', 
+            'label' => 'Confirm Password*',
+            'type' => 'password',
             'class' => 'form-control',
             'role_specific' => [
                 3 => ['label' => 'Confirm Pin', 'type' => 'number']
             ]
         ],
         'user' => [
-            'type' => 'combobox', 
-            'class' => 'form-control select2bs4', 
-            'dropdown-color' => 'success', 
+            'type' => 'combobox',
+            'class' => 'form-control select2bs4',
+            'dropdown-color' => 'success',
             'items' => [['value' => '', 'label' => '---SELECT ---']]
         ]
     ],
-    
-    // Layout configuration
+
+    // Layout configuration (unchanged)
     'layout' => [
         'profile_column_class' => 'col-md-3',
         'form_column_class_with_profile' => 'col-md-9',
         'form_column_class_without_profile' => 'col-md-12',
         'button_column_class' => 'col-lg-3 col-md-3 form-group'
     ],
-    
-    // File upload configuration
+
+    // File upload configuration (unchanged)
     'file_upload' => [
         'accept_types' => 'image/png, image/jpeg, image/gif',
         'filepond_settings' => [
@@ -144,28 +143,28 @@ $form_config = [
             'stylePanelLayout' => 'compact circle'
         ]
     ],
-    
-    // Permission configuration
+
+    // Permission configuration (can_assign_clients is unused but kept for completeness)
     'permissions' => [
         'can_edit_profile' => function($user_act, $user_role, $row_id, $role) {
-            return ($user_act == $row_id && $user_role == 2) || 
-                   $user_act == 1 || 
+            return ($user_act == $row_id && $user_role == 2) ||
+                   $user_act == 1 ||
                    ($user_role == 2 && $role == 3);
         },
         'can_reset_password' => function($user_act, $user_role, $row_id, $role) {
-            return ($user_act == $row_id && $user_role == 2) || 
-                   $user_act == 1 || 
+            return ($user_act == $row_id && $user_role == 2) ||
+                   $user_act == 1 ||
                    ($user_role == 2 && $role == 3);
         },
         'can_assign_clients' => function($role) {
-            return $role > 1;
+            return $role > 1; // Kept for config structure
         },
         'can_login_as' => function($row_id, $user_act) {
             return isset($row_id) && $row_id != $user_act;
         }
     ],
-    
-    // Form field visibility by role and context
+
+    // Form field visibility by role and context (unchanged)
     'field_visibility' => [
         'new_form' => [
             'role_2' => ['f6', 'f2', 'f3'],
@@ -180,8 +179,8 @@ $form_config = [
             'role_3' => ['pwd', 'pwd_conf'] // Will be modified for pin
         ]
     ],
-    
-    // Messages and text
+
+    // Messages and text (unchanged)
     'messages' => [
         'page_titles' => [
             'new' => 'New %s',
@@ -191,23 +190,23 @@ $form_config = [
     ]
 ];
 
-// Helper function to get button HTML
+// Helper function to get button HTML (unchanged)
 function getButton($config, $button_key, $additional_attributes = '') {
     $button = $config['buttons'][$button_key];
     $class = $button['class'];
     $text = $button['text'];
     $type = $button['type'] ?? 'button';
     $name = isset($button['name']) ? "name=\"{$button['name']}\"" : '';
-    
+    $attributes = isset($button['attributes']) ? $button['attributes'] : ''; // Added to allow array merging
     return "<button type=\"{$type}\" {$name} class=\"{$class}\" {$additional_attributes}>{$text}</button>";
 }
 
-// Helper function to check permissions
+// Helper function to check permissions (unchanged)
 function hasPermission($config, $permission_key, ...$args) {
     return $config['permissions'][$permission_key](...$args);
 }
 
-// Helper function to get tab label
+// Helper function to get tab label (unchanged)
 function getTabLabel($config, $tab_key, $role = null) {
     $tab = $config['tabs'][$tab_key];
     if ($role && isset($tab['role_specific_labels'][$role])) {
@@ -216,7 +215,7 @@ function getTabLabel($config, $tab_key, $role = null) {
     return $tab['label'];
 }
 
-// Fetch admin data if ID exists
+// Fetch admin data if ID exists (unchanged)
 if ($id > 0) {
     $row = $admin->getAdminById($id)['admin'];
     $role = $row['f1'];
@@ -226,29 +225,24 @@ if ($id > 0) {
     }
 }
 
-// Include other required files
+// Include other required files (unchanged)
 include_once './navbar.php';
 include_once './sidebar.php';
 ?>
 
-<!-- Content Wrapper. Contains page content -->
 <div class='content-wrapper'>
-    <!-- Content Header (Page header) -->
     <?php
     $heading = $form_config['heading'];
-    $page_title = $id > 0 ? 
-        sprintf($form_config['messages']['page_titles']['update'], $heading) : 
+    $page_title = $id > 0 ?
+        sprintf($form_config['messages']['page_titles']['update'], $heading) :
         sprintf($form_config['messages']['page_titles']['new'], $heading);
     include_once './page_header.php';
     ?>
-    <!-- /.content-header -->
-
     <section class="content">
         <div class="container-fluid">
             <div class="row">
                 <?php if ($id > 0) : ?>
                     <div class="<?= $form_config['layout']['profile_column_class'] ?>">
-                        <!-- Profile Image -->
                         <div class="card card-primary card-outline">
                             <div class="card-body box-profile">
                                 <div class="text-center">
@@ -273,7 +267,7 @@ include_once './sidebar.php';
                                     <?php if ($role < 3) : ?>
                                         <?php foreach ($form_config['profile_stats']['role_1_2'] as $key => $stat) : ?>
                                             <li class="list-group-item">
-                                                <b><?= $stat['label'] ?></b> 
+                                                <b><?= $stat['label'] ?></b>
                                                 <a class="float-right"><?= $stat['value'] ?></a>
                                             </li>
                                         <?php endforeach; ?>
@@ -282,7 +276,7 @@ include_once './sidebar.php';
                                     <?php if ($role == 3) : ?>
                                         <?php foreach ($form_config['profile_stats']['role_3'] as $key => $stat) : ?>
                                             <li class="list-group-item">
-                                                <b><?= $stat['label'] ?></b> 
+                                                <b><?= $stat['label'] ?></b>
                                                 <a class="float-right">
                                                     <?= isset($stat['field']) ? (($row != null) ? $row[$stat['field']] : "") : $stat['value'] ?>
                                                 </a>
@@ -291,7 +285,7 @@ include_once './sidebar.php';
                                     <?php endif; ?>
 
                                     <?php if (hasPermission($form_config, 'can_login_as', $row['id'] ?? null, $user_act)) : ?>
-                                        <?php 
+                                        <?php
                                         $onclick = "changeAdmin('" . base64_encode($row['id']) . "','" . base64_encode($row['f1']) . "')";
                                         echo getButton($form_config, 'login_as', "onclick=\"$onclick\"");
                                         ?>
@@ -306,177 +300,165 @@ include_once './sidebar.php';
                     <div class="card">
                         <div class="card-header p-2">
                             <ul class="nav nav-pills">
-                                <?php if ($id == 0) : ?>
+                                <?php
+                                $first_tab = true;
+                                foreach ($form_config['tabs'] as $tab_key => $tab) :
+                                    // Logic for tab visibility based on context (new form vs. edit form) and permissions
+                                    $show_tab = false;
+
+                                    if ($tab_key === 'tab1' && $id == 0) {
+                                        $show_tab = true; // Always show Profile on New form
+                                    } elseif ($id > 0 && isset($tab['permission'])) {
+                                        // On Edit form, check the defined permission for the tab
+                                        $permission_key = $tab['permission'];
+                                        if (hasPermission($form_config, $permission_key, $user_act, $user_role, $row['id'] ?? null, $role)) {
+                                            $show_tab = true;
+                                        }
+                                    }
+
+                                    if ($show_tab) :
+                                        $is_active = $first_tab ? 'active' : '';
+                                ?>
                                     <li class="nav-item">
-                                        <a class="nav-link active" href="#<?= $form_config['tabs']['tab1']['id'] ?>" data-toggle="tab">
-                                            <?= getTabLabel($form_config, 'tab1') ?>
+                                        <a class="nav-link <?= $is_active ?>" href="#<?= $tab['id'] ?>" data-toggle="tab">
+                                            <?= getTabLabel($form_config, $tab_key, $role) ?>
                                         </a>
                                     </li>
-                                <?php elseif (hasPermission($form_config, 'can_edit_profile', $user_act, $user_role, $row['id'], $role)) : ?>
-                                    <li class="nav-item">
-                                        <a class="nav-link active" href="#<?= $form_config['tabs']['tab1']['id'] ?>" data-toggle="tab">
-                                            <?= getTabLabel($form_config, 'tab1') ?>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="#<?= $form_config['tabs']['tab2']['id'] ?>" data-toggle="tab">
-                                            <?= getTabLabel($form_config, 'tab2', $role) ?>
-                                        </a>
-                                    </li>
-                                    <?php if (hasPermission($form_config, 'can_assign_clients', $role)) : ?>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="#<?= $form_config['tabs']['tab3']['id'] ?>" data-toggle="tab">
-                                                <?= getTabLabel($form_config, 'tab3') ?>
-                                            </a>
-                                        </li>
-                                    <?php endif; ?>
-                                <?php else : ?>
-                                    <li class="nav-item">
-                                        <a class="nav-link active" href="#<?= $form_config['tabs']['tab1']['id'] ?>" data-toggle="tab">
-                                            <?= getTabLabel($form_config, 'tab1') ?>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
+                                <?php
+                                        $first_tab = false;
+                                    endif;
+                                endforeach;
+                                ?>
                             </ul>
                         </div>
 
                         <div class="card-body">
                             <div class="tab-content">
-                                <!-- Profile Tab -->
-                                <div class="active tab-pane" id="<?= $form_config['tabs']['tab1']['id'] ?>">
-                                    <form action="<?= $form_config['form_action'] ?>" class="form-horizontal" method="post" enctype="multipart/form-data" name="update_members">
-                                        <input type="hidden" name="register_by" value="<?= $user_act ?>">
-                                        <input type="hidden" name="f1" value="<?= $role ?>">
-                                        <?php if ($id == 0) : ?>
-                                            <input type="hidden" name="action" value="register">
-                                        <?php else : ?>
-                                            <input type="hidden" name="action" value="update">
-                                            <input type="hidden" name="id" value="<?= $id ?>">
-                                        <?php endif; ?>
+                                <?php
+                                // Reset the first tab flag for content
+                                $first_tab = true;
+                                foreach ($form_config['tabs'] as $tab_key => $tab) :
+                                    // Re-run visibility check to match the nav logic
+                                    $show_tab = false;
+                                    if ($tab_key === 'tab1' && $id == 0) {
+                                        $show_tab = true;
+                                    } elseif ($id > 0 && isset($tab['permission'])) {
+                                        $permission_key = $tab['permission'];
+                                        if (hasPermission($form_config, $permission_key, $user_act, $user_role, $row['id'] ?? null, $role)) {
+                                            $show_tab = true;
+                                        }
+                                    }
 
-                                        <?php if ($id > 0) : ?>
-                                            <div class="row">
-                                                <?php
-                                                // Show fields for edit form
-                                                foreach ($form_config['field_visibility']['edit_form']['all_roles'] as $field) {
-                                                    echo input($field);
-                                                }
-                                                if ($role != 1) {
-                                                    foreach ($form_config['field_visibility']['edit_form']['exclude_role_1'] as $field) {
-                                                        echo input($field);
-                                                    }
-                                                }
-                                                ?>
-                                            </div>
-                                        <?php endif; ?>
+                                    if ($show_tab) :
+                                        $is_active = $first_tab ? 'active' : '';
+                                ?>
+                                    <div class="<?= $is_active ?> tab-pane" id="<?= $tab['id'] ?>">
 
-                                        <div class="row">
-                                            <?php if ($role == 2 && $id == 0) : ?>
-                                                <?php
-                                                foreach ($form_config['field_visibility']['new_form']['role_2'] as $field) {
-                                                    echo input($field);
-                                                }
-                                                ?>
-                                            <?php endif; ?>
-
-                                            <?php if ($role == 3 && $id == 0) : ?>
-                                                <?php
-                                                foreach ($form_config['field_visibility']['new_form']['role_3'] as $field) {
-                                                    echo input($field);
-                                                }
-                                                ?>
-                                            <?php endif; ?>
-                                        </div>
-
-                                        <div class="col-lg-12 col-md-12 form-group">
-                                            <div class="row">
+                                        <?php if ($tab_key === 'tab1') : // Profile Tab Content ?>
+                                            <form action="<?= $form_config['form_action'] ?>" class="form-horizontal" method="post" enctype="multipart/form-data" name="update_members">
+                                                <input type="hidden" name="register_by" value="<?= $user_act ?>">
+                                                <input type="hidden" name="f1" value="<?= $role ?>">
                                                 <?php if ($id == 0) : ?>
-                                                    <div class="<?= $form_config['layout']['button_column_class'] ?>">
-                                                        <?= getButton($form_config, 'add_new') ?>
-                                                    </div>
+                                                    <input type="hidden" name="action" value="register">
                                                 <?php else : ?>
-                                                    <div class="<?= $form_config['layout']['button_column_class'] ?>">
-                                                        <?= getButton($form_config, 'update') ?>
+                                                    <input type="hidden" name="action" value="update">
+                                                    <input type="hidden" name="id" value="<?= $id ?>">
+                                                <?php endif; ?>
+
+                                                <?php if ($id > 0) : // Edit Form Fields ?>
+                                                    <div class="row">
+                                                        <?php
+                                                        // Show fields for edit form
+                                                        foreach ($form_config['field_visibility']['edit_form']['all_roles'] as $field) {
+                                                            echo input($field);
+                                                        }
+                                                        if ($role != 1) {
+                                                            foreach ($form_config['field_visibility']['edit_form']['exclude_role_1'] as $field) {
+                                                                echo input($field);
+                                                            }
+                                                        }
+                                                        ?>
                                                     </div>
                                                 <?php endif; ?>
-                                                <div class="<?= $form_config['layout']['button_column_class'] ?>">
-                                                    <?= getButton($form_config, 'reset') ?>
+
+                                                <div class="row">
+                                                    <?php if ($id == 0) : // New Form Fields ?>
+                                                        <?php
+                                                        $fields_to_show = $form_config['field_visibility']['new_form']['role_' . $role] ?? [];
+                                                        foreach ($fields_to_show as $field) {
+                                                            echo input($field);
+                                                        }
+                                                        ?>
+                                                    <?php endif; ?>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
 
-                                <!-- Reset Password Tab -->
-                                <div class="tab-pane" id="<?= $form_config['tabs']['tab2']['id'] ?>">
-                                    <form action="<?= $form_config['form_action'] ?>" method="post" enctype="multipart/form-data">
-                                        <input type="hidden" name="update_by" value="<?= $user_act ?>">
-                                        <input type="hidden" name="f1" value="<?= $role ?>">
-                                        <input type="hidden" name="action" value="reset_pwd">
-                                        <input type="hidden" name="id" value="<?= $id ?>">
-
-                                        <?php if (($role == 1 || $role == 2) && $id > 0) : ?>
-                                            <?php
-                                            foreach ($form_config['field_visibility']['reset_password']['role_1_2'] as $field) {
-                                                echo input($field);
-                                            }
-                                            ?>
-                                        <?php endif; ?>
-
-                                        <?php if ($role == 3 && $id > 0) : ?>
-                                            <?php
-                                            // Modify field labels for role 3 (Pin instead of Password)
-                                            $form_config['inputs']['pwd']['label'] = $form_config['inputs']['pwd']['role_specific'][3]['label'];
-                                            $form_config['inputs']['pwd']['type'] = $form_config['inputs']['pwd']['role_specific'][3]['type'];
-                                            $form_config['inputs']['pwd_conf']['label'] = $form_config['inputs']['pwd_conf']['role_specific'][3]['label'];
-                                            $form_config['inputs']['pwd_conf']['type'] = $form_config['inputs']['pwd_conf']['role_specific'][3]['type'];
-                                            
-                                            foreach ($form_config['field_visibility']['reset_password']['role_3'] as $field) {
-                                                echo input($field);
-                                            }
-                                            ?>
-                                        <?php endif; ?>
-
-                                        <div class="col-lg-12 col-md-12 form-group">
-                                            <div class="row">
-                                                <div class="<?= $form_config['layout']['button_column_class'] ?>">
-                                                    <?= getButton($form_config, 'reset') ?>
-                                                </div>
-                                                <div class="<?= $form_config['layout']['button_column_class'] ?>">
-                                                    <?= getButton($form_config, 'clear') ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-
-                                <!-- Assign Clients Tab -->
-                                <div class="tab-pane" id="<?= $form_config['tabs']['tab3']['id'] ?>">
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <form action="<?= $form_config['assign_action'] ?>" class="form-horizontal" method="post" enctype="multipart/form-data" name="register_credit">
-                                                    <input type="hidden" name="admin" value="<?= $id ?>">
-                                                    <input type="hidden" name="role" value="<?= $role ?>">
-                                                    <input type="hidden" name="register_by" value="<?= $user_act ?>">
+                                                <div class="col-lg-12 col-md-12 form-group">
                                                     <div class="row">
-                                                        <div class="col-md-3">
-                                                            <span><?= $form_config['messages']['select_client_label'] ?></span>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <?php echo input('user'); ?>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <div class="form-group">
-                                                                <?= getButton($form_config, 'assign') ?>
+                                                        <?php if ($id == 0) : ?>
+                                                            <div class="<?= $form_config['layout']['button_column_class'] ?>">
+                                                                <?= getButton($form_config, 'add_new') ?>
                                                             </div>
+                                                        <?php else : ?>
+                                                            <div class="<?= $form_config['layout']['button_column_class'] ?>">
+                                                                <?= getButton($form_config, 'update') ?>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <div class="<?= $form_config['layout']['button_column_class'] ?>">
+                                                            <?= getButton($form_config, 'reset') ?>
                                                         </div>
                                                     </div>
-                                                </form>
-                                            </div>
-                                        </div>
+                                                </div>
+                                            </form>
+
+                                        <?php elseif ($tab_key === 'tab2') : // Reset Password Tab Content ?>
+                                            <form action="<?= $form_config['form_action'] ?>" method="post" enctype="multipart/form-data">
+                                                <input type="hidden" name="update_by" value="<?= $user_act ?>">
+                                                <input type="hidden" name="f1" value="<?= $role ?>">
+                                                <input type="hidden" name="action" value="reset_pwd">
+                                                <input type="hidden" name="id" value="<?= $id ?>">
+
+                                                <?php if ($id > 0) : ?>
+                                                    <div class="row">
+                                                        <?php
+                                                        // Modify field config for Role 3 before rendering
+                                                        if ($role == 3) {
+                                                             $form_config['inputs']['pwd']['label'] = $form_config['inputs']['pwd']['role_specific'][3]['label'];
+                                                             $form_config['inputs']['pwd']['type'] = $form_config['inputs']['pwd']['role_specific'][3]['type'];
+                                                             $form_config['inputs']['pwd_conf']['label'] = $form_config['inputs']['pwd_conf']['role_specific'][3]['label'];
+                                                             $form_config['inputs']['pwd_conf']['type'] = $form_config['inputs']['pwd_conf']['role_specific'][3]['type'];
+                                                        }
+
+                                                        // Get fields based on role
+                                                        $fields_to_show = ($role == 3)
+                                                            ? $form_config['field_visibility']['reset_password']['role_3']
+                                                            : $form_config['field_visibility']['reset_password']['role_1_2'];
+
+                                                        foreach ($fields_to_show as $field) {
+                                                            echo input($field);
+                                                        }
+                                                        ?>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <div class="col-lg-12 col-md-12 form-group">
+                                                    <div class="row">
+                                                        <div class="<?= $form_config['layout']['button_column_class'] ?>">
+                                                            <?= getButton($form_config, 'reset') ?>
+                                                        </div>
+                                                        <div class="<?= $form_config['layout']['button_column_class'] ?>">
+                                                            <?= getButton($form_config, 'clear') ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        <?php endif; ?>
+
                                     </div>
-                                </div>
+                                <?php
+                                        $first_tab = false;
+                                    endif;
+                                endforeach;
+                                ?>
                             </div>
                         </div>
                     </div>
@@ -493,7 +475,7 @@ include_once './sidebar.php';
         const userId = '<?= $id ?>';
         const hasImage = Boolean('<?= $profile_image ? 'true' : 'false' ?>');
         const uploadUrl = '<?= $form_config['upload_action'] ?>';
-        
+
         // Get FilePond settings from config
         const filePondSettings = <?= json_encode($form_config['file_upload']['filepond_settings']) ?>;
 
@@ -536,12 +518,12 @@ include_once './sidebar.php';
         $(document).on('click', '.toggle-password', function() {
             const target = $(this).data('target');
             const icon = $(this).find('i');
-            
-            if ($(target).attr('type') === 'password') {
+
+            if ($(target).attr('type') === 'password' || $(target).attr('type') === 'number') {
                 $(target).attr('type', 'text');
                 icon.removeClass('fa-eye').addClass('fa-eye-slash');
             } else {
-                $(target).attr('type', 'password');
+                $(target).attr('type', $(target).data('original-type') || 'password'); // Reset to original type
                 icon.removeClass('fa-eye-slash').addClass('fa-eye');
             }
         });
@@ -550,7 +532,7 @@ include_once './sidebar.php';
     function changeAdmin(id, role) {
         const confirmMessage = '<?= $form_config['buttons']['login_as']['confirm_message'] ?>';
         const changeAdminUrl = '<?= $form_config['change_admin_action'] ?>';
-        
+
         if (confirm(confirmMessage)) {
             window.location.href = changeAdminUrl + '?id=' + id + '&role=' + role;
         }
