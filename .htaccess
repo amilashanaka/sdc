@@ -1,36 +1,22 @@
-# 1. Core Apache Directives
-Options -Indexes          # Disables directory browsing (security)
-DirectoryIndex index.php  # Sets the default file to load
+Options -Indexes
+DirectoryIndex index.php
 
-## 2. URL Rewriting (Mod_Rewrite)
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /  <-- ROOT PATH
     
-    # Set the base path for your application.
-    # Use / if your app is in /var/www/html/
-    # Use /my-app/ if your app is in /var/www/html/my-app/
-    RewriteBase /my-app/ 
-
-    # 🛑 CRITICAL FIX: STOP THE LOOP 🛑
-    # If the request is already for index.php, stop rewriting.
     RewriteRule ^index\.php$ - [L]
 
-    # 3. Skip files and directories that actually exist
-    # If the requested URI is NOT an existing file
+    # If the request is NOT for an existing file and NOT for an existing directory
     RewriteCond %{REQUEST_FILENAME} !-f
-    # AND the requested URI is NOT an existing directory
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # 4. Route all remaining requests to index.php
-    # The [QSA] flag preserves any existing query string (e.g., ?foo=bar)
-    # The [L] flag stops the rewriting process.
+    # Route everything else to index.php
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
-
-## 5. Security Headers (Mod_Headers)
+# Security headers (rest of your file)
 <IfModule mod_headers.c>
-    # Note: These require 'mod_headers' to be enabled (sudo a2enmod headers)
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
