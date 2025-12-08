@@ -1,22 +1,29 @@
+# 1. Core Directives
 Options -Indexes
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /my-app/   # <-- Define your subdirectory path here
+    
+    # 2. Define the Base Path
+    # IMPORTANT: Change /my-app/ to your actual sub-directory, 
+    # or use / if the app is in the document root.
+    RewriteBase /my-app/ 
 
+    # 3. Skip existing assets/files/directories
     # Allow access to assets folder
-    RewriteRule ^assets/(.*)$ - [L]
+    RewriteRule ^assets/ - [L]
 
-    # If file or directory exists, serve it directly
+    # If the request is NOT for an existing file
     RewriteCond %{REQUEST_FILENAME} !-f
+    # And the request is NOT for an existing directory
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # Route to index.php
+    # 4. Route everything else to index.php
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
-# Security headers
+# 5. Security Headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
