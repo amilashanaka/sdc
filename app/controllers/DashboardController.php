@@ -6,8 +6,8 @@ class DashboardController {
 
     public function index() {
         $user = new User();
-        $currentUser = $user->findById($_SESSION['user_id']);
-        $users = $user->getAll();
+        $currentUser = $user->find_by_id($_SESSION['user_id']);
+        $users = $user->all();
         
         $this->view('dashboard', [
             'user' => $currentUser,
@@ -18,7 +18,7 @@ class DashboardController {
 
     public function profile() {
         $user = new User();
-        $currentUser = $user->findById($_SESSION['user_id']);
+        $currentUser = $user->find_by_id($_SESSION['user_id']);
         
         $this->view('dashboard', [
             'user' => $currentUser,
