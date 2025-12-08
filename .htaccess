@@ -3,21 +3,17 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # If you're in a subdirectory, this will auto-adjust
-    # Get the directory path where .htaccess is located
-    RewriteCond %{REQUEST_URI}::$1 ^(.*?)(.*)::\2$
-    RewriteRule ^(.*)$ - [E=BASE:%1]
-    
+    RewriteBase /my-app/   # <-- Define your subdirectory path here
+
     # Allow access to assets folder
     RewriteRule ^assets/(.*)$ - [L]
-    
+
     # If file or directory exists, serve it directly
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    
+
     # Route to index.php
-    RewriteRule ^(.*)$ %{ENV:BASE}index.php?url=$1 [QSA,L]
+    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
 # Security headers
