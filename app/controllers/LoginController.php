@@ -1,45 +1,68 @@
 <?php
-class LoginController {
-    public function index() {
-        // Check if already logged in
-        if (isset($_SESSION['user_id'])) {
-            $this->redirect('/dashboard');
+
+class LoginController 
+{
+    private Auth $auth;
+
+    public function __construct()
+    {
+        $this->auth = new Auth();
+    }
+
+    public function index()
+    {
+        // already logged?
+        if (!empty($_SESSION['user_id'])) {
+            return $this->redirect('/dashboard');
         }
 
         $error = '';
-        
-        // Handle login
+
+        // handle login POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'] ?? '';
+
+            $username = trim($_POST['username'] ?? '');
             $password = $_POST['password'] ?? '';
-            
-            $user = new User();
-            $loggedInUser = $user->login($username, $password);
-            
-            if ($loggedInUser) {
-                $_SESSION['user_id'] = $loggedInUser->id;
-                $_SESSION['username'] = $loggedInUser->username;
-                $this->redirect('/dashboard');
-            } else {
-                $error = 'Invalid credentials';
+
+            $user = $this->auth->login($username, $password);
+
+
+
+            if ($user) {
+                $_SESSION['user_id']  = $user->id;
+                $_SESSION['username'] = $user->username;
+
+                return $this->redirect('/dashboard');
             }
+
+            $error = 'Invalid username or password';
         }
-        
-        $this->view('login', ['error' => $error]);
+
+        return $this->view('login', compact('error'));
     }
 
-    public function logout() {
+
+
+    public function logout()
+    {
+        $_SESSION = [];
         session_destroy();
-        $this->redirect('/login');
+        return $this->redirect('/login');
     }
 
-    private function view($view, $data = []) {
+
+
+    /** simple view helper */
+    private function view($file, $data = [])
+    {
         extract($data);
-        require VIEWS . "/$view.php";
+        require VIEWS . "/{$file}.php";
     }
 
-    private function redirect($url) {
-        header('Location: ' . BASE_URL . $url);
+    /** simple redirect helper */
+    private function redirect(string $url)
+    {
+        header("Location: " . BASE_URL . $url);
         exit;
     }
 }
