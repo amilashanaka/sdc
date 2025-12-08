@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $user_id = $id; // Assuming $user is the same as $id. Adjust this if needed.
-        $target_dir = "../../uploads/" . $main_folder . "/profile/" . $user_id . "/";
+        $target_dir = "../uploads/" . $main_folder . "/profile/" . $user_id . "/";
         $targ_front = "../uploads/" . $main_folder . "/profile/" . $user_id . "/";
         $tmp = uploadPic("filepond", $target_dir);
 
