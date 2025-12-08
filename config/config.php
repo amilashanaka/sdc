@@ -3,7 +3,7 @@ return [
     // Database
     'db' => [
         'host' => 'localhost',
-        'name' => 'mvc_app',
+        'name' => 'sdc',
         'user' => 'root',
         'pass' => '',
         'charset' => 'utf8mb4'
@@ -13,7 +13,7 @@ return [
     'base_url' => '', // Will be auto-detected by index.php
     
     // Site info
-    'site_name' => 'Light MVC',
+    'site_name' => 'Spicer Consulting',
     
     // Security
     'session_lifetime' => 3600
