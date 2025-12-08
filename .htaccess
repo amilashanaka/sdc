@@ -3,19 +3,23 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /  <-- ROOT PATH
     
+    # 🎯 Set RewriteBase to the root (/) based on your URL: https://192.168.2.99/dashboard
+    RewriteBase / 
+
+    # 🛑 CRITICAL LOOP FIX: Stop if the request is already for index.php
     RewriteRule ^index\.php$ - [L]
 
-    # If the request is NOT for an existing file and NOT for an existing directory
+    # If the request is NOT for an existing file
     RewriteCond %{REQUEST_FILENAME} !-f
+    # AND the request is NOT for an existing directory
     RewriteCond %{REQUEST_FILENAME} !-d
 
     # Route everything else to index.php
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
-# Security headers (rest of your file)
+# Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
