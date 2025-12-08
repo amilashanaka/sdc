@@ -1,21 +1,25 @@
+# 1. Core Directives
 Options -Indexes
 DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # 🎯 Set RewriteBase to the root (/) based on your URL: https://192.168.2.99/dashboard
+    # 🎯 Set RewriteBase to the root (/) based on your URL: 
+    # Since you are using https://192.168.2.99/dashboard
     RewriteBase / 
 
-    # 🛑 CRITICAL LOOP FIX: Stop if the request is already for index.php
+    # 🛑 CRITICAL FIX 1: Stop if the request is for the index.php file itself.
     RewriteRule ^index\.php$ - [L]
 
-    # If the request is NOT for an existing file
-    RewriteCond %{REQUEST_FILENAME} !-f
-    # AND the request is NOT for an existing directory
-    RewriteCond %{REQUEST_FILENAME} !-d
+    # 🛑 CRITICAL FIX 2: Stop if the requested file/directory exists.
+    # This prevents the loop if files/directories are present.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
 
-    # Route everything else to index.php
+    # 3. Route all remaining requests to index.php
+    # The (.*) captures the URL path and passes it to the 'url' parameter.
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
