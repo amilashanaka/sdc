@@ -1,13 +1,13 @@
 <?php
 include_once '../session.php';
-include_once './../../controllers/index.php';
-include_once '../../inc/functions.php';
+include_once '../controllers/index.php';
+include_once '../inc/functions.php';
 
 // Configuration Array - All configurable values centralized here
 $config = [
     // File Upload Configuration
     'upload' => [
-        'target_dir' => "../../uploads/settings/",
+        'target_dir' => "../uploads/settings/",
         'front_target_dir' => "./uploads/settings/",
         'image_key_pattern' => '/^img\d+$/', // Regex pattern for image keys (img1, img2, etc.)
         'allowed_extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp'],

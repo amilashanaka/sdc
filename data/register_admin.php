@@ -1,11 +1,11 @@
 <?php
 
 include_once '../session.php';
-include_once '../../controllers/index.php';
-include_once '../../inc/functions.php';
+include_once '../controllers/index.php';
+include_once '../inc/functions.php';
 
 // Set target directory and page name
-$target_dir = "../../uploads/admin/profile/";
+$target_dir = "../uploads/admin/profile/";
 $targ_front = "./uploads/admin/profile/";
 $page = 'admin';
 

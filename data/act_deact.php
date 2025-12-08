@@ -1,13 +1,7 @@
 <?php
 
-//include_once '../../conn.php';
-//include_once '../../inc/functions.php';
 
-//featch Data
-
-
-
-include_once  './../../controllers/index.php';
+include_once  './../controllers/index.php';
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();

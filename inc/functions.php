@@ -236,7 +236,7 @@ function renderFormElements($form_config, $row) {
         // Handle file inputs with image preview
         if ($input['type'] === 'file' && isset($input['accept']) && strpos($input['accept'], 'image/') !== false) {
             $image_src = isset($row[$key]) && $row[$key] !== ''
-                ? "../" . htmlspecialchars($row[$key])
+                ? "./" . htmlspecialchars($row[$key])
                 : './assets/img/photo1.png';
             
             $divClass = $input['div_class'] ?? 'col-lg-12 col-md-12 form-group';

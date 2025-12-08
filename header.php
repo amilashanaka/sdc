@@ -13,7 +13,7 @@ include_once './controllers/index.php';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="../<?= $setting->getSettings('img1')?>" type="image/png">
+    <link rel="icon" href="<?= $setting->getSettings('img1')?>" type="image/png">
     <title><?= $setting->getSettings('f1')?> Admin</title>
 
     <!-- Theme style -->
