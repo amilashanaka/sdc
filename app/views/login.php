@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spicer Consulting Device Login</title>
+  <title>Admin Login</title>
 
   <!-- Bootstrap 5.3 (jsDelivr CDN) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -40,10 +40,13 @@
     }
 
     .brand-logo {
-      width: 100px; 
- 
- 
- 
+      width: 60px;
+      height: 60px;
+      background: rgba(13, 110, 253, 0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .brand-logo img {
@@ -67,7 +70,7 @@
     }
 
     .form-control:focus {
-      box-shadow: 0 0 0 0.25rem rgba(var(--primary-color), 0.25);
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
       border-color: var(--primary-color);
     }
 
@@ -82,8 +85,8 @@
     }
 
     .left-illustration {
-      background: linear-gradient(180deg, rgba(var(--primary-color), 0.1) 0%, transparent 100%);
-      border-right: 1px solid rgba(var(--primary-color), 0.05);
+      background: linear-gradient(180deg, rgba(13, 110, 253, 0.1) 0%, transparent 100%);
+      border-right: 1px solid rgba(13, 110, 253, 0.05);
     }
 
     @media (max-width: 991px) {
@@ -128,7 +131,7 @@
     }
 
     [data-bs-theme="dark"] .left-illustration {
-      background: linear-gradient(180deg, rgba(var(--primary-color), 0.2) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(13, 110, 253, 0.2) 0%, transparent 100%);
       border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -169,24 +172,24 @@
         <div class="col-lg-5 left-illustration d-flex flex-column justify-content-center p-5">
           <div class="mb-4 d-flex align-items-center gap-3">
             <div class="brand-logo">
-              <img src="./assets/img/logo.png" alt="Spicer Consulting Logo">
+              <i class="bi bi-shield-lock" style="font-size: 1.5rem; color: #0d6efd;"></i>
             </div>
             <div>
-              <h5 class="mb-0 fw-semibold">Spicer Consulting</h5>
-              <div class="device-meta">Serial Number: SC 24123 • Firmware: 1.2.0</div>
+              <h5 class="mb-0 fw-semibold">Admin Panel</h5>
+              <div class="device-meta">System • Version: 1.0.0</div>
             </div>
           </div>
 
           <h4 class="mt-4 fw-bold">Administrator Access</h4>
-          <p class="help-text mb-4">Manage device settings and user accounts securely.</p>
+          <p class="help-text mb-4">Manage system settings and user accounts securely.</p>
 
           <ul class="list-unstyled small-muted">
-            <li class="mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Supports 16 ADC Channels</li>
-            <li class="mb-3"><i class="bi bi-graph-up me-2"></i>Debug All Attached Modules</li>
-            <li class="mb-3"><i class="bi bi-wifi me-2"></i>Monitor Device Health</li>
+            <li class="mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Secure Authentication</li>
+            <li class="mb-3"><i class="bi bi-graph-up me-2"></i>User Management</li>
+            <li class="mb-3"><i class="bi bi-wifi me-2"></i>System Control</li>
           </ul>
 
-          <div class="mt-auto small-muted">IP: <strong>192.168.0.1</strong> • Provisioned on: <strong>2025-12-05</strong></div>
+          <div class="mt-auto small-muted">System: <strong>Admin Panel</strong> • Date: <strong><?php echo date('Y-m-d'); ?></strong></div>
         </div>
 
         <!-- Right: login form -->
@@ -205,10 +208,29 @@
             </div>
           </div>
 
-          <form id="loginForm" class="needs-validation" novalidate>
+          <?php if (!empty($error)): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <?php echo htmlspecialchars($error); ?>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <?php endif; ?>
+
+          <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              <?php echo htmlspecialchars($_SESSION['success']); ?>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+          <?php endif; ?>
+
+          <form method="POST" action="" class="needs-validation" novalidate>
             <div class="mb-3">
               <label for="username" class="form-label fw-medium">Username</label>
-              <input type="text" class="form-control" id="username" value="admin" required aria-describedby="userHelp">
+              <input type="text" class="form-control" id="username" name="username" 
+                     value="<?php echo htmlspecialchars($_POST['username'] ?? 'admin'); ?>" 
+                     required aria-describedby="userHelp">
               <div class="invalid-feedback">Please enter your username.</div>
               <div id="userHelp" class="form-text help-text">Default: <code>admin</code></div>
             </div>
@@ -216,17 +238,19 @@
             <div class="mb-3 position-relative">
               <label for="password" class="form-label fw-medium">Password</label>
               <div class="input-group">
-                <input type="password" class="form-control" id="password" minlength="4" required aria-describedby="pwHelp">
-                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility"><i class="bi bi-eye"></i></button>
+                <input type="password" class="form-control" id="password" name="password" 
+                       minlength="4" required aria-describedby="pwHelp">
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword" 
+                        aria-label="Toggle password visibility"><i class="bi bi-eye"></i></button>
               </div>
               <div class="invalid-feedback">Please enter a valid password (minimum 4 characters).</div>
-              <div id="pwHelp" class="form-text help-text">Password is case-sensitive.</div>
+              <div id="pwHelp" class="form-text help-text">Password is case-sensitive. Default: <code>admin123</code></div>
             </div>
 
             <div class="row align-items-center mb-4">
               <div class="col-auto">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="remember">
+                  <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
                   <label class="form-check-label" for="remember">Remember this browser</label>
                 </div>
               </div>
@@ -241,11 +265,11 @@
 
             <div class="border-top pt-3 d-flex justify-content-between align-items-center small-muted">
               <div>Last login: <strong id="lastLogin">—</strong></div>
-              <div>Build: <strong>2025-12-05</strong></div>
+              <div>Version: <strong>1.0.0</strong></div>
             </div>
           </form>
 
-          <footer class="mt-4 small-muted text-center">Need help? Visit <a href="#">support.spicerconsulting.com</a></footer>
+          <footer class="mt-4 small-muted text-center">Admin Panel &copy; <?php echo date('Y'); ?></footer>
         </div>
       </div>
     </div>
@@ -259,42 +283,85 @@
       'use strict';
 
       // Form validation on submit
-      const form = document.getElementById('loginForm');
+      const form = document.querySelector('form');
       form.addEventListener('submit', function(e) {
-        e.preventDefault();
         if (!form.checkValidity()) {
+          e.preventDefault();
           form.classList.add('was-validated');
-          return;
         }
-
-        // Mock authentication (replace with real auth logic)
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        if (username === 'admin' && password === 'admin') {
-          showToast('Login successful — redirecting...', 'success');
-          setTimeout(() => { window.location.href = '/admin'; }, 800);
-        } else {
-          showToast('Invalid username or password', 'danger');
-        }
+        // If valid, form will submit to LoginController
       });
 
       // Password toggle
       const togglePw = document.getElementById('togglePassword');
       const pwField = document.getElementById('password');
-      togglePw.addEventListener('click', function() {
-        const type = pwField.getAttribute('type') === 'password' ? 'text' : 'password';
-        pwField.setAttribute('type', type);
-        this.querySelector('i').classList.toggle('bi-eye');
-        this.querySelector('i').classList.toggle('bi-eye-slash');
-      });
+      if (togglePw && pwField) {
+        togglePw.addEventListener('click', function() {
+          const type = pwField.getAttribute('type') === 'password' ? 'text' : 'password';
+          pwField.setAttribute('type', type);
+          this.querySelector('i').classList.toggle('bi-eye');
+          this.querySelector('i').classList.toggle('bi-eye-slash');
+        });
+      }
 
       // Theme toggle
       const themeToggle = document.getElementById('themeToggle');
-      themeToggle.addEventListener('change', e => {
-        document.documentElement.setAttribute('data-bs-theme', e.target.checked ? 'dark' : 'light');
+      if (themeToggle) {
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        themeToggle.checked = savedTheme === 'dark';
+        
+        themeToggle.addEventListener('change', e => {
+          const theme = e.target.checked ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-bs-theme', theme);
+          localStorage.setItem('theme', theme);
+        });
+      }
+
+      // Remember me functionality
+      const rememberCheckbox = document.getElementById('remember');
+      const usernameInput = document.getElementById('username');
+      
+      // Load saved username if remember me was checked
+      const savedUsername = localStorage.getItem('rememberedUsername');
+      if (savedUsername && usernameInput) {
+        usernameInput.value = savedUsername;
+        rememberCheckbox.checked = true;
+      }
+      
+      // Save username on form submit if remember me is checked
+      form.addEventListener('submit', function() {
+        if (rememberCheckbox.checked && usernameInput.value) {
+          localStorage.setItem('rememberedUsername', usernameInput.value);
+        } else {
+          localStorage.removeItem('rememberedUsername');
+        }
       });
 
-      // Toast utility
+      // Last login display
+      const lastLoginElement = document.getElementById('lastLogin');
+      if (lastLoginElement) {
+        const lastLogin = localStorage.getItem('lastLogin');
+        if (lastLogin) {
+          lastLoginElement.textContent = new Date(lastLogin).toLocaleString();
+        }
+        
+        // Update last login time on form submit
+        form.addEventListener('submit', function() {
+          localStorage.setItem('lastLogin', new Date().toISOString());
+        });
+      }
+
+      // Auto-focus username field
+      if (usernameInput) {
+        setTimeout(() => {
+          usernameInput.focus();
+          usernameInput.select();
+        }, 100);
+      }
+
+      // Toast utility (for future enhancements)
       function showToast(message, variant = 'success') {
         const toast = document.createElement('div');
         toast.className = `toast align-items-center text-bg-${variant} border-0 position-fixed bottom-0 end-0 m-3`;
@@ -310,10 +377,13 @@
         document.body.appendChild(toast);
         const bsToast = new bootstrap.Toast(toast);
         bsToast.show();
+        
+        // Remove from DOM after hide
+        toast.addEventListener('hidden.bs.toast', function () {
+          toast.remove();
+        });
       }
 
-      // Mock last login
-      document.getElementById('lastLogin').textContent = new Date().toLocaleString();
     })();
   </script>
 </body>
