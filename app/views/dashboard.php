@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin xxx</title>
+  <title>Spicer Digital Core Dashboard</title>
   
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -757,6 +757,13 @@
             </a>
           </li>
         </ul>
+      </li>
+
+      <li>
+        <a href="#" onclick="loadContent('Logout'); return false;">
+          <a href="<?php echo BASE_URL; ?>/login/logout"><i class="fas fa-sign-out-alt nav-icon"></i></a>
+   
+        </a>
       </li>
     </ul>
   </aside>
