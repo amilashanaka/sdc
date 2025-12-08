@@ -27,21 +27,21 @@
                             <img src="./assets/img/logo.png" alt="Spicer Consulting Logo">
                         </div>
                         <div>
-                            <h5 class="mb-0 fw-semibold">Admin Panel</h5>
-                            <div class="device-meta">System • Version: 1.0.0</div>
+                            <h5 class="mb-0 fw-semibold">Spicer Consulting</h5>
+                            <div class="device-meta">Serial Number: SC 24123 • Firmware: 1.2.0</div>
                         </div>
                     </div>
 
                     <h4 class="mt-4 fw-bold">Administrator Access</h4>
-                    <p class="help-text mb-4">Manage system settings and user accounts securely.</p>
+                    <p class="help-text mb-4">Manage device settings and user accounts securely.</p>
 
                     <ul class="list-unstyled small-muted">
-                        <li class="mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Secure Authentication</li>
-                        <li class="mb-3"><i class="bi bi-graph-up me-2"></i>User Management</li>
-                        <li class="mb-3"><i class="bi bi-wifi me-2"></i>System Control</li>
+                        <li class="mb-3"><i class="bi bi-shield-lock-fill me-2"></i>Supports 16 ADC Channels</li>
+                        <li class="mb-3"><i class="bi bi-graph-up me-2"></i>Debug All Attached Modules</li>
+                        <li class="mb-3"><i class="bi bi-wifi me-2"></i>Monitor Device Health</li>
                     </ul>
 
-                    <div class="mt-auto small-muted">System: <strong>Admin Panel</strong> • Date: <strong><?php echo date('Y-m-d'); ?></strong></div>
+                    <div class="mt-auto small-muted">IP: <strong>192.168.0.1</strong> • Provisioned on: <strong>2025-12-05</strong></div>
                 </div>
 
                 <!-- Right: login form -->
@@ -84,7 +84,7 @@
                                 value="<?php echo htmlspecialchars($_POST['username'] ?? 'admin'); ?>"
                                 required aria-describedby="userHelp">
                             <div class="invalid-feedback">Please enter your username.</div>
-                             
+
                         </div>
 
                         <div class="mb-3 position-relative">
@@ -96,7 +96,7 @@
                                     aria-label="Toggle password visibility"><i class="bi bi-eye"></i></button>
                             </div>
                             <div class="invalid-feedback">Please enter a valid password (minimum 4 characters).</div>
-                            <div id="pwHelp" class="form-text help-text">Password is case-sensitive.  </div>
+                            <div id="pwHelp" class="form-text help-text">Password is case-sensitive. </div>
                         </div>
 
                         <div class="row align-items-center mb-4">
