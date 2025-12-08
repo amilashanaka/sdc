@@ -64,46 +64,36 @@
                         <div class="alert error"><?php echo htmlspecialchars($error); ?></div>
                     <?php endif; ?>
 
+ 
+          <form method="POST" action="">
+            <div class="mb-3">
+              <label for="username" class="form-label fw-medium">Username</label>
+              <input type="text" class="form-control" id="username" name="username" 
+                     value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" 
+                     required>
+              <div class="form-text help-text">Enter your username</div>
+            </div>
 
-                    <form id="loginForm" method="POST" action="" class="needs-validation" novalidate>
-                        <div class="mb-3">
-                            <label for="username" class="form-label fw-medium">Username</label>
-                            <input type="text" class="form-control" id="username" value="admin" required aria-describedby="userHelp">
-                            <div class="invalid-feedback">Please enter your username.</div>
-                            <div id="userHelp" class="form-text help-text">Default: <code>admin</code></div>
-                        </div>
+            <div class="mb-3 position-relative">
+              <label for="password" class="form-label fw-medium">Password</label>
+              <div class="input-group">
+                <input type="password" class="form-control" id="password" name="password" required>
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="form-text help-text">Enter your password</div>
+            </div>
 
-                        <div class="mb-3 position-relative">
-                            <label for="password" class="form-label fw-medium">Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="password" minlength="4" required aria-describedby="pwHelp">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility"><i class="bi bi-eye"></i></button>
-                            </div>
-                            <div class="invalid-feedback">Please enter a valid password (minimum 4 characters).</div>
-                            <div id="pwHelp" class="form-text help-text">Password is case-sensitive.</div>
-                        </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="remember" name="remember">
+              <label class="form-check-label" for="remember">Remember me</label>
+            </div>
 
-                        <div class="row align-items-center mb-4">
-                            <div class="col-auto">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="remember">
-                                    <label class="form-check-label" for="remember">Remember this browser</label>
-                                </div>
-                            </div>
-                            <div class="col text-end small-muted">
-                                <a href="#" class="text-decoration-none">Forgot password?</a>
-                            </div>
-                        </div>
-
-                        <div class="d-grid mb-4">
-                            <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
-                        </div>
-
-                        <div class="border-top pt-3 d-flex justify-content-between align-items-center small-muted">
-                            <div>Last login: <strong id="lastLogin">—</strong></div>
-                            <div>Build: <strong>2025-12-05</strong></div>
-                        </div>
-                    </form>
+            <div class="d-grid mb-4">
+              <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+            </div>
+          </form>
 
                     <footer class="mt-4 small-muted text-center">Need help? Visit <a href="#">support.spicerconsulting.com</a></footer>
                 </div>
