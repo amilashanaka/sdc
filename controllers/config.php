@@ -1,6 +1,6 @@
 <?php 
 // Db connection
-define('DB_HOST','localhost');
+define('DB_HOST','127.0.0.1');
 
 
 
