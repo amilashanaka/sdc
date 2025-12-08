@@ -1,30 +1,36 @@
-# 1. Core Directives
-Options -Indexes
-DirectoryIndex index.php
+# 1. Core Apache Directives
+Options -Indexes          # Disables directory browsing (security)
+DirectoryIndex index.php  # Sets the default file to load
 
+## 2. URL Rewriting (Mod_Rewrite)
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # 2. Define the Base Path
-    # IMPORTANT: Change /my-app/ to your actual sub-directory, 
-    # or use / if the app is in the document root.
+    # Set the base path for your application.
+    # Use / if your app is in /var/www/html/
+    # Use /my-app/ if your app is in /var/www/html/my-app/
     RewriteBase /my-app/ 
 
-    # 3. Skip existing assets/files/directories
-    # Allow access to assets folder
-    RewriteRule ^assets/ - [L]
+    # 🛑 CRITICAL FIX: STOP THE LOOP 🛑
+    # If the request is already for index.php, stop rewriting.
+    RewriteRule ^index\.php$ - [L]
 
-    # If the request is NOT for an existing file
+    # 3. Skip files and directories that actually exist
+    # If the requested URI is NOT an existing file
     RewriteCond %{REQUEST_FILENAME} !-f
-    # And the request is NOT for an existing directory
+    # AND the requested URI is NOT an existing directory
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # 4. Route everything else to index.php
+    # 4. Route all remaining requests to index.php
+    # The [QSA] flag preserves any existing query string (e.g., ?foo=bar)
+    # The [L] flag stops the rewriting process.
     RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
-# 5. Security Headers
+
+## 5. Security Headers (Mod_Headers)
 <IfModule mod_headers.c>
+    # Note: These require 'mod_headers' to be enabled (sudo a2enmod headers)
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
