@@ -172,7 +172,7 @@
         <div class="col-lg-5 left-illustration d-flex flex-column justify-content-center p-5">
           <div class="mb-4 d-flex align-items-center gap-3">
             <div class="brand-logo">
-              <i class="bi bi-shield-lock" style="font-size: 1.5rem; color: #0d6efd;"></i>
+             <img src="./assets/img/logo.png" alt="Spicer Consulting Logo">
             </div>
             <div>
               <h5 class="mb-0 fw-semibold">Admin Panel</h5>
