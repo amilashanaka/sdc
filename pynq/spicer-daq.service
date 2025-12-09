@@ -1,0 +1,26 @@
+[Unit]
+Description=Spicer DAQ WebSocket Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/html/pynq
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/var/www/html/pynq"
+ExecStart=/usr/bin/python3 /var/www/html/pynq/server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/html/pynq
+
+[Install]
+WantedBy=multi-user.target
