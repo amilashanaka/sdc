@@ -76,7 +76,7 @@ $form_config = [
     // Profile statistics configuration (unchanged)
     'profile_stats' => [
         'role_1_2' => [ // Roles less than 3
-            'my_team' => ['label' => 'My Team', 'value' => '10'],
+            'Last Login' => ['label' => 'Last Login', 'value' => '10'],
             'my_clients' => ['label' => 'My Clients', 'value' => '20'],
             'registered' => ['label' => 'Registered', 'value' => '20']
         ],

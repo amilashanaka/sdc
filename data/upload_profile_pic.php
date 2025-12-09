@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $profile_image = null;
             if ($user_id == $_SESSION['u_id']) {
-                $profile_image = str_replace("../", "./",   $data['img1']);
+                $profile_image = $data['img1'];
                 $_SESSION['profile_image'] = $profile_image;
             }
 
