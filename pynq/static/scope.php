@@ -179,8 +179,7 @@ function connectDataWebSocket() {
     }
 
     try {
-       // dataWebSocket = new WebSocket('ws://' + location.host + '/ws');
-        dataWebSocket = new WebSocket('ws://192.168.2.99/ws');
+       dataWebSocket = new WebSocket('ws://192.168.2.99/ws');
         dataWebSocket.binaryType = 'arraybuffer';
 
         dataWebSocket.onopen = () => {
