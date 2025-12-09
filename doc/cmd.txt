@@ -1,0 +1,21 @@
+sudo nano /etc/systemd/system/autorun.service
+
+[Unit]
+Description=Run Python script at boot
+After=network.target
+
+[Service]
+Type=simple
+User=xilinx
+WorkingDirectory=/var/www/html
+ExecStart=/usr/bin/python3 /var/www/pynq/startup.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reload
+sudo systemctl enable autorun.service
+sudo systemctl start autorun.service
+
+
