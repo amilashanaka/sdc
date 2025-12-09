@@ -1,32 +1,67 @@
 #!/usr/bin/env python3
 import sys
 import os
+import time
+import traceback
 
-# Print debug info
 print(f"Starting server with Python: {sys.executable}")
 print(f"Python version: {sys.version}")
 print(f"Working directory: {os.getcwd()}")
+print(f"User ID: {os.getuid()}")
+print(f"XILINX_XRT: {os.environ.get('XILINX_XRT', 'Not set')}")
+print(f"LD_LIBRARY_PATH: {os.environ.get('LD_LIBRARY_PATH', 'Not set')}")
 
-# First try to import pynq directly
+# Check for XRT library
+xrt_lib_path = "/opt/xilinx/xrt/lib/libxrt_core.so.2"
+if not os.path.exists(xrt_lib_path):
+    print(f"Warning: XRT library not found at {xrt_lib_path}")
+    # Look for alternative locations
+    alt_paths = [
+        "/usr/lib/libxrt_core.so",
+        "/usr/lib/libxrt_core.so.2",
+        "/usr/local/lib/libxrt_core.so",
+        "/usr/lib/aarch64-linux-gnu/libxrt_core.so",
+        "/usr/lib/x86_64-linux-gnu/libxrt_core.so",
+    ]
+    
+    for path in alt_paths:
+        if os.path.exists(path):
+            print(f"Found alternative XRT library at: {path}")
+            # Update LD_LIBRARY_PATH
+            lib_dir = os.path.dirname(path)
+            if lib_dir not in os.environ.get('LD_LIBRARY_PATH', ''):
+                os.environ['LD_LIBRARY_PATH'] = f"{lib_dir}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+            break
+    else:
+        print("No XRT library found. Will run in simulation mode.")
+
+# Import pynq with error handling
+pynq_available = False
 try:
-    from pynq import Overlay
+    print("Attempting to import PYNQ...")
+    from pynq import Overlay, Device
+    pynq_available = True
     print("✓ PYNQ imported successfully")
+    
+    # Check for devices
+    try:
+        devices = Device.devices
+        if len(devices) > 0:
+            print(f"✓ Found {len(devices)} FPGA device(s)")
+            for i, dev in enumerate(devices):
+                print(f"  Device {i}: {dev.name}")
+        else:
+            print("⚠ No FPGA devices found")
+    except Exception as e:
+        print(f"⚠ Could not list devices: {e}")
+        print(traceback.format_exc())
+        
 except ImportError as e:
     print(f"✗ PYNQ import failed: {e}")
-    # Try to add virtual environment path
-    venv_path = "/usr/local/share/pynq-venv/lib/python3.10/site-packages"
-    if os.path.exists(venv_path):
-        sys.path.insert(0, venv_path)
-        print(f"Added virtual environment path: {venv_path}")
-        try:
-            from pynq import Overlay
-            print("✓ PYNQ imported after path adjustment")
-        except ImportError as e2:
-            print(f"✗ Still failed: {e2}")
-            sys.exit(1)
-    else:
-        print(f"Virtual environment path not found: {venv_path}")
-        sys.exit(1)
+    print(traceback.format_exc())
+except Exception as e:
+    print(f"✗ Error during PYNQ import: {e}")
+    print(traceback.format_exc())
 
 # Now import the rest
 from fastapi import FastAPI, WebSocket
@@ -39,21 +74,53 @@ try:
     print("✓ DAQ imported successfully")
 except ImportError as e:
     print(f"✗ DAQ import failed: {e}")
-    # If daq.py is in the same directory, it should work
+    print(traceback.format_exc())
     sys.exit(1)
 
 app = FastAPI()
 print("✓ FastAPI app created")
 
-# Create DAQ object
-try:
-    daq = Daq()
-    print("✓ DAQ object created")
+# Create DAQ object - with error handling
+daq = None
+if pynq_available:
+    try:
+        print("Initializing DAQ with FPGA...")
+        daq = Daq()
+        print("✓ DAQ object created")
+        daq.start_background()
+        print("✓ DAQ background started")
+    except Exception as e:
+        print(f"⚠ DAQ initialization failed: {e}")
+        print(traceback.format_exc())
+        print("⚠ Running in simulation mode")
+        daq = None
+else:
+    print("⚠ PYNQ not available, running in simulation mode")
+    daq = None
+
+# Create a simulation mode if needed
+if daq is None:
+    print("Creating simulated DAQ for testing...")
+    class SimulatedDAQ:
+        def __init__(self):
+            self.running = True
+            print("Simulated DAQ created")
+        
+        def start_background(self):
+            print("Simulated DAQ background started")
+        
+        def read_streaming(self):
+            import random
+            import struct
+            # Generate simulated data
+            data = bytearray()
+            for _ in range(2500):
+                value = random.randint(-2000, 2000)
+                data.extend(struct.pack('h', value))
+            return bytes(data)
+    
+    daq = SimulatedDAQ()
     daq.start_background()
-    print("✓ DAQ background started")
-except Exception as e:
-    print(f"✗ DAQ initialization failed: {e}")
-    sys.exit(1)
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
@@ -75,6 +142,7 @@ async def websocket_data(websocket: WebSocket):
             await asyncio.sleep(0.01)  # 10ms refresh
     except Exception as e:
         print(f"WebSocket error: {e}")
+        print(traceback.format_exc())
     finally:
         print("WebSocket connection closed")
         await websocket.close()
@@ -84,29 +152,31 @@ async def websocket_data(websocket: WebSocket):
 async def get_stats():
     import time
     import os
-    try:
-        import psutil
-        process = psutil.Process(os.getpid())
-        memory_info = process.memory_info()
-        return {
-            "status": "running",
-            "timestamp": time.time(),
-            "process_id": os.getpid(),
-            "memory_rss": memory_info.rss,
-            "memory_percent": process.memory_percent(),
-            "cpu_percent": process.cpu_percent(),
-        }
-    except ImportError:
-        return {
-            "status": "running",
-            "timestamp": time.time(),
-            "process_id": os.getpid(),
-        }
+    return {
+        "status": "running",
+        "fpga_available": pynq_available and daq is not None,
+        "simulation_mode": not pynq_available,
+        "timestamp": time.time(),
+        "process_id": os.getpid(),
+        "xrt_library_found": os.path.exists(xrt_lib_path),
+    }
 
 @app.get("/")
 async def root():
-    return {"message": "Spicer DAQ WebSocket Server", "status": "running"}
+    return {
+        "message": "Spicer DAQ WebSocket Server", 
+        "status": "running",
+        "fpga_available": pynq_available and daq is not None,
+        "simulation_mode": not pynq_available
+    }
 
 if __name__ == "__main__":
     print("Starting uvicorn server on 127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.run(
+        app, 
+        host="127.0.0.1", 
+        port=8000, 
+        log_level="info",
+        # Longer timeout for debugging
+        timeout_keep_alive=30
+    )
