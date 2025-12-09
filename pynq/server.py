@@ -1,30 +1,13 @@
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import uvicorn
 import asyncio
 from daq import Daq
 
 app = FastAPI()
 
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 # Create DAQ object
 daq = Daq()
 daq.start_background()
-
-@app.get("/")
-async def serve_index():
-    return FileResponse("static/index.php", media_type="text/html")
-
-@app.get("/scope")
-async def serve_scope():
-    return FileResponse("static/scope.php", media_type="text/html")
-
-@app.get("/dash")
-async def serve_dash():
-    return FileResponse("static/dash.php", media_type="text/html")
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
@@ -43,10 +26,27 @@ async def websocket_data(websocket: WebSocket):
                 await websocket.send_json({"type": "heartbeat"})
 
             await asyncio.sleep(0.01)  # 10ms refresh
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"WebSocket error: {e}")
     finally:
-        pass
+        await websocket.close()
+
+# API endpoint for scope.php stats
+@app.get("/api/stats")
+async def get_stats():
+    import time
+    import psutil
+    import os
+    
+    return {
+        "status": "running",
+        "timestamp": time.time(),
+        "process_id": os.getpid(),
+        "cpu_percent": psutil.cpu_percent(),
+        "memory_percent": psutil.Process().memory_percent(),
+        "connections": 1  # You can track active WebSocket connections
+    }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Run on localhost only for security
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
