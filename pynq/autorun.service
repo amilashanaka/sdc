@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Python script at boot
+After=network.target
+
+[Service]
+Type=simple
+User=xilinx
+WorkingDirectory=/var/www/html
+ExecStart=/usr/bin/python3 /var/www/pynq/startup.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

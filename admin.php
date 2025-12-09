@@ -222,6 +222,9 @@ if ($id > 0) {
 
     if (!empty($row['img1']) && file_exists($row['img1'])) {
         $profile_image = $row['img1'];
+    }else
+    {
+        $profile_image = './assets/img/profile.png';
     }
 }
 
