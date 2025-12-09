@@ -5,22 +5,20 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=xilinx
+Group=xilinx
 WorkingDirectory=/var/www/html/pynq
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-Environment="PYTHONPATH=/var/www/html/pynq"
+Environment="PYTHONPATH=/usr/local/lib/python3.8/dist-packages"
 ExecStart=/usr/bin/python3 /var/www/html/pynq/server.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
-# Security
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/var/www/html/pynq
+# For PYNQ specific environment
+Environment="PYNQ_JUPYTER_NOTEBOOKS=/home/xilinx/jupyter_notebooks"
+Environment="PYNQ_PYTHON=/usr/bin/python3"
 
 [Install]
 WantedBy=multi-user.target
