@@ -6,7 +6,7 @@ $side_menu = array();
 array_push($side_menu, array('name' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'url' => 'index', 'active' => 'active', 'menu' => 'menu-open', 'submenu' => ''));
 array_push($side_menu, array('name' => 'Staff', 'icon' => 'fas fa-user-tie', 'url' => 'admin_list', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'admin_list?role=Mg=='))));
 
-array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'signal_list'))));
+array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'Scope', 'icon' => 'fas fa-bullseye', 'url' => 'scope'))));
 array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'blog_list'))));
 
 array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'payment_list'))));

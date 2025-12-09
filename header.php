@@ -20,6 +20,7 @@ include_once './controllers/index.php';
     <link rel="stylesheet" href="assets/css/adminlte.css">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="assets/plugins/fontawesome/css/all.min.css">
+    
     <!-- overlayScrollbars -->
     <link rel="stylesheet" href="assets/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
 
