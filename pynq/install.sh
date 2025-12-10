@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
@@ -14,48 +15,54 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-log() { echo -e "${BLUE}[*] $*${NC}" | tee -a "$LOG_FILE"; }
-ok() { echo -e "${GREEN}[OK] $*${NC}" | tee -a "$LOG_FILE"; }
-warn() { echo -e "${YELLOW}[WARN] $*${NC}" | tee -a "$LOG_FILE"; }
+log(){ echo -e "${BLUE}[*] $*${NC}"; }
+ok(){ echo -e "${GREEN}[OK] $*${NC}"; }
+warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 
-log "starting..."
-
+log "Starting installation..."
 sudo apt update -y >>$LOG_FILE
 
 ##################################################################
-# remove redirect-server / nginx / port 9090 nonsense
+# CHECK if 9090 is alive (DO NOT KILL ANYTHING)
 ##################################################################
-log "Removing nginx & redirect_server..."
-sudo systemctl stop nginx redirect_server 2>/dev/null || true
-sudo systemctl disable nginx redirect_server 2>/dev/null || true
-sudo rm -f /usr/local/bin/redirect_server || true
-sudo rm -f /etc/systemd/system/redirect_server.service || true
-sudo systemctl daemon-reload || true
-ok "removed redirect server"
+log "Checking port 9090..."
+if ss -ltn | grep -q ':9090'; then
+    ok "Port 9090 active – will keep reachable"
+else
+    warn "Port 9090 appears inactive (no change)"
+fi
+
+log "Checking redirect_server..."
+if systemctl list-unit-files | grep -q redirect_server; then
+    ok "redirect_server service exists – not removing"
+else
+    warn "redirect_server service not found"
+fi
 
 ##################################################################
-# APACHE / PHP
+# APACHE + PHP
 ##################################################################
-log "Installing Apache2 + PHP"
+log "Installing Apache + PHP"
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
- apache2 apache2-utils ssl-cert php libapache2-mod-php php-mysql php-cli \
+ apache2 apache2-utils ssl-cert \
+ php libapache2-mod-php php-mysql php-cli \
  git mariadb-server mariadb-client >>$LOG_FILE
 
 sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
 
 ##################################################################
-# PERMISSIONS  (FULL access to html)
+# PERMISSIONS (FULL access)
 ##################################################################
-log "Setting full permissions for /var/www/html ..."
+log "Full permissions for /var/www/html..."
 sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "permissions applied"
 
 ##################################################################
-# DB
+# DATABASE
 ##################################################################
-log "Configuring database ${DB_NAME}"
+log "Configuring MariaDB..."
 sudo systemctl start mariadb
 sleep 1
 
@@ -72,20 +79,20 @@ sudo mysql -u root -p${DB_PASS} -e \
 ##################################################################
 SQL_FILE="${APP_DIR}/db/table.sql"
 if [ -f "$SQL_FILE" ]; then
-  log "Importing SQL..."
-  sudo mysql -u root -p${DB_PASS} ${DB_NAME} < "$SQL_FILE"
-  ok "SQL imported"
+    log "Importing DB"
+    sudo mysql -u root -p${DB_PASS} ${DB_NAME} < "$SQL_FILE"
+    ok "SQL imported"
 else
-  warn "SQL missing, skipping"
+    warn "No DB file found at ${SQL_FILE}"
 fi
 
 ##################################################################
-# SYSTEMD SERVICE
+# SYSTEMD SERVICE – use your file if exists in pynq/
 ##################################################################
-log "Installing systemd service"
+log "Installing service ${SERVICE}"
 
 if [ -f "${APP_DIR}/pynq/spicer-daq.service" ]; then
-  sudo cp "${APP_DIR}/pynq/spicer-daq.service" /etc/systemd/system/${SERVICE}.service
+    sudo cp "${APP_DIR}/pynq/spicer-daq.service" /etc/systemd/system/${SERVICE}.service
 else
 cat <<EOF | sudo tee /etc/systemd/system/${SERVICE}.service >/dev/null
 [Unit]
@@ -109,7 +116,7 @@ sudo systemctl enable ${SERVICE}.service
 sudo systemctl restart ${SERVICE}.service || true
 
 ##################################################################
-# APACHE HTTPS VHOST — force https, no 9090 ever
+# APACHE HTTPS VHOST (HTTP→HTTPS, DO **NOT** TOUCH 9090)
 ##################################################################
 log "Configuring Apache HTTPS redirect"
 
@@ -122,6 +129,7 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 <VirtualHost *:443>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
+
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
     SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
@@ -132,32 +140,34 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
     </Directory>
 
     RewriteEngine On
+
+    # API to DAQ
     ProxyPass /api/ http://127.0.0.1:8000/api/
     ProxyPassReverse /api/ http://127.0.0.1:8000/api/
 </VirtualHost>
 EOF
 
 sudo a2dissite 000-default default-ssl >/dev/null || true
-sudo a2ensite spicer.conf
+sudo a2ensite spicer.conf >/dev/null
 sudo systemctl restart apache2
-ok "HTTPS redirect enabled"
 
 ##################################################################
-# FINAL
+# FINAL PERMISSIONS AND CHECKS
 ##################################################################
-log "Checking server.py..."
-if [ -f "${APP_DIR}/pynq/server.py" ]; then
-  ok "server.py FOUND in pynq folder"
-else
-  warn "server.py missing inside pynq folder"
-fi
-
-log "Setting permissions final"
+log "Final permissions"
 sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 
-echo -e "${GREEN}DONE!${NC}"
+log "Check server.py..."
+if [ -f "${APP_DIR}/pynq/server.py" ]; then
+    ok "server.py found"
+else
+    warn "server.py NOT found in /pynq"
+fi
+
+ok "Install done"
 echo "Open: https://${SERVER_IP}/"
-echo "DB: ${DB_NAME}   root:daq"
+echo "Old UI (if present): http://${SERVER_IP}:9090/"
+echo "DB root password: daq"
 echo "Service: ${SERVICE}"
 echo "Logs: journalctl -u ${SERVICE} -f"
