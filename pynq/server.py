@@ -1,30 +1,18 @@
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import uvicorn
 import asyncio
 from daq import Daq
+import os
+
+# Set the XRT environment for PYNQ-Z1
+os.environ['XILINX_XRT'] = '/usr'
+os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
 
 app = FastAPI()
-
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Create DAQ object
 daq = Daq()
 daq.start_background()
-
-@app.get("/")
-async def serve_index():
-    return FileResponse("static/index.php", media_type="text/html")
-
-@app.get("/scope")
-async def serve_scope():
-    return FileResponse("static/scope.php", media_type="text/html")
-
-@app.get("/dash")
-async def serve_dash():
-    return FileResponse("static/dash.php", media_type="text/html")
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
@@ -43,10 +31,13 @@ async def websocket_data(websocket: WebSocket):
                 await websocket.send_json({"type": "heartbeat"})
 
             await asyncio.sleep(0.01)  # 10ms refresh
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"WebSocket error: {e}")
     finally:
-        pass
+        await websocket.close()
+
+# We don't need the static routes anymore because Apache will handle them.
+# But if you want to keep the API server serving some API endpoints, you can add them here.
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
