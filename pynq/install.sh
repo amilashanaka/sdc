@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
@@ -22,12 +21,9 @@ warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 log "Starting installation..."
 sudo apt update -y >>$LOG_FILE
 
-##################################################################
-# CHECK if 9090 is alive (DO NOT KILL ANYTHING)
-##################################################################
 log "Checking port 9090..."
 if ss -ltn | grep -q ':9090'; then
-    ok "Port 9090 active – will keep reachable"
+    ok "Port 9090 active – keeping reachable"
 else
     warn "Port 9090 appears inactive (no change)"
 fi
@@ -39,9 +35,6 @@ else
     warn "redirect_server service not found"
 fi
 
-##################################################################
-# APACHE + PHP
-##################################################################
 log "Installing Apache + PHP"
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
  apache2 apache2-utils ssl-cert \
@@ -51,17 +44,11 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
 sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
 
-##################################################################
-# PERMISSIONS (FULL access)
-##################################################################
 log "Full permissions for /var/www/html..."
 sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "permissions applied"
 
-##################################################################
-# DATABASE
-##################################################################
 log "Configuring MariaDB..."
 sudo systemctl start mariadb
 sleep 1
@@ -74,9 +61,6 @@ EOF
 sudo mysql -u root -p${DB_PASS} -e \
  "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
 
-##################################################################
-# Import SQL if exists
-##################################################################
 SQL_FILE="${APP_DIR}/db/table.sql"
 if [ -f "$SQL_FILE" ]; then
     log "Importing DB"
@@ -86,9 +70,6 @@ else
     warn "No DB file found at ${SQL_FILE}"
 fi
 
-##################################################################
-# SYSTEMD SERVICE – use your file if exists in pynq/
-##################################################################
 log "Installing service ${SERVICE}"
 
 if [ -f "${APP_DIR}/pynq/spicer-daq.service" ]; then
@@ -115,9 +96,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE}.service
 sudo systemctl restart ${SERVICE}.service || true
 
-##################################################################
-# APACHE HTTPS VHOST (HTTP→HTTPS, DO **NOT** TOUCH 9090)
-##################################################################
 log "Configuring Apache HTTPS redirect"
 
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
@@ -141,7 +119,6 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 
     RewriteEngine On
 
-    # API to DAQ
     ProxyPass /api/ http://127.0.0.1:8000/api/
     ProxyPassReverse /api/ http://127.0.0.1:8000/api/
 </VirtualHost>
@@ -151,9 +128,6 @@ sudo a2dissite 000-default default-ssl >/dev/null || true
 sudo a2ensite spicer.conf >/dev/null
 sudo systemctl restart apache2
 
-##################################################################
-# FINAL PERMISSIONS AND CHECKS
-##################################################################
 log "Final permissions"
 sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
