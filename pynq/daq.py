@@ -1,12 +1,13 @@
 # ============================================================================
-# FIXED daq.py - FIRST DATA POINT CORRECTION
+# FIXED daq.py - WORKS WITH HALT-PROTECTED HARDWARE
 # ============================================================================
 """
-Name:    daq.py (First Point Fix)
-Version: 3.5
-Date:    05-12-2025
+Name:    daq.py (Hardware Halt Protection)
+Version: 1.15
+Date:    01-12-2025
 By:      Don Gunasinha, Spicer Consulting
-Fix:     Fixed first data point corruption
+Fix:     Parallel channel reading to reduce read time and prevent buffer overruns
+         Requires anchor.v v3.2 with halt protection
 """
 
 from enum import Enum, auto
@@ -44,6 +45,7 @@ class Daq:
     BUFFER_0_READY_ADDR = 0x04
     BUFFER_1_READY_ADDR = 0x08
     DATA_START_ADDR = 0x0C
+    OVERRUN_COUNT_ADDR = 0x10
 
     def __init__(self, bitstream="bram.bit", force_reboot=False, num_channels=MAX_CHANNELS, 
                  total_samples=TOTAL_SAMPLES, decim_factors=DECIM_FACTOR, vref=VREF, 
@@ -104,11 +106,14 @@ class Daq:
 
         # State
         self._state = DaqState.IDLE
-        self._running = False
+        self._channels_to_read = []
+
         self._background_thread = None
+        self._running = False
 
         # Diagnostics
         self.frame_count = 0
+        self.overrun_count = 0
         self.stall_count = 0
         self.error_count = 0
         self.last_frame_time = time.time()
@@ -172,6 +177,7 @@ class Daq:
                     a.write(self.BUFFER_SELECT_ADDR, 0)
                     a.write(self.BUFFER_0_READY_ADDR, 0)
                     a.write(self.BUFFER_1_READY_ADDR, 0)
+                    a.write(self.OVERRUN_COUNT_ADDR, 0)
                 except Exception:
                     pass
         
@@ -211,7 +217,7 @@ class Daq:
             return None
 
     def _read_channel_buffer_fast(self, ch, buf):
-        """FAST read - fix first data point corruption"""
+        """FAST read - minimal overhead"""
         if self.anchors[ch] is None:
             return None
             
@@ -219,10 +225,7 @@ class Daq:
             # Set read buffer
             self.anchors[ch].write(self.BUFFER_SELECT_ADDR, buf)
             
-            # Add small delay to ensure buffer is stable
-            time.sleep(0.000001)
-            
-            # Read data - read one extra sample and discard first
+            # Read data - direct MMIO access
             start = self.DATA_START_ADDR // 4
             raw = self.anchors[ch].mmio.array[start:start + self.TOTAL_SAMPLES]
             
@@ -232,13 +235,7 @@ class Daq:
                                 raw_masked - 65536, 
                                 raw_masked).astype(np.int16)
             
-            # FIX: Replace first sample with second sample if it's an outlier
-            if len(raw_int16) >= 2:
-                # Check if first sample is an outlier (jump > 1000)
-                if abs(raw_int16[0] - raw_int16[1]) > 1000:
-                    raw_int16[0] = raw_int16[1]
-            
-            # Clear ready flag
+            # Clear ready flag IMMEDIATELY
             addr = self.BUFFER_0_READY_ADDR if buf == 0 else self.BUFFER_1_READY_ADDR
             self.anchors[ch].write(addr, 0)
             
@@ -248,13 +245,13 @@ class Daq:
             
             return raw_int16
             
-        except Exception as e:
-            print(f"Error reading channel {ch}: {e}")
+        except Exception:
             return None
 
     def _read_all_channels_parallel(self):
         """
         Read ALL channels in parallel using threads.
+        This reduces total read time to prevent buffer overruns.
         """
         read_start = time.perf_counter()
         channels_read = 0
@@ -275,8 +272,7 @@ class Daq:
             return 0
         
         with ThreadPoolExecutor(max_workers=self.NUM_CHANNELS) as executor:
-            future_to_ch = {executor.submit(read_single_channel, ch): ch 
-                           for ch in range(self.NUM_CHANNELS)}
+            future_to_ch = {executor.submit(read_single_channel, ch): ch for ch in range(self.NUM_CHANNELS)}
             for future in as_completed(future_to_ch):
                 channels_read += future.result()
                     
@@ -284,6 +280,23 @@ class Daq:
         self.read_time_ms = (read_end - read_start) * 1000
         
         return channels_read
+
+    def _check_overruns(self):
+        """Check for buffer overruns"""
+        total_overruns = 0
+        for ch in range(self.NUM_CHANNELS):
+            if self.anchors[ch] is not None:
+                try:
+                    count = self.anchors[ch].read(self.OVERRUN_COUNT_ADDR)
+                    if count > 0:
+                        total_overruns += count
+                        # Reset counter
+                        self.anchors[ch].write(self.OVERRUN_COUNT_ADDR, 0)
+                except:
+                    pass
+        
+        self.overrun_count += total_overruns
+        return total_overruns
 
     def _step(self):
         """State machine - read all channels quickly"""
@@ -310,6 +323,9 @@ class Daq:
             if s == DaqState.READ_ALL_CHANNELS:
                 # Read ALL channels in parallel
                 channels_read = self._read_all_channels_parallel()
+                
+                # Check for overruns
+                overruns = self._check_overruns()
                 
                 if channels_read > 0:
                     self._state = DaqState.PROCESS
@@ -379,9 +395,8 @@ class Daq:
 
             return None
             
-        except Exception as e:
+        except Exception:
             self.error_count += 1
-            print(f"Error in state machine: {e}")
             self._state = DaqState.IDLE
             return None
 
@@ -452,6 +467,7 @@ class Daq:
         
         return {
             'frames': self.frame_count,
+            'overruns': self.overrun_count,
             'stalls': self.stall_count,
             'errors': self.error_count,
             'frame_rate': self.frame_rate,
@@ -472,4 +488,4 @@ class Daq:
         self.close()
 
     def get_version(self):
-        return "1.17", "0", "0"
+        return "1.15", "0", "0"

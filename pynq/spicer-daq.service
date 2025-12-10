@@ -1,24 +1,18 @@
 [Unit]
 Description=Spicer DAQ WebSocket Server
 After=network.target
-Wants=network.target
 
 [Service]
 Type=simple
 User=xilinx
 Group=xilinx
 WorkingDirectory=/var/www/html/pynq
-Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-Environment="PYTHONPATH=/usr/local/lib/python3.8/dist-packages"
-ExecStart=/usr/bin/python3 /var/www/html/pynq/server.py
+Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/bin:/bin"
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-
-# For PYNQ specific environment
-Environment="PYNQ_JUPYTER_NOTEBOOKS=/home/xilinx/jupyter_notebooks"
-Environment="PYNQ_PYTHON=/usr/bin/python3"
 
 [Install]
 WantedBy=multi-user.target
