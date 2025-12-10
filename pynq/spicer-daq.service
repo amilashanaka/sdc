@@ -1,16 +1,28 @@
 [Unit]
 Description=Spicer DAQ WebSocket Server
 After=network.target
+# Wait for udev to settle so devices are ready
+After=systemd-udev-settle.service
+Wants=network.target
 
 [Service]
 Type=simple
 User=xilinx
 Group=xilinx
+# Add supplementary groups for device access
+SupplementaryGroups=video,render,dialout
 WorkingDirectory=/var/www/html/pynq
+# Set environment
 Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/usr/local/share/pynq-venv/lib/python3.10/site-packages"
+Environment="XILINX_XRT=/usr"
+Environment="LD_LIBRARY_PATH=/usr/lib"
+# Use the PYNQ Python
 ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
 Restart=always
 RestartSec=10
+# Give time for devices to be ready
+ExecStartPre=/bin/sleep 5
 StandardOutput=journal
 StandardError=journal
 
