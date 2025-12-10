@@ -40,7 +40,7 @@ sudo mkdir -p /var/www/html/static
 sudo chown -R www-data:www-data /var/www/html
 echo "=== [9/40] Installing Python modules ==="
 sudo apt-get install -y python3-pip python3-psutil python3-numpy python3-scipy python3-websockets python3-serial
-pip3 install fastapi uvicorn starlette watchdog
+sudo /usr/local/share/pynq-venv/bin/pip install fastapi uvicorn starlette watchdog
 echo "=== [10/40] Copying server.py from script directory ==="
 cp "$SCRIPT_DIR/server.py" /var/www/html/pynq/server.py
 sudo chown www-data:www-data /var/www/html/pynq/server.py
