@@ -10,7 +10,7 @@ array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'u
 array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'blog_list'))));
 
 array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'payment_list'))));
-array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'), array('name' => 'permission', 'icon' => 'fa fa-', 'url' => 'permission_list'), array('name' => 'Slider', 'icon' => 'fas fa-list', 'url' => 'slide_list'), array('name' => 'About Us', 'icon' => 'fas fa-info-circle', 'url' => 'aboutus')))); //Logout button
+array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'), array('name' => 'permission', 'icon' => 'fa fa-', 'url' => 'permission_list')))); //Logout button
 array_push($side_menu, array('name' => 'Log Out', 'icon' => ' fas  fa-sign-out-alt', 'url' => 'javascript:logout()', 'active' => '', 'menu' => '', 'submenu' => ''));
 
 
