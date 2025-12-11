@@ -10,9 +10,9 @@ sudo ./install.sh
 
 
 
-
-chmod +x install.sh
-sudo ./install.sh
+sed -i 's/\r$//' install_http.sh
+chmod +x install_http.sh
+sudo ./install_http.sh
 
 # Edit the file
 nano install.sh
