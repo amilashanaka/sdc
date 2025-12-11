@@ -95,19 +95,8 @@ if not daq_initialized:
     daq = SimulatedDAQ()
     daq.start_background()
 
-@app.get("/")
-async def serve_index():
-    return FileResponse("static/index.php", media_type="text/html")
-
-@app.get("/scope")
-async def serve_scope():
-    return FileResponse("static/scope.php", media_type="text/html")
-
-@app.get("/dash")
-async def serve_dash():
-    return FileResponse("static/dash.php", media_type="text/html")
-
-@app.websocket("/wss")
+ 
+@app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
     await websocket.accept()
     print(f"WebSocket connection established", file=sys.stderr)
