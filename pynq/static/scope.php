@@ -172,40 +172,31 @@ function buildChannelTable() {
     }
 }
 
-// WebSocket connection - Direct to Uvicorn on port 8000
+// WebSocket connection
 function connectDataWebSocket() {
     if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
         return;
     }
 
     try {
-        // Connect directly to Uvicorn WebSocket server on port 8000
-        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${location.hostname}:8000/ws`;
-        
-        console.log('Connecting to WebSocket:', wsUrl);
-        dataWebSocket = new WebSocket(wsUrl);
+        dataWebSocket = new WebSocket('ws://' + location.host + '/ws');
         dataWebSocket.binaryType = 'arraybuffer';
 
         dataWebSocket.onopen = () => {
-            console.log('WebSocket connected');
             updateStatus('🟢 Connected', 'connected');
         };
 
         dataWebSocket.onmessage = handleDataMessage;
         
         dataWebSocket.onclose = () => {
-            console.log('WebSocket closed');
             updateStatus('🔴 Disconnected - Reconnecting...', 'disconnected');
             setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
         };
 
         dataWebSocket.onerror = (error) => {
-            console.error('WebSocket error:', error);
             updateStatus('⚠️ Connection error', 'disconnected');
         };
     } catch (error) {
-        console.error('Failed to create WebSocket:', error);
         updateStatus('⚠️ Connection failed', 'disconnected');
         setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
     }
@@ -669,6 +660,7 @@ function plot() {
 
     Plotly.react('plot', traces, layout, {responsive: true});
 }
+
 // UI update functions
 function updateSelection() {
     document.querySelectorAll('#chTable tbody tr').forEach((r, i) => {
