@@ -8,7 +8,7 @@ DB_PASS="daq"
 DB_NAME="daq"
 SERVICE="spicer-daq"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
-REPO_URL="https://github.com/YOUR_USERNAME/YOUR_REPO.git"  # UPDATE THIS!
+REPO_URL="https://github.com/amilashanaka/sdc.git"  # UPDATE THIS!
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -39,11 +39,13 @@ else
 fi
 
 log "Installing Apache + PHP + Git + Python dependencies"
-sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt install -y \
  apache2 apache2-utils ssl-cert \
  php libapache2-mod-php php-mysql php-cli \
  git mariadb-server mariadb-client \
- python3-pip python3-venv >>$LOG_FILE
+ python3-pip python3-venv >>$LOG_FILE 2>&1
+ok "Packages installed"
 
 sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true

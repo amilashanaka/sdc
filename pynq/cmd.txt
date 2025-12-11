@@ -10,3 +10,10 @@ sudo ./install.sh
 
 chmod +x install.sh
 sudo ./install.sh
+
+# Edit the file
+nano install.sh
+# Find line 11 and replace with your repo URL
+
+# Or run with the URL as a parameter
+sudo bash -c "REPO_URL='https://github.com/yourusername/yourrepo.git' bash install.sh"
