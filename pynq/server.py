@@ -14,7 +14,7 @@ os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', 
 
 app = FastAPI()
 
-# Mount static website
+# Mount static website (for standalone testing)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Try to import and initialize DAQ with error handling
@@ -95,6 +95,7 @@ if not daq_initialized:
     daq = SimulatedDAQ()
     daq.start_background()
 
+# Static file routes (these will be served by Apache in production)
 @app.get("/")
 async def serve_index():
     return FileResponse("static/index.php", media_type="text/html")
@@ -132,5 +133,6 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
-    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    print("Starting uvicorn server on 0.0.0.0:8000", file=sys.stderr)
+    # Change from 127.0.0.1 to 0.0.0.0 to accept connections from Apache
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

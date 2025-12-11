@@ -59,7 +59,7 @@ sudo -E apt install -y \
  python3-pip python3-venv >>$LOG_FILE 2>&1
 ok "Packages installed"
 
-sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl >/dev/null || true
+sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
 
 # Backup existing files in /var/www/html
@@ -153,6 +153,7 @@ ExecStart=${PYTHON_PATH} ${APP_DIR}/pynq/server.py
 Restart=always
 RestartSec=5
 Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="PYTHONPATH=${APP_DIR}/pynq:/usr/local/share/pynq-venv/lib/python3.8/site-packages"
 
 [Install]
 WantedBy=multi-user.target
@@ -184,7 +185,7 @@ Listen 80
 </IfModule>
 EOF
 
-# Create Apache virtual host configuration
+# Create Apache virtual host configuration - FIXED for WebSocket
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 # HTTP -> HTTPS redirect
 <VirtualHost *:80>
@@ -204,18 +205,32 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
     <Directory ${APP_DIR}>
         AllowOverride All
         Require all granted
+        Options Indexes FollowSymLinks
     </Directory>
 
-    # Proxy API requests to FastAPI backend
-    ProxyPreserveHost On
+    # WebSocket support for /ws
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/ws(.*) ws://127.0.0.1:8000/ws\$1 [P,L]
+    
+    # Proxy WebSocket connections
+    ProxyPass /ws ws://127.0.0.1:8000/ws
+    ProxyPassReverse /ws ws://127.0.0.1:8000/ws
+    
+    # Proxy API endpoints if needed
     ProxyPass /api/ http://127.0.0.1:8000/api/
     ProxyPassReverse /api/ http://127.0.0.1:8000/api/
-
-    # WebSocket support if needed
-    RewriteEngine On
-    RewriteCond %{HTTP:Upgrade} websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/?(.*) "ws://127.0.0.1:8000/\$1" [P,L]
+    
+    # Allow WebSocket headers
+    ProxyPassReverseCookiePath / /
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+    
+    # CORS headers for WebSocket
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type"
 
     # Logging
     ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
@@ -253,6 +268,13 @@ sudo chmod -R 775 ${APP_DIR}
 log "Verifying installation..."
 if [ -f "${APP_DIR}/pynq/server.py" ]; then
     ok "server.py found at ${APP_DIR}/pynq/server.py"
+    
+    # Update server.py to bind to 0.0.0.0 if needed
+    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
+        log "Updating server.py to bind to 0.0.0.0..."
+        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
+        ok "server.py updated to bind to 0.0.0.0"
+    fi
 else
     err "server.py NOT found at ${APP_DIR}/pynq/server.py"
 fi
@@ -268,7 +290,14 @@ sleep 2
 if sudo systemctl is-active --quiet ${SERVICE}; then
     ok "FastAPI service is running"
 else
-    warn "FastAPI service is not running. Check: journalctl -u ${SERVICE} -f"
+    warn "FastAPI service is not running. Starting manually..."
+    sudo systemctl start ${SERVICE}
+    sleep 2
+    if sudo systemctl is-active --quiet ${SERVICE}; then
+        ok "FastAPI service now running"
+    else
+        warn "FastAPI service still not running. Check: journalctl -u ${SERVICE} -f"
+    fi
 fi
 
 # Check if PYNQ is still accessible
@@ -278,12 +307,22 @@ else
     warn "PYNQ not detected on port 9090"
 fi
 
+# Check WebSocket connectivity
+log "Testing WebSocket connectivity..."
+sleep 3
+if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+    ok "FastAPI server responding on port 8000"
+else
+    warn "FastAPI not responding on port 8000"
+fi
+
 ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
 echo "  Your App (HTTP):  http://${SERVER_IP}/"
 echo "  Your App (HTTPS): https://${SERVER_IP}/"
+echo "  WebSocket (WSS):  wss://${SERVER_IP}/ws"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -298,8 +337,13 @@ echo "  Logs:    journalctl -u ${SERVICE} -f"
 echo "  Restart: sudo systemctl restart ${SERVICE}"
 echo "  Enable:  sudo systemctl enable ${SERVICE}"
 echo ""
+echo "🌐 WebSocket Test:"
+echo "  Open: https://${SERVER_IP}/scope"
+echo "  Check browser console for WebSocket connection"
+echo ""
 echo "📁 Application: ${APP_DIR}"
 echo "📝 Server.py:   ${APP_DIR}/pynq/server.py"
 echo ""
 echo "✅ Server.py will auto-start on every boot!"
+echo "✅ Apache proxies HTTPS to FastAPI WebSocket"
 echo "=========================================="
