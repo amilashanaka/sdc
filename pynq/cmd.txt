@@ -1,0 +1,12 @@
+# Convert line endings and run
+sed -i 's/\r$//' install.sh
+chmod +x install.sh
+sudo ./install.sh
+
+
+
+
+
+
+chmod +x install.sh
+sudo ./install.sh
