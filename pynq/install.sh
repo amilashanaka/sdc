@@ -8,7 +8,7 @@ DB_PASS="daq"
 DB_NAME="daq"
 SERVICE="spicer-daq"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
-REPO_URL="https://github.com/amilashanaka/sdc.git"  # UPDATE THIS!
+REPO_URL="git@github.com:amilashanaka/sdc.git"
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -131,17 +131,43 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE}.service
 sudo systemctl restart ${SERVICE}.service || true
 
-log "Configuring Apache (port 80/443 for your app, preserving :9090 for PYNQ)..."
+log "Configuring Apache (ports 8080/8443 for your app, preserving :9090 for PYNQ)..."
+
+# Check what's using port 80
+PORT_80_USER=$(sudo ss -tulpn | grep ':80 ' | grep -v apache2 | head -1)
+if [ -n "$PORT_80_USER" ]; then
+    warn "Port 80 is in use by another service"
+    echo "$PORT_80_USER"
+    log "Using Apache on ports 8080 (HTTP) and 8443 (HTTPS) instead"
+    HTTP_PORT=8080
+    HTTPS_PORT=8443
+else
+    HTTP_PORT=80
+    HTTPS_PORT=443
+fi
+
+# Configure Apache ports
+sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
+Listen ${HTTP_PORT}
+
+<IfModule ssl_module>
+    Listen ${HTTPS_PORT}
+</IfModule>
+
+<IfModule mod_gnutls.c>
+    Listen ${HTTPS_PORT}
+</IfModule>
+EOF
 
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 # HTTP -> HTTPS redirect
-<VirtualHost *:80>
+<VirtualHost *:${HTTP_PORT}>
     ServerName ${SERVER_IP}
-    Redirect permanent / https://${SERVER_IP}/
+    Redirect permanent / https://${SERVER_IP}:${HTTPS_PORT}/
 </VirtualHost>
 
 # Main HTTPS site for Spicer DAQ app
-<VirtualHost *:443>
+<VirtualHost *:${HTTPS_PORT}>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
 
@@ -173,7 +199,32 @@ EOF
 
 sudo a2dissite 000-default default-ssl >/dev/null 2>&1 || true
 sudo a2ensite spicer.conf >/dev/null
-sudo systemctl restart apache2
+
+# Test Apache configuration
+log "Testing Apache configuration..."
+if sudo apache2ctl configtest 2>&1 | grep -q "Syntax OK"; then
+    ok "Apache config syntax OK"
+else
+    err "Apache config has errors:"
+    sudo apache2ctl configtest
+    exit 1
+fi
+
+# Check if port 80 is already in use
+if sudo ss -tulpn | grep ':80 ' | grep -v apache2; then
+    err "Port 80 is already in use by another process:"
+    sudo ss -tulpn | grep ':80 '
+    warn "You may need to stop the conflicting service first"
+fi
+
+log "Starting Apache..."
+if sudo systemctl restart apache2; then
+    ok "Apache started successfully"
+else
+    err "Apache failed to start. Checking logs..."
+    sudo journalctl -xeu apache2.service --no-pager | tail -20
+    exit 1
+fi
 
 log "Final permission check..."
 sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
@@ -203,8 +254,13 @@ ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
-echo "  Your App (HTTP):  http://${SERVER_IP}/"
-echo "  Your App (HTTPS): https://${SERVER_IP}/"
+if [ "${HTTP_PORT:-80}" = "80" ]; then
+    echo "  Your App (HTTP):  http://${SERVER_IP}/"
+    echo "  Your App (HTTPS): https://${SERVER_IP}/"
+else
+    echo "  Your App (HTTP):  http://${SERVER_IP}:${HTTP_PORT}/"
+    echo "  Your App (HTTPS): https://${SERVER_IP}:${HTTPS_PORT}/"
+fi
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
