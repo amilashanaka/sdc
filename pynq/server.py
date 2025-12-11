@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 import uvicorn
 import asyncio
 import os
@@ -13,9 +12,6 @@ os.environ['XILINX_XRT'] = '/usr'
 os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
 
 app = FastAPI()
-
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Try to import and initialize DAQ with error handling
 daq = None
@@ -95,7 +91,9 @@ if not daq_initialized:
     daq = SimulatedDAQ()
     daq.start_background()
 
- 
+@app.get("/")
+async def root():
+    return {"message": "Spicer DAQ FastAPI Server", "status": "running"}
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
@@ -122,5 +120,5 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
-    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    print("Starting uvicorn server on 0.0.0.0:8000", file=sys.stderr)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
