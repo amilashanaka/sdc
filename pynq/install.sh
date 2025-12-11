@@ -115,6 +115,29 @@ fi
 
 log "Installing FastAPI service ${SERVICE}..."
 
+# Detect Python virtual environment
+PYNQ_VENV="/usr/local/share/pynq-venv/bin/python"
+if [ -f "$PYNQ_VENV" ]; then
+    PYTHON_PATH="$PYNQ_VENV"
+    ok "Using PYNQ virtual environment: $PYTHON_PATH"
+else
+    PYTHON_PATH="/usr/bin/python3"
+    warn "PYNQ venv not found, using system python3"
+fi
+
+# Check if FastAPI is installed
+log "Checking FastAPI installation..."
+if $PYTHON_PATH -c "import fastapi" 2>/dev/null; then
+    ok "FastAPI is available"
+else
+    warn "FastAPI not found. Installing dependencies..."
+    if [ -f "${APP_DIR}/pynq/requirements.txt" ]; then
+        $PYTHON_PATH -m pip install -r ${APP_DIR}/pynq/requirements.txt >>$LOG_FILE 2>&1 || true
+    else
+        $PYTHON_PATH -m pip install fastapi uvicorn >>$LOG_FILE 2>&1 || true
+    fi
+fi
+
 # Create systemd service for server.py
 cat <<EOF | sudo tee /etc/systemd/system/${SERVICE}.service >/dev/null
 [Unit]
@@ -123,11 +146,13 @@ After=network.target mariadb.service
 
 [Service]
 Type=simple
-User=www-data
+User=xilinx
+Group=xilinx
 WorkingDirectory=${APP_DIR}/pynq
-ExecStart=/usr/bin/python3 ${APP_DIR}/pynq/server.py
+ExecStart=${PYTHON_PATH} ${APP_DIR}/pynq/server.py
 Restart=always
 RestartSec=5
+Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 [Install]
 WantedBy=multi-user.target
