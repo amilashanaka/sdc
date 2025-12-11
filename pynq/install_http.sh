@@ -60,7 +60,7 @@ sudo -E apt install -y \
  python3-pip python3-venv >>$LOG_FILE 2>&1
 ok "Packages installed"
 
-sudo a2enmod rewrite proxy proxy_http proxy_wstunnel headers >/dev/null || true
+sudo a2enmod rewrite >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
 
 # Backup existing files in /var/www/html
@@ -171,16 +171,16 @@ else
     warn "Service failed to start (will check later)"
 fi
 
-log "Configuring Apache (port 80 for your app)..."
+log "Configuring Apache (port 80 for static files only)..."
 
 # Configure Apache to use only port 80
 sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
 Listen 80
 EOF
 
-# Create Apache virtual host configuration for HTTP only
+# Create Apache virtual host configuration - serves static files only
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
-# Main HTTP site for Spicer DAQ app
+# Main HTTP site for Spicer DAQ app - Static files only
 <VirtualHost *:80>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
@@ -190,28 +190,6 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
         Require all granted
         Options Indexes FollowSymLinks
     </Directory>
-
-    # WebSocket support for /ws
-    RewriteEngine On
-    RewriteCond %{HTTP:Upgrade} =websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/ws(.*) ws://127.0.0.1:8000/ws\$1 [P,L]
-    
-    # Proxy WebSocket connections
-    ProxyPass /ws ws://127.0.0.1:8000/ws
-    ProxyPassReverse /ws ws://127.0.0.1:8000/ws
-    
-    # Proxy API endpoints if needed
-    ProxyPass /api/ http://127.0.0.1:8000/api/
-    ProxyPassReverse /api/ http://127.0.0.1:8000/api/
-    
-    # Allow WebSocket headers
-    ProxyPassReverseCookiePath / /
-    
-    # CORS headers for WebSocket
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header always set Access-Control-Allow-Headers "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type"
 
     # Logging
     ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
@@ -301,8 +279,8 @@ ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
-echo "  Your App (HTTP):  http://${SERVER_IP}/"
-echo "  WebSocket (WS):   ws://${SERVER_IP}/ws"
+echo "  Static Files:     http://${SERVER_IP}/"
+echo "  WebSocket (WS):   ws://${SERVER_IP}:8000/ws"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -318,12 +296,13 @@ echo "  Restart: sudo systemctl restart ${SERVICE}"
 echo "  Enable:  sudo systemctl enable ${SERVICE}"
 echo ""
 echo "🌐 WebSocket Test:"
-echo "  Open: http://${SERVER_IP}/scope"
-echo "  Check browser console for WebSocket connection"
+echo "  Open: http://${SERVER_IP}/scope.php"
+echo "  WebSocket connects directly to port 8000"
 echo ""
 echo "📁 Application: ${APP_DIR}"
 echo "📄 Server.py:   ${APP_DIR}/pynq/server.py"
 echo ""
 echo "✅ Server.py will auto-start on every boot!"
-echo "✅ Apache proxies HTTP to FastAPI WebSocket"
+echo "✅ Apache serves static files on port 80"
+echo "✅ Uvicorn WebSocket on port 8000 (direct connection)"
 echo "=========================================="
