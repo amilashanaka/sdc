@@ -8,7 +8,7 @@ DB_PASS="daq"
 DB_NAME="daq"
 SERVICE="spicer-daq"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
-REPO_URL="git@github.com:amilashanaka/sdc.git"
+REPO_URL="https://github.com/amilashanaka/sdc.git"
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
