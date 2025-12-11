@@ -2,7 +2,7 @@
 set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
-APP_DIR="/opt/spicer-daq"  # Changed to avoid conflict with PYNQ
+APP_DIR="/var/www/html"
 WWW_USER="www-data"
 DB_PASS="daq"
 DB_NAME="daq"
@@ -21,7 +21,7 @@ ok(){ echo -e "${GREEN}[OK] $*${NC}"; }
 warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 err(){ echo -e "${RED}[ERROR] $*${NC}"; }
 
-log "Starting installation (preserving PYNQ)..."
+log "Starting installation (preserving PYNQ on :9090)..."
 sudo apt update -y >>$LOG_FILE
 
 log "Checking PYNQ on port 9090..."
@@ -38,6 +38,18 @@ else
     warn "redirect_server not found (normal if not using it)"
 fi
 
+# Check and stop conflicting service on port 80
+log "Checking port 80..."
+PORT_80_PID=$(sudo ss -tulpn | grep ':80 ' | grep -v apache2 | awk '{print $7}' | grep -oP 'pid=\K[0-9]+' | head -1)
+if [ -n "$PORT_80_PID" ]; then
+    PORT_80_CMD=$(ps -p $PORT_80_PID -o comm=)
+    warn "Port 80 is in use by PID $PORT_80_PID ($PORT_80_CMD)"
+    log "Stopping process on port 80..."
+    sudo kill $PORT_80_PID 2>/dev/null || true
+    sleep 2
+    ok "Port 80 freed"
+fi
+
 log "Installing Apache + PHP + Git + Python dependencies"
 export DEBIAN_FRONTEND=noninteractive
 sudo -E apt install -y \
@@ -50,23 +62,22 @@ ok "Packages installed"
 sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
 
-log "Creating application directory at ${APP_DIR}..."
-sudo mkdir -p "${APP_DIR}"
-
-# Backup if directory already exists
+# Backup existing files in /var/www/html
 if [ "$(ls -A ${APP_DIR} 2>/dev/null)" ]; then
-    BACKUP_DIR="/tmp/spicer_backup_$(date +%Y%m%d_%H%M%S)"
+    BACKUP_DIR="/tmp/html_backup_$(date +%Y%m%d_%H%M%S)"
     log "Backing up existing ${APP_DIR} to ${BACKUP_DIR}"
     sudo mkdir -p "${BACKUP_DIR}"
     sudo cp -r ${APP_DIR}/* "${BACKUP_DIR}/" 2>/dev/null || true
-    ok "Backup created"
+    ok "Backup created at ${BACKUP_DIR}"
 fi
 
-# Clean and clone
+# Clean /var/www/html completely
 log "Cleaning ${APP_DIR}..."
 sudo rm -rf ${APP_DIR}/*
 sudo rm -rf ${APP_DIR}/.[!.]* 2>/dev/null || true
+ok "Directory cleaned"
 
+# Clone repository
 log "Cloning repository from ${REPO_URL}..."
 if sudo git clone "${REPO_URL}" "${APP_DIR}" >>$LOG_FILE 2>&1; then
     ok "Repository cloned successfully"
@@ -91,7 +102,7 @@ FLUSH PRIVILEGES;
 EOF
 
 sudo mysql -u root -p${DB_PASS} -e \
- "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+ "CREATE DATABASE IF NOT EXISTS ${DB_NAME};" 2>/dev/null || true
 
 SQL_FILE="${APP_DIR}/db/table.sql"
 if [ -f "$SQL_FILE" ]; then
@@ -104,70 +115,60 @@ fi
 
 log "Installing FastAPI service ${SERVICE}..."
 
-if [ -f "${APP_DIR}/pynq/spicer-daq.service" ]; then
-    sudo cp "${APP_DIR}/pynq/spicer-daq.service" /etc/systemd/system/${SERVICE}.service
-    # Update WorkingDirectory in service file
-    sudo sed -i "s|WorkingDirectory=.*|WorkingDirectory=${APP_DIR}/pynq|g" /etc/systemd/system/${SERVICE}.service
-else
+# Create systemd service for server.py
 cat <<EOF | sudo tee /etc/systemd/system/${SERVICE}.service >/dev/null
 [Unit]
 Description=Spicer DAQ FastAPI app
-After=network.target
+After=network.target mariadb.service
 
 [Service]
 Type=simple
 User=www-data
 WorkingDirectory=${APP_DIR}/pynq
-ExecStart=/usr/bin/python3 server.py
-Restart=on-failure
+ExecStart=/usr/bin/python3 ${APP_DIR}/pynq/server.py
+Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-fi
 
 sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE}.service
-sudo systemctl restart ${SERVICE}.service || true
+ok "Service ${SERVICE} enabled for auto-start on boot"
 
-log "Configuring Apache (ports 8080/8443 for your app, preserving :9090 for PYNQ)..."
-
-# Check what's using port 80
-PORT_80_USER=$(sudo ss -tulpn | grep ':80 ' | grep -v apache2 | head -1)
-if [ -n "$PORT_80_USER" ]; then
-    warn "Port 80 is in use by another service"
-    echo "$PORT_80_USER"
-    log "Using Apache on ports 8080 (HTTP) and 8443 (HTTPS) instead"
-    HTTP_PORT=8080
-    HTTPS_PORT=8443
+# Start the service
+if sudo systemctl restart ${SERVICE}.service; then
+    ok "Service ${SERVICE} started"
 else
-    HTTP_PORT=80
-    HTTPS_PORT=443
+    warn "Service failed to start (will check later)"
 fi
 
-# Configure Apache ports
+log "Configuring Apache (ports 80/443 for your app)..."
+
+# Configure Apache to use standard ports
 sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
-Listen ${HTTP_PORT}
+Listen 80
 
 <IfModule ssl_module>
-    Listen ${HTTPS_PORT}
+    Listen 443
 </IfModule>
 
 <IfModule mod_gnutls.c>
-    Listen ${HTTPS_PORT}
+    Listen 443
 </IfModule>
 EOF
 
+# Create Apache virtual host configuration
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 # HTTP -> HTTPS redirect
-<VirtualHost *:${HTTP_PORT}>
+<VirtualHost *:80>
     ServerName ${SERVER_IP}
-    Redirect permanent / https://${SERVER_IP}:${HTTPS_PORT}/
+    Redirect permanent / https://${SERVER_IP}/
 </VirtualHost>
 
 # Main HTTPS site for Spicer DAQ app
-<VirtualHost *:${HTTPS_PORT}>
+<VirtualHost *:443>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
 
@@ -210,13 +211,7 @@ else
     exit 1
 fi
 
-# Check if port 80 is already in use
-if sudo ss -tulpn | grep ':80 ' | grep -v apache2; then
-    err "Port 80 is already in use by another process:"
-    sudo ss -tulpn | grep ':80 '
-    warn "You may need to stop the conflicting service first"
-fi
-
+# Start Apache
 log "Starting Apache..."
 if sudo systemctl restart apache2; then
     ok "Apache started successfully"
@@ -232,15 +227,23 @@ sudo chmod -R 775 ${APP_DIR}
 
 log "Verifying installation..."
 if [ -f "${APP_DIR}/pynq/server.py" ]; then
-    ok "server.py found"
+    ok "server.py found at ${APP_DIR}/pynq/server.py"
 else
-    warn "server.py NOT found at ${APP_DIR}/pynq/server.py"
+    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
 fi
 
 if [ -f "${APP_DIR}/index.html" ] || [ -f "${APP_DIR}/index.php" ]; then
     ok "Web interface files found"
 else
     warn "No index file found - verify repository contents"
+fi
+
+# Check service status
+sleep 2
+if sudo systemctl is-active --quiet ${SERVICE}; then
+    ok "FastAPI service is running"
+else
+    warn "FastAPI service is not running. Check: journalctl -u ${SERVICE} -f"
 fi
 
 # Check if PYNQ is still accessible
@@ -254,13 +257,8 @@ ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
-if [ "${HTTP_PORT:-80}" = "80" ]; then
-    echo "  Your App (HTTP):  http://${SERVER_IP}/"
-    echo "  Your App (HTTPS): https://${SERVER_IP}/"
-else
-    echo "  Your App (HTTP):  http://${SERVER_IP}:${HTTP_PORT}/"
-    echo "  Your App (HTTPS): https://${SERVER_IP}:${HTTPS_PORT}/"
-fi
+echo "  Your App (HTTP):  http://${SERVER_IP}/"
+echo "  Your App (HTTPS): https://${SERVER_IP}/"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -273,6 +271,10 @@ echo "  Service: ${SERVICE}"
 echo "  Status:  sudo systemctl status ${SERVICE}"
 echo "  Logs:    journalctl -u ${SERVICE} -f"
 echo "  Restart: sudo systemctl restart ${SERVICE}"
+echo "  Enable:  sudo systemctl enable ${SERVICE}"
 echo ""
-echo "📁 Application Location: ${APP_DIR}"
+echo "📁 Application: ${APP_DIR}"
+echo "📝 Server.py:   ${APP_DIR}/pynq/server.py"
+echo ""
+echo "✅ Server.py will auto-start on every boot!"
 echo "=========================================="
