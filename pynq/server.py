@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import asyncio
 import os
@@ -14,8 +13,14 @@ os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', 
 
 app = FastAPI()
 
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Add CORS middleware to allow cross-origin WebSocket connections
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Try to import and initialize DAQ with error handling
 daq = None
@@ -121,5 +126,5 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
-    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    print("Starting uvicorn server on 0.0.0.0:8000", file=sys.stderr)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
