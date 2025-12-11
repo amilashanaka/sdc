@@ -1,4 +1,7 @@
 # Convert line endings and run
+
+
+sudo su
 sed -i 's/\r$//' install.sh
 chmod +x install.sh
 sudo ./install.sh

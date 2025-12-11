@@ -21,6 +21,7 @@ ok(){ echo -e "${GREEN}[OK] $*${NC}"; }
 warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 err(){ echo -e "${RED}[ERROR] $*${NC}"; }
 
+ 
 log "Starting installation (preserving PYNQ on :9090)..."
 sudo apt update -y >>$LOG_FILE
 
