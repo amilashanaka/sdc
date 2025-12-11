@@ -6,7 +6,7 @@ APP_DIR="/var/www/html"
 WWW_USER="root"
 DB_PASS="daq"
 DB_NAME="daq"
-SERVICE="spicer-daq"
+PROCESS_NAME="server.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
 
@@ -114,7 +114,7 @@ else
     warn "No SQL file found at ${SQL_FILE}"
 fi
 
-log "Installing FastAPI service ${SERVICE}..."
+log "Setting up FastAPI server ${PROCESS_NAME}..."
 
 # Detect Python virtual environment
 PYNQ_VENV="/usr/local/share/pynq-venv/bin/python"
@@ -139,36 +139,61 @@ else
     fi
 fi
 
-# Create systemd service for server.py
-cat <<EOF | sudo tee /etc/systemd/system/${SERVICE}.service >/dev/null
-[Unit]
-Description=Spicer DAQ FastAPI app
-After=network.target mariadb.service
-
-[Service]
-Type=simple
-User=xilinx
-Group=xilinx
-WorkingDirectory=${APP_DIR}/pynq
-ExecStart=${PYTHON_PATH} ${APP_DIR}/pynq/server.py
-Restart=always
-RestartSec=5
-Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="PYTHONPATH=${APP_DIR}/pynq:/usr/local/share/pynq-venv/lib/python3.8/site-packages"
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable ${SERVICE}.service
-ok "Service ${SERVICE} enabled for auto-start on boot"
-
-# Start the service
-if sudo systemctl restart ${SERVICE}.service; then
-    ok "Service ${SERVICE} started"
+# Update server.py to bind to 0.0.0.0 if needed
+log "Checking server.py configuration..."
+if [ -f "${APP_DIR}/pynq/server.py" ]; then
+    ok "server.py found at ${APP_DIR}/pynq/server.py"
+    
+    # Update server.py to bind to 0.0.0.0 if needed
+    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
+        log "Updating server.py to bind to 0.0.0.0..."
+        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
+        ok "server.py updated to bind to 0.0.0.0"
+    fi
 else
-    warn "Service failed to start (will check later)"
+    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
+    exit 1
+fi
+
+# Create rc.local if it doesn't exist
+log "Setting up /etc/rc.local for auto-start..."
+if [ ! -f /etc/rc.local ]; then
+    sudo tee /etc/rc.local > /dev/null <<'EOF'
+#!/bin/bash
+# This script will be executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other value on error.
+
+exit 0
+EOF
+    sudo chmod +x /etc/rc.local
+fi
+
+# Remove any existing server.py startup line from rc.local
+sudo sed -i '/server.py/d' /etc/rc.local
+
+# Add server.py startup command to rc.local (before exit 0)
+STARTUP_CMD="cd ${APP_DIR}/pynq && sudo ${PYTHON_PATH} server.py > /tmp/server.log 2>&1 &"
+sudo sed -i "/^exit 0/i${STARTUP_CMD}" /etc/rc.local
+
+ok "Server startup added to /etc/rc.local"
+
+# Start server.py now
+log "Starting server.py now..."
+cd ${APP_DIR}/pynq
+if sudo ${PYTHON_PATH} server.py > /tmp/server_start.log 2>&1 & then
+    SERVER_PID=$!
+    ok "server.py started with PID: $SERVER_PID"
+    sleep 3
+    
+    # Check if server is running
+    if ps -p $SERVER_PID > /dev/null 2>&1; then
+        ok "server.py is running (PID: $SERVER_PID)"
+    else
+        warn "server.py may have failed to start. Check /tmp/server_start.log"
+    fi
+else
+    err "Failed to start server.py"
+    exit 1
 fi
 
 log "Configuring Apache (port 80 for static files only)..."
@@ -225,38 +250,10 @@ sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 
 log "Verifying installation..."
-if [ -f "${APP_DIR}/pynq/server.py" ]; then
-    ok "server.py found at ${APP_DIR}/pynq/server.py"
-    
-    # Update server.py to bind to 0.0.0.0 if needed
-    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
-        log "Updating server.py to bind to 0.0.0.0..."
-        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
-        ok "server.py updated to bind to 0.0.0.0"
-    fi
-else
-    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
-fi
-
 if [ -f "${APP_DIR}/index.html" ] || [ -f "${APP_DIR}/index.php" ]; then
     ok "Web interface files found"
 else
     warn "No index file found - verify repository contents"
-fi
-
-# Check service status
-sleep 2
-if sudo systemctl is-active --quiet ${SERVICE}; then
-    ok "FastAPI service is running"
-else
-    warn "FastAPI service is not running. Starting manually..."
-    sudo systemctl start ${SERVICE}
-    sleep 2
-    if sudo systemctl is-active --quiet ${SERVICE}; then
-        ok "FastAPI service now running"
-    else
-        warn "FastAPI service still not running. Check: journalctl -u ${SERVICE} -f"
-    fi
 fi
 
 # Check if PYNQ is still accessible
@@ -272,7 +269,18 @@ sleep 3
 if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
     ok "FastAPI server responding on port 8000"
 else
-    warn "FastAPI not responding on port 8000"
+    warn "FastAPI not responding on port 8000. Checking if server.py is running..."
+    
+    # Try to start server.py again
+    cd ${APP_DIR}/pynq
+    if sudo ${PYTHON_PATH} server.py > /tmp/server_retry.log 2>&1 & then
+        sleep 3
+        if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+            ok "FastAPI server now responding on port 8000"
+        else
+            warn "FastAPI still not responding. Check logs: /tmp/server_retry.log"
+        fi
+    fi
 fi
 
 ok "Installation complete!"
@@ -288,12 +296,12 @@ echo "  Name: ${DB_NAME}"
 echo "  User: root"
 echo "  Pass: ${DB_PASS}"
 echo ""
-echo "⚙️  Service Management:"
-echo "  Service: ${SERVICE}"
-echo "  Status:  sudo systemctl status ${SERVICE}"
-echo "  Logs:    journalctl -u ${SERVICE} -f"
-echo "  Restart: sudo systemctl restart ${SERVICE}"
-echo "  Enable:  sudo systemctl enable ${SERVICE}"
+echo "⚙️  Server Management:"
+echo "  Process: ${PROCESS_NAME}"
+echo "  Auto-start: Configured via /etc/rc.local"
+echo "  Manual start: cd ${APP_DIR}/pynq && sudo ${PYTHON_PATH} server.py"
+echo "  Logs:    tail -f /tmp/server.log"
+echo "  Check if running: ps aux | grep server.py"
 echo ""
 echo "🌐 WebSocket Test:"
 echo "  Open: http://${SERVER_IP}/scope.php"
@@ -302,7 +310,7 @@ echo ""
 echo "📁 Application: ${APP_DIR}"
 echo "📄 Server.py:   ${APP_DIR}/pynq/server.py"
 echo ""
-echo "✅ Server.py will auto-start on every boot!"
+echo "✅ server.py will auto-start on every boot via /etc/rc.local!"
 echo "✅ Apache serves static files on port 80"
 echo "✅ Uvicorn WebSocket on port 8000 (direct connection)"
 echo "=========================================="
