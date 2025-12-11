@@ -61,17 +61,17 @@
     <!-- WebSocket Stats -->
     <div class="ws-stats">
       <div>WebSocket: <span id="wsStatus">Disconnected</span></div>
-      <div>URL: <span id="wsUrl">wss://</span></div>
       <div>Packets: <span id="packetCount">0</span></div>
+      <div>Data Rate: <span id="dataRate">0 Hz</span></div>
       <div>Last Update: <span id="lastUpdate">Never</span></div>
     </div>
 
     <!-- System Statistics -->
     <div class="system-stats" id="systemStats">
       <div class="stat-item"><span class="stat-label">Frames:</span> <span id="statFrames">0</span></div>
-      <div class="stat-item"><span class="stat-label">Rate:</span> <span id="statRate">0 Hz</span></div>
       <div class="stat-item"><span class="stat-label">Active:</span> <span id="statActive">0/16</span></div>
       <div class="stat-item"><span class="stat-label">Buffer:</span> <span id="statBuffer">0</span></div>
+      <div class="stat-item"><span class="stat-label">Memory:</span> <span id="statMemory">0 MB</span></div>
     </div>
 
     <!-- Y-Axis Controls -->
@@ -120,13 +120,11 @@
 const CONFIG = {
     MAX_SAMPLES: 20000,
     BLOCK_SIZE: 2500,
-    BASE_SAMPLE_RATE: 10000, // 10 kHz base sampling rate
-    DECIMATION_FACTOR: 20,    // Default decimation
-    EFFECTIVE_SAMPLE_RATE: 500, // 10000 / 20 = 500 Hz
+    BASE_SAMPLE_RATE: 10000,
+    EFFECTIVE_SAMPLE_RATE: 500,
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
-    SIGNAL_VARIANCE_THRESHOLD: 10,
-    WS_HEARTBEAT_INTERVAL: 30000 // 30 seconds
+    SIGNAL_VARIANCE_THRESHOLD: 10
 };
 
 // Buffer management
@@ -149,8 +147,6 @@ let yRange = { min: -2000, max: 2000 };
 let lastDisplayedSamples = 10000;
 let packetCount = 0;
 let reconnectAttempts = 0;
-let heartbeatInterval = null;
-let lastWsMessageTime = Date.now();
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -191,9 +187,7 @@ function buildChannelTable() {
 // Get WebSocket URL based on current protocol
 function getWebSocketUrl() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    document.getElementById('wsUrl').textContent = wsUrl;
-    return wsUrl;
+    return `${protocol}//${window.location.host}/ws`;
 }
 
 // WebSocket connection
@@ -204,7 +198,7 @@ function connectDataWebSocket() {
 
     try {
         const wsUrl = getWebSocketUrl();
-        updateStatus('🟡 Connecting to ' + wsUrl + '...', 'disconnected');
+        updateStatus('🟡 Connecting to WebSocket...', 'disconnected');
         
         dataWebSocket = new WebSocket(wsUrl);
         dataWebSocket.binaryType = 'arraybuffer';
@@ -214,28 +208,29 @@ function connectDataWebSocket() {
             updateStatus('🟢 WebSocket Connected', 'connected');
             document.getElementById('wsStatus').textContent = 'Connected';
             document.getElementById('wsStatus').style.color = '#28a745';
-            lastWsMessageTime = Date.now();
-            
-            // Start heartbeat monitoring
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(checkWebSocketHealth, CONFIG.WS_HEARTBEAT_INTERVAL);
         };
 
         dataWebSocket.onmessage = (event) => {
-            lastWsMessageTime = Date.now();
-            packetCount++;
-            document.getElementById('packetCount').textContent = packetCount;
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-            
-            handleDataMessage(event);
+            if (event.data instanceof ArrayBuffer) {
+                processBinaryData(event.data);
+            } else if (typeof event.data === 'string') {
+                // Handle heartbeat messages
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'heartbeat') {
+                        // Update last update time
+                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    }
+                } catch (e) {
+                    // Ignore parsing errors
+                }
+            }
         };
         
         dataWebSocket.onclose = (event) => {
             updateStatus('🔴 WebSocket Disconnected', 'disconnected');
             document.getElementById('wsStatus').textContent = 'Disconnected';
             document.getElementById('wsStatus').style.color = '#dc3545';
-            
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
             
             // Attempt reconnection
             if (reconnectAttempts < 5) {
@@ -250,7 +245,7 @@ function connectDataWebSocket() {
         };
 
         dataWebSocket.onerror = (error) => {
-            updateStatus('⚠️ WebSocket Error: ' + error.type, 'disconnected');
+            updateStatus('⚠️ WebSocket Error', 'disconnected');
         };
     } catch (error) {
         updateStatus('⚠️ Connection failed: ' + error.message, 'disconnected');
@@ -258,46 +253,10 @@ function connectDataWebSocket() {
     }
 }
 
-// Check WebSocket health
-function checkWebSocketHealth() {
-    const now = Date.now();
-    const timeSinceLastMessage = now - lastWsMessageTime;
-    
-    if (timeSinceLastMessage > CONFIG.WS_HEARTBEAT_INTERVAL) {
-        updateStatus('⚠️ No data for ' + Math.floor(timeSinceLastMessage/1000) + 's', 'disconnected');
-        
-        // Try to send a ping if WebSocket is still open
-        if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
-            try {
-                dataWebSocket.send(JSON.stringify({type: 'ping'}));
-            } catch (e) {
-                // Ignore send errors
-            }
-        }
-    }
-}
-
-// Message handler
-function handleDataMessage(event) {
+// Binary data processing - SIMPLIFIED VERSION
+function processBinaryData(buffer) {
     if (paused) return;
 
-    if (event.data instanceof ArrayBuffer) {
-        processBinaryData(event.data);
-    } else if (typeof event.data === 'string') {
-        try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'heartbeat') {
-                // Update last message time but don't process as data
-                lastWsMessageTime = Date.now();
-            }
-        } catch (e) {
-            // Ignore non-JSON messages
-        }
-    }
-}
-
-// Binary data processing
-function processBinaryData(buffer) {
     const now = performance.now();
     if (lastTime > 0) {
         dataRate = 1000 / (now - lastTime);
@@ -305,20 +264,42 @@ function processBinaryData(buffer) {
     lastTime = now;
     frameCount++;
 
+    // Update display
+    document.getElementById('dataRate').textContent = dataRate.toFixed(1) + ' Hz';
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    
     try {
-        const result = parseBinaryPacket(buffer);
+        // Parse the binary data - FIXED: No headers, just raw data
+        const view = new DataView(buffer);
         
-        if (!result || !result.blocks || result.blocks.length === 0) {
-            return;
-        }
-
-        for (let ch = 0; ch < result.blocks.length && ch < 16; ch++) {
-            if (result.blocks[ch] && result.blocks[ch].length > 0) {
-                updateChannelBuffer(ch, result.blocks[ch], now);
+        // Each channel has 2500 samples, each sample is 2 bytes (int16)
+        // Total size should be: 16 channels * 2500 samples * 2 bytes = 80000 bytes
+        const samplesPerChannel = 2500;
+        const bytesPerSample = 2;
+        
+        let offset = 0;
+        
+        for (let ch = 0; ch < 16; ch++) {
+            const block = new Int16Array(samplesPerChannel);
+            for (let i = 0; i < samplesPerChannel; i++) {
+                // Read as little-endian (true) - FIXED: removed header offset
+                if (offset + 2 <= buffer.byteLength) {
+                    block[i] = view.getInt16(offset, true);
+                    offset += 2;
+                } else {
+                    block[i] = 0;
+                }
+            }
+            
+            if (block.length > 0) {
+                updateChannelBuffer(ch, Array.from(block), now);
                 updateChannelDisplay(ch);
             }
         }
 
+        packetCount++;
+        document.getElementById('packetCount').textContent = packetCount;
+        
         plot();
         updateInfoDisplay();
 
@@ -327,253 +308,22 @@ function processBinaryData(buffer) {
     }
 }
 
-// Packet parser
-function parseBinaryPacket(buf) {
-    try {
-        const view = new DataView(buf);
-        const HEADER_SIZE = 34;
-        
-        if (buf.byteLength < HEADER_SIZE) {
-            return { blocks: [] };
-        }
-
-        const headerOffset = buf.byteLength - HEADER_SIZE;
-        const numChannels = view.getInt16(headerOffset, false);
-
-        if (numChannels < 1 || numChannels > 16) {
-            return parseWithDefaultChannels(buf, view, headerOffset);
-        }
-
-        const blockSizes = [];
-        for (let i = 0; i < 16; i++) {
-            const size = view.getInt16(headerOffset + 2 + (i * 2), false);
-            blockSizes.push(size);
-        }
-
-        const samples = [];
-        let dataOffset = 8;
-
-        for (let ch = 0; ch < numChannels; ch++) {
-            const blockSizeBytes = blockSizes[ch];
-            const numSamples = blockSizeBytes / 2;
-
-            if (blockSizeBytes < 0 || blockSizeBytes > 10000 || dataOffset + blockSizeBytes > headerOffset) {
-                samples.push(new Int16Array(0));
-                continue;
-            }
-
-            const arr = new Int16Array(numSamples);
-            
-            for (let i = 0; i < numSamples; i++) {
-                const value = view.getInt16(dataOffset, true);
-                // FIX: Handle first data point if it's corrupted
-                if (i === 0 && ch === 0) {
-                    // Check if first sample is outlier (debug)
-                    const nextVal = view.getInt16(dataOffset + 2, true);
-                    if (Math.abs(value - nextVal) > 1000) {
-                        arr[i] = nextVal; // Use second sample instead
-                    } else {
-                        arr[i] = (value < -32768 || value > 32767) ? 0 : value;
-                    }
-                } else {
-                    arr[i] = (value < -32768 || value > 32767) ? 0 : value;
-                }
-                dataOffset += 2;
-            }
-            
-            samples.push(arr);
-        }
-
-        return { blocks: samples };
-
-    } catch (error) {
-        return { blocks: [] };
-    }
-}
-
-// Fallback parser
-function parseWithDefaultChannels(buf, view, headerOffset) {
-    const samples = [];
-    let dataOffset = 8;
-    
-    for (let ch = 0; ch < 16; ch++) {
-        if (dataOffset + 5000 > headerOffset) break;
-        
-        const arr = new Int16Array(2500);
-        for (let i = 0; i < 2500; i++) {
-            const value = view.getInt16(dataOffset, true);
-            // FIX: Handle first data point
-            if (i === 0 && ch === 0) {
-                const nextVal = view.getInt16(dataOffset + 2, true);
-                if (Math.abs(value - nextVal) > 1000) {
-                    arr[i] = nextVal;
-                } else {
-                    arr[i] = value;
-                }
-            } else {
-                arr[i] = value;
-            }
-            dataOffset += 2;
-        }
-        samples.push(arr);
-    }
-    
-    return { blocks: samples };
-}
-
-// Buffer update
+// Buffer update - SIMPLIFIED
 function updateChannelBuffer(channel, block, timestamp) {
     if (channel < 0 || channel >= 16 || !block || block.length === 0) return;
     
     const buf = buffers[channel];
     
-    // Check for duplicate block
-    let isDuplicate = false;
-    if (buf.data.length >= CONFIG.BLOCK_SIZE && block.length === CONFIG.BLOCK_SIZE) {
-        const lastBlock = buf.data.slice(-CONFIG.BLOCK_SIZE);
-        isDuplicate = true;
-        for (let i = 0; i < CONFIG.BLOCK_SIZE; i++) {
-            if (lastBlock[i] !== block[i]) {
-                isDuplicate = false;
-                break;
-            }
-        }
-    }
-    
-    if (isDuplicate) {
-        buf.lastUpdate = timestamp;
-        return;
-    }
-    
-    // Fix first sample if it's an outlier
-    const fixedBlock = Array.from(block);
-    if (fixedBlock.length >= 2) {
-        // Check if first sample is outlier (jump > 1000 from second sample)
-        if (Math.abs(fixedBlock[0] - fixedBlock[1]) > 1000) {
-            fixedBlock[0] = fixedBlock[1];
-        }
-    }
-    
-    // Check if all zeros or flat signal
-    let allZeros = true;
-    let allSame = true;
-    const firstVal = fixedBlock[0];
-    for (let i = 0; i < fixedBlock.length; i++) {
-        if (fixedBlock[i] !== 0) allZeros = false;
-        if (fixedBlock[i] !== firstVal) allSame = false;
-        if (!allZeros && !allSame) break;
-    }
-    
-    if (allZeros || allSame) {
-        buf.data = fixedBlock;
-        buf.valid = true;
-        buf.lastUpdate = timestamp;
-        buf.hasNonZero = false;
-        buf.statistics = { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 };
-        return;
-    }
-    
-    // Detect discontinuity
-    let insertGap = false;
-    if (buf.data.length > 0) {
-        const lastVal = buf.data[buf.data.length - 1];
-        const firstVal = fixedBlock[0];
-        const delta = Math.abs(lastVal - firstVal);
-        
-        let maxIncomingDelta = 0;
-        for (let i = 1; i < fixedBlock.length; i++) {
-            const d = Math.abs(fixedBlock[i] - fixedBlock[i - 1]);
-            if (d > maxIncomingDelta) maxIncomingDelta = d;
-        }
-        
-        if (maxIncomingDelta > 0 && delta > 5 * maxIncomingDelta) {
-            insertGap = true;
-        }
-    }
-    
-    const newData = fixedBlock;
-    
-    if (insertGap) {
-        buf.data.push(NaN);
-    }
-    
-    buf.data = [...buf.data, ...newData].slice(-CONFIG.MAX_SAMPLES);
+    // Add new data to buffer
+    buf.data = [...buf.data, ...block].slice(-CONFIG.MAX_SAMPLES);
     buf.valid = true;
     buf.lastUpdate = timestamp;
-
-    updateChannelStatistics(buf, fixedBlock);
+    
+    // Calculate statistics
+    updateChannelStatistics(buf, block);
 }
 
-// Improved frequency calculation
-function estimateFrequencyAndAmplitude(data) {
-    if (data.length < 500) return { frequency: 0, amplitude: 0 };
-    
-    // Filter out NaN values
-    const validData = data.filter(v => !isNaN(v));
-    if (validData.length < 500) return { frequency: 0, amplitude: 0 };
-    
-    // Calculate amplitude (peak-to-peak / 2)
-    let min = Infinity, max = -Infinity;
-    for (let i = 0; i < validData.length; i++) {
-        if (validData[i] < min) min = validData[i];
-        if (validData[i] > max) max = validData[i];
-    }
-    const amplitude = (max - min) / 2;
-    
-    // Check if signal is too flat to measure frequency
-    if (amplitude < 10) return { frequency: 0, amplitude };
-    
-    // Detrend the data (remove DC offset)
-    const mean = validData.reduce((a, b) => a + b, 0) / validData.length;
-    const detrended = validData.map(v => v - mean);
-    
-    // Find zero crossings with improved detection
-    const crossings = [];
-    let lastSign = Math.sign(detrended[0]);
-    
-    for (let i = 1; i < detrended.length; i++) {
-        const currentSign = Math.sign(detrended[i]);
-        
-        // Detect zero crossing (positive-going)
-        if (lastSign <= 0 && currentSign > 0) {
-            // Linear interpolation for more accurate crossing point
-            const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
-            const crossingIndex = (i - 1) + t;
-            crossings.push(crossingIndex);
-        }
-        lastSign = currentSign;
-    }
-    
-    if (crossings.length < 2) return { frequency: 0, amplitude };
-    
-    // Calculate periods between crossings
-    const periods = [];
-    for (let i = 1; i < crossings.length; i++) {
-        periods.push(crossings[i] - crossings[i-1]);
-    }
-    
-    // Remove outliers (periods that deviate by more than 50% from median)
-    const medianPeriod = periods.sort((a, b) => a - b)[Math.floor(periods.length / 2)];
-    const filteredPeriods = periods.filter(p => 
-        p > medianPeriod * 0.5 && p < medianPeriod * 1.5
-    );
-    
-    if (filteredPeriods.length === 0) return { frequency: 0, amplitude };
-    
-    // Calculate average period
-    const avgPeriodSamples = filteredPeriods.reduce((a, b) => a + b, 0) / filteredPeriods.length;
-    
-    // Calculate frequency: f = sample_rate / period_in_samples
-    // With 20x decimation: 10000/20 = 500 Hz effective sample rate
-    const frequency = CONFIG.EFFECTIVE_SAMPLE_RATE / avgPeriodSamples;
-    
-    return { 
-        frequency: Math.min(frequency, CONFIG.EFFECTIVE_SAMPLE_RATE / 2), // Nyquist limit
-        amplitude 
-    };
-}
-
-// Statistics calculation
+// Calculate basic statistics
 function updateChannelStatistics(buf, block) {
     if (!block || block.length === 0) return;
     
@@ -582,7 +332,7 @@ function updateChannelStatistics(buf, block) {
     
     for (let i = 0; i < block.length; i++) {
         const val = block[i];
-        if (val >= -32768 && val <= 32767 && val !== -32768) {
+        if (val >= -32768 && val <= 32767) {
             if (val < min) min = val;
             if (val > max) max = val;
             sum += val;
@@ -600,9 +350,19 @@ function updateChannelStatistics(buf, block) {
     const mean = sum / validSamples;
     const variance = (sumSq / validSamples) - (mean * mean);
     
-    // Estimate frequency and amplitude from all available data
-    const recentData = buf.data.slice(-5000); // Use 5 seconds of data for better accuracy
-    const { frequency, amplitude } = estimateFrequencyAndAmplitude(recentData);
+    // Simple frequency detection (zero crossing)
+    let zeroCrossings = 0;
+    let prev = block[0] - mean;
+    for (let i = 1; i < block.length; i++) {
+        const curr = block[i] - mean;
+        if ((prev <= 0 && curr > 0) || (prev >= 0 && curr < 0)) {
+            zeroCrossings++;
+        }
+        prev = curr;
+    }
+    
+    const frequency = (zeroCrossings / 2) * (CONFIG.EFFECTIVE_SAMPLE_RATE / block.length);
+    const amplitude = (max - min) / 2;
     
     buf.statistics = {
         min: min,
@@ -614,7 +374,7 @@ function updateChannelStatistics(buf, block) {
         amplitude: amplitude
     };
     
-    buf.hasNonZero = variance > CONFIG.SIGNAL_VARIANCE_THRESHOLD;
+    buf.hasNonZero = variance > CONFIG.SIGNAL_VARIANCE_THRESHOLD || amplitude > 50;
 }
 
 // Channel display update
@@ -637,8 +397,8 @@ function updateChannelDisplay(channel) {
     if (vEl) vEl.textContent = isNaN(lastValue) ? '—' : lastValue.toFixed(0);
     if (nEl) nEl.textContent = stats.min.toFixed(0);
     if (xEl) xEl.textContent = stats.max.toFixed(0);
-    if (fEl) fEl.textContent = stats.frequency > 0.1 ? stats.frequency.toFixed(2) + ' Hz' : '—';
-    if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(1) : '—';
+    if (fEl) fEl.textContent = stats.frequency > 0.5 ? stats.frequency.toFixed(1) + ' Hz' : '—';
+    if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(0) : '—';
 
     const dot = document.getElementById(`d${channel}`);
     if (dot) {
@@ -706,7 +466,7 @@ function plot() {
             mode: 'lines',
             line: { 
                 color: CONFIG.COLORS[traceIndex % CONFIG.COLORS.length], 
-                width: 2.5
+                width: 1.5
             },
             connectgaps: false
         });
@@ -760,15 +520,16 @@ function updateSelection() {
 function updateInfoDisplay() {
     const active = buffers.filter(b => b.valid && b.hasNonZero).length;
     const totalBuffer = buffers.reduce((sum, buf) => sum + buf.data.length, 0);
+    const memoryUsage = (totalBuffer * 2 / (1024 * 1024)).toFixed(2); // MB
     
-    const infoText = `Frames: ${frameCount} • Rate: ${dataRate.toFixed(1)} Hz • Active: ${active}/16 • Displaying: ${lastDisplayedSamples} samples`;
+    const infoText = `Frames: ${frameCount} • Rate: ${dataRate.toFixed(1)} Hz • Active: ${active}/16 • Buffer: ${totalBuffer} samples`;
     document.getElementById('info').textContent = infoText;
     
     // Update system stats
     document.getElementById('statFrames').textContent = frameCount;
-    document.getElementById('statRate').textContent = dataRate.toFixed(1) + ' Hz';
     document.getElementById('statActive').textContent = `${active}/16`;
     document.getElementById('statBuffer').textContent = totalBuffer;
+    document.getElementById('statMemory').textContent = memoryUsage + ' MB';
 }
 
 function updateStatus(message, type) {
@@ -844,9 +605,6 @@ function init() {
     buildChannelTable();
     connectDataWebSocket();
     plot();
-    
-    // Show initial WebSocket URL
-    getWebSocketUrl();
 }
 
 if (document.readyState === 'loading') {
