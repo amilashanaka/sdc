@@ -3,7 +3,7 @@ set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
 APP_DIR="/var/www/html"
-WWW_USER="www-data"
+WWW_USER="root"
 DB_PASS="daq"
 DB_NAME="daq"
 SERVICE="spicer-daq"

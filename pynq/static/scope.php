@@ -40,6 +40,8 @@
   .stat-label { font-weight:bold; color:var(--accent); }
   .y-range-controls { display:flex; gap:8px; align-items:center; margin:8px 0; }
   .y-range-controls input { width:80px; padding:6px; }
+  .ws-stats { margin-top:12px; padding:10px; background:rgba(0,0,0,0.05); border-radius:6px; font-size:12px; font-family:monospace; }
+  .reconnect-btn { background:var(--orange) !important; color:white !important; }
 </style>
 </head>
 <body>
@@ -50,9 +52,18 @@
   <div class="panel left">
     <h1>Spicer 16-Ch DAQ</h1>
     
-    <!-- System Controls -->
+    <!-- Connection Controls -->
     <div class="controls">
       <button id="refreshBtn">🔄 Refresh</button>
+      <button id="reconnectBtn" class="reconnect-btn">🔁 Reconnect</button>
+    </div>
+
+    <!-- WebSocket Stats -->
+    <div class="ws-stats">
+      <div>WebSocket: <span id="wsStatus">Disconnected</span></div>
+      <div>URL: <span id="wsUrl">wss://</span></div>
+      <div>Packets: <span id="packetCount">0</span></div>
+      <div>Last Update: <span id="lastUpdate">Never</span></div>
     </div>
 
     <!-- System Statistics -->
@@ -60,7 +71,7 @@
       <div class="stat-item"><span class="stat-label">Frames:</span> <span id="statFrames">0</span></div>
       <div class="stat-item"><span class="stat-label">Rate:</span> <span id="statRate">0 Hz</span></div>
       <div class="stat-item"><span class="stat-label">Active:</span> <span id="statActive">0/16</span></div>
-      <div class="stat-item"><span class="stat-label">Read:</span> <span id="statRead">0 ms</span></div>
+      <div class="stat-item"><span class="stat-label">Buffer:</span> <span id="statBuffer">0</span></div>
     </div>
 
     <!-- Y-Axis Controls -->
@@ -89,7 +100,7 @@
       <tbody></tbody>
     </table>
 
-    <div class="status-bar connected" id="status">🔌 Connecting...</div>
+    <div class="status-bar disconnected" id="status">🔌 Connecting to WebSocket...</div>
   </div>
 
   <div class="panel right">
@@ -114,7 +125,8 @@ const CONFIG = {
     EFFECTIVE_SAMPLE_RATE: 500, // 10000 / 20 = 500 Hz
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
-    SIGNAL_VARIANCE_THRESHOLD: 10
+    SIGNAL_VARIANCE_THRESHOLD: 10,
+    WS_HEARTBEAT_INTERVAL: 30000 // 30 seconds
 };
 
 // Buffer management
@@ -135,6 +147,10 @@ let dataRate = 0.0;
 let dataWebSocket = null;
 let yRange = { min: -2000, max: 2000 };
 let lastDisplayedSamples = 10000;
+let packetCount = 0;
+let reconnectAttempts = 0;
+let heartbeatInterval = null;
+let lastWsMessageTime = Date.now();
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -172,33 +188,92 @@ function buildChannelTable() {
     }
 }
 
+// Get WebSocket URL based on current protocol
+function getWebSocketUrl() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    document.getElementById('wsUrl').textContent = wsUrl;
+    return wsUrl;
+}
+
 // WebSocket connection
 function connectDataWebSocket() {
     if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
-        return;
+        dataWebSocket.close();
     }
 
     try {
-        dataWebSocket = new WebSocket('ws://' + location.host + '/ws');
+        const wsUrl = getWebSocketUrl();
+        updateStatus('🟡 Connecting to ' + wsUrl + '...', 'disconnected');
+        
+        dataWebSocket = new WebSocket(wsUrl);
         dataWebSocket.binaryType = 'arraybuffer';
 
         dataWebSocket.onopen = () => {
-            updateStatus('🟢 Connected', 'connected');
+            reconnectAttempts = 0;
+            updateStatus('🟢 WebSocket Connected', 'connected');
+            document.getElementById('wsStatus').textContent = 'Connected';
+            document.getElementById('wsStatus').style.color = '#28a745';
+            lastWsMessageTime = Date.now();
+            
+            // Start heartbeat monitoring
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(checkWebSocketHealth, CONFIG.WS_HEARTBEAT_INTERVAL);
         };
 
-        dataWebSocket.onmessage = handleDataMessage;
+        dataWebSocket.onmessage = (event) => {
+            lastWsMessageTime = Date.now();
+            packetCount++;
+            document.getElementById('packetCount').textContent = packetCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            
+            handleDataMessage(event);
+        };
         
-        dataWebSocket.onclose = () => {
-            updateStatus('🔴 Disconnected - Reconnecting...', 'disconnected');
-            setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+        dataWebSocket.onclose = (event) => {
+            updateStatus('🔴 WebSocket Disconnected', 'disconnected');
+            document.getElementById('wsStatus').textContent = 'Disconnected';
+            document.getElementById('wsStatus').style.color = '#dc3545';
+            
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            
+            // Attempt reconnection
+            if (reconnectAttempts < 5) {
+                reconnectAttempts++;
+                setTimeout(() => {
+                    updateStatus('🟡 Reconnecting... (Attempt ' + reconnectAttempts + ')', 'disconnected');
+                    connectDataWebSocket();
+                }, CONFIG.RECONNECT_DELAY);
+            } else {
+                updateStatus('🔴 Failed to connect after 5 attempts. Click Reconnect button.', 'disconnected');
+            }
         };
 
         dataWebSocket.onerror = (error) => {
-            updateStatus('⚠️ Connection error', 'disconnected');
+            updateStatus('⚠️ WebSocket Error: ' + error.type, 'disconnected');
         };
     } catch (error) {
-        updateStatus('⚠️ Connection failed', 'disconnected');
+        updateStatus('⚠️ Connection failed: ' + error.message, 'disconnected');
         setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+    }
+}
+
+// Check WebSocket health
+function checkWebSocketHealth() {
+    const now = Date.now();
+    const timeSinceLastMessage = now - lastWsMessageTime;
+    
+    if (timeSinceLastMessage > CONFIG.WS_HEARTBEAT_INTERVAL) {
+        updateStatus('⚠️ No data for ' + Math.floor(timeSinceLastMessage/1000) + 's', 'disconnected');
+        
+        // Try to send a ping if WebSocket is still open
+        if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
+            try {
+                dataWebSocket.send(JSON.stringify({type: 'ping'}));
+            } catch (e) {
+                // Ignore send errors
+            }
+        }
     }
 }
 
@@ -208,6 +283,16 @@ function handleDataMessage(event) {
 
     if (event.data instanceof ArrayBuffer) {
         processBinaryData(event.data);
+    } else if (typeof event.data === 'string') {
+        try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'heartbeat') {
+                // Update last message time but don't process as data
+                lastWsMessageTime = Date.now();
+            }
+        } catch (e) {
+            // Ignore non-JSON messages
+        }
     }
 }
 
@@ -674,9 +759,16 @@ function updateSelection() {
 
 function updateInfoDisplay() {
     const active = buffers.filter(b => b.valid && b.hasNonZero).length;
+    const totalBuffer = buffers.reduce((sum, buf) => sum + buf.data.length, 0);
     
     const infoText = `Frames: ${frameCount} • Rate: ${dataRate.toFixed(1)} Hz • Active: ${active}/16 • Displaying: ${lastDisplayedSamples} samples`;
     document.getElementById('info').textContent = infoText;
+    
+    // Update system stats
+    document.getElementById('statFrames').textContent = frameCount;
+    document.getElementById('statRate').textContent = dataRate.toFixed(1) + ' Hz';
+    document.getElementById('statActive').textContent = `${active}/16`;
+    document.getElementById('statBuffer').textContent = totalBuffer;
 }
 
 function updateStatus(message, type) {
@@ -684,22 +776,6 @@ function updateStatus(message, type) {
     if (status) {
         status.textContent = message;
         status.className = `status-bar ${type}`;
-    }
-}
-
-// System statistics update
-async function updateSystemStats() {
-    try {
-        const response = await fetch('/api/stats');
-        const stats = await response.json();
-        
-        document.getElementById('statFrames').textContent = stats.frames || 0;
-        document.getElementById('statRate').textContent = (stats.frame_rate || 0).toFixed(1) + ' Hz';
-        document.getElementById('statActive').textContent = `${stats.active || 0}/16`;
-        document.getElementById('statRead').textContent = (stats.read_time_ms || 0).toFixed(1) + ' ms';
-        
-    } catch (error) {
-        // Stats not available
     }
 }
 
@@ -736,6 +812,7 @@ document.getElementById('clear').onclick = () => {
     });
     frameCount = 0;
     dataRate = 0;
+    packetCount = 0;
     plot();
     updateInfoDisplay();
 };
@@ -757,12 +834,19 @@ document.getElementById('refreshBtn').onclick = () => {
     location.reload();
 };
 
+document.getElementById('reconnectBtn').onclick = () => {
+    reconnectAttempts = 0;
+    connectDataWebSocket();
+};
+
 // Initialize
 function init() {
     buildChannelTable();
     connectDataWebSocket();
-    setInterval(updateSystemStats, 2000);
     plot();
+    
+    // Show initial WebSocket URL
+    getWebSocketUrl();
 }
 
 if (document.readyState === 'loading') {
