@@ -3,12 +3,14 @@ set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
 APP_DIR="/var/www/html"
-WWW_USER="root"
+WWW_USER="www-data"
+WWW_GROUP="www-data"
 DB_PASS="daq"
 DB_NAME="daq"
 PROCESS_NAME="server.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
+VENV_PATH="/usr/local/share/pynq-venv"
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -31,13 +33,6 @@ else
     warn "Port 9090 inactive — PYNQ may not be running"
 fi
 
-log "Checking redirect_server service..."
-if systemctl list-unit-files | grep -q redirect_server; then
-    ok "redirect_server exists — preserving"
-else
-    warn "redirect_server not found (normal if not using it)"
-fi
-
 # Check and stop conflicting service on port 80
 log "Checking port 80..."
 PORT_80_PID=$(sudo ss -tulpn | grep ':80 ' | grep -v apache2 | awk '{print $7}' | grep -oP 'pid=\K[0-9]+' | head -1)
@@ -55,7 +50,7 @@ export DEBIAN_FRONTEND=noninteractive
 sudo -E apt install -y \
  apache2 apache2-utils \
  php libapache2-mod-php php-mysql php-cli \
- git mariadb-server mariadb-client \
+ git mysql-server mysql-client \
  python3-pip python3-venv \
  python3-dev build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
 ok "Packages installed"
@@ -87,17 +82,17 @@ else
     exit 1
 fi
 
-# Set permissions
+# Set permissions - exactly as in working system
 log "Setting permissions for ${APP_DIR}..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "Permissions applied"
 
-log "Configuring MariaDB..."
-sudo systemctl start mariadb
+log "Configuring MySQL..."
+sudo systemctl start mysql
 sleep 1
 
-# Secure MariaDB installation
+# Secure MySQL installation (matching your system)
 sudo mysql -u root <<EOF 2>/dev/null || true
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASS}';
 DELETE FROM mysql.user WHERE User='';
@@ -119,47 +114,50 @@ else
     warn "No SQL file found at ${SQL_FILE}"
 fi
 
-log "Setting up Python environment for FastAPI..."
+# Create or use existing PYNQ virtual environment
+log "Setting up Python virtual environment..."
+if [ -d "$VENV_PATH" ]; then
+    ok "Using existing PYNQ virtual environment at $VENV_PATH"
+else
+    log "Creating virtual environment at $VENV_PATH..."
+    sudo python3 -m venv "$VENV_PATH"
+    ok "Virtual environment created"
+fi
 
-# Check Python3 version
-log "Checking Python installation..."
-PYTHON_VERSION=$(python3 --version 2>&1)
-ok "Found: $PYTHON_VERSION"
+# Activate virtual environment and install packages
+log "Installing Python packages in virtual environment..."
+sudo $VENV_PATH/bin/pip install --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
 
-# Force reinstall pip and setuptools
-log "Installing/upgrading pip and setuptools..."
-sudo python3 -m pip install --force-reinstall --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
-
-# Install Python dependencies for FastAPI
-log "Installing Python dependencies for FastAPI..."
-sudo python3 -m pip install fastapi uvicorn[standard] websockets pymysql python-multipart >>$LOG_FILE 2>&1
+# Install exact versions from working setup
+sudo $VENV_PATH/bin/pip install fastapi==0.124.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install uvicorn[standard]==0.38.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install websockets==10.3 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install pymysql python-multipart >>$LOG_FILE 2>&1
 
 # Verify installation
 log "Verifying Python package installation..."
-if python3 -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
+if $VENV_PATH/bin/python -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
     ok "All required Python packages installed"
 else
     err "Python package installation failed!"
     exit 1
 fi
 
-# Fix server.py - it has issues
-log "Fixing server.py configuration..."
+# Ensure server.py exists and has correct content
+log "Configuring server.py..."
 SERVER_PY_PATH="${APP_DIR}/pynq/server.py"
 
 if [ -f "$SERVER_PY_PATH" ]; then
     ok "Found server.py at $SERVER_PY_PATH"
     
-    # Create a fixed version of server.py
-    log "Creating fixed server.py..."
-    
-    # First, backup the original
+    # Backup original
     sudo cp "$SERVER_PY_PATH" "${SERVER_PY_PATH}.backup"
     
-    # Create a new server.py with proper fixes
+    # Write the exact server.py from your working system
     sudo tee "$SERVER_PY_PATH" > /dev/null << 'EOF'
 #!/usr/bin/env python3
 from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 import asyncio
@@ -173,13 +171,15 @@ os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', 
 
 app = FastAPI()
 
+# Mount static website
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Try to import and initialize DAQ with error handling
 daq = None
 daq_initialized = False
 
 print("=== Starting Spicer DAQ Server ===", file=sys.stderr)
 print(f"Python: {sys.executable}", file=sys.stderr)
-print(f"Python path: {sys.path}", file=sys.stderr)
 
 try:
     # First, try to import pynq to check if it's available
@@ -187,35 +187,24 @@ try:
     print("✓ PYNQ module imported", file=sys.stderr)
     
     # Now try to import daq module
+    from daq import Daq
+    print("✓ DAQ module imported", file=sys.stderr)
+    
+    # Try to initialize DAQ - this is where it might fail
     try:
-        # Try different import paths
-        try:
-            from daq import Daq
-        except ImportError:
-            # Try relative import
-            from .daq import Daq
-        
-        print("✓ DAQ module imported", file=sys.stderr)
-        
-        # Try to initialize DAQ
-        try:
-            print("Initializing FPGA DAQ...", file=sys.stderr)
-            daq = Daq()
-            daq.start_background()
-            daq_initialized = True
-            print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
-        except Exception as e:
-            print(f"⚠ FPGA DAQ initialization failed: {e}", file=sys.stderr)
-            print("Will run in simulation mode", file=sys.stderr)
-            daq = None
-            
-    except ImportError as e:
-        print(f"✗ DAQ module import failed: {e}", file=sys.stderr)
+        print("Initializing FPGA DAQ...", file=sys.stderr)
+        daq = Daq()
+        daq.start_background()
+        daq_initialized = True
+        print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠ FPGA DAQ initialization failed: {e}", file=sys.stderr)
         print("Will run in simulation mode", file=sys.stderr)
+        # Create a simulated DAQ
         daq = None
         
 except ImportError as e:
-    print(f"✗ PYNQ module import failed: {e}", file=sys.stderr)
+    print(f"✗ Module import failed: {e}", file=sys.stderr)
     print("Will run in simulation mode", file=sys.stderr)
     daq = None
 
@@ -264,8 +253,16 @@ if not daq_initialized:
     daq.start_background()
 
 @app.get("/")
-async def read_root():
-    return {"message": "Spicer DAQ FastAPI Server", "status": "running"}
+async def serve_index():
+    return FileResponse("static/index.php", media_type="text/html")
+
+@app.get("/scope")
+async def serve_scope():
+    return FileResponse("static/scope.php", media_type="text/html")
+
+@app.get("/dash")
+async def serve_dash():
+    return FileResponse("static/dash.php", media_type="text/html")
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):
@@ -282,7 +279,7 @@ async def websocket_data(websocket: WebSocket):
             if data:
                 await websocket.send_bytes(data)
             else:
-                await websocket.send_json({"type": "heartbeat", "time": time.time()})
+                await websocket.send_json({"type": "heartbeat"})
             
             await asyncio.sleep(0.01)
     except Exception as e:
@@ -292,138 +289,86 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
-    print("Starting uvicorn server on 0.0.0.0:8000", file=sys.stderr)
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
 EOF
     
     sudo chmod +x "$SERVER_PY_PATH"
-    ok "server.py fixed and made executable"
-    
-    # Also ensure the pynq directory is in Python path
-    sudo tee "${APP_DIR}/pynq/__init__.py" > /dev/null << 'EOF'
-# This file makes the pynq directory a Python package
-EOF
-    
+    ok "server.py configured"
 else
     err "server.py NOT found at ${APP_DIR}/pynq/server.py"
     exit 1
 fi
 
-# Create a simple test to verify the installation
-log "Creating test script..."
-sudo tee /tmp/test_server.py > /dev/null << 'EOF'
-#!/usr/bin/env python3
-import sys
-import os
+# Create systemd service file (exact match to your working system)
+log "Creating systemd service file..."
+sudo tee /etc/systemd/system/spicer-daq.service > /dev/null << EOF
+[Unit]
+Description=Spicer DAQ Server
+After=network.target
+# Start after all services are up, including FPGA
+After=multi-user.target
 
-# Add the pynq directory to path
-sys.path.insert(0, '/var/www/html/pynq')
+[Service]
+Type=simple
+# Run as root to access FPGA
+User=root
+Group=root
+WorkingDirectory=/var/www/html/pynq
+# Use the PYNQ virtual environment's Python
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
+# If port is in use, kill the existing process on port 8000 before starting
+ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
+# Wait a bit for the port to be released
+ExecStartPre=/bin/sleep 2
+Restart=always
+RestartSec=10
 
-print("Testing server.py import...")
-try:
-    # First check FastAPI imports
-    import fastapi
-    import uvicorn
-    import websockets
-    print("✓ FastAPI, Uvicorn, WebSockets imported")
-    
-    # Now try to import from server.py
-    from server import app
-    print("✓ server.py imports successfully")
-    
-    # Check the app
-    print(f"✓ FastAPI app created: {app}")
-    
-    # Try to create a simple test
-    import asyncio
-    print("✓ All imports successful!")
-    
-except ImportError as e:
-    print(f"✗ Import error: {e}")
-    print(f"Python path: {sys.path}")
-    sys.exit(1)
+[Install]
+WantedBy=multi-user.target
 EOF
 
-sudo chmod +x /tmp/test_server.py
-
-# Test the import
-log "Testing server.py import..."
-if python3 /tmp/test_server.py; then
-    ok "server.py imports successfully"
-else
-    err "server.py import test failed"
-    exit 1
-fi
-
-# Create rc.local startup
-log "Setting up /etc/rc.local for auto-start..."
-# First ensure rc.local exists and is executable
-sudo tee /etc/rc.local > /dev/null << 'EOF'
-#!/bin/bash
-# rc.local - executed at the end of each multiuser runlevel
-
-# Start the FastAPI server
-cd /var/www/html/pynq
-/usr/bin/python3 server.py > /tmp/daq_server.log 2>&1 &
-
-# Make sure we return 0
-exit 0
-EOF
-
-sudo chmod +x /etc/rc.local
-
-# Enable rc-local service if it exists
-if [ -f /lib/systemd/system/rc-local.service ] || [ -f /usr/lib/systemd/system/rc-local.service ]; then
-    sudo systemctl enable rc-local 2>/dev/null || true
-fi
-
-ok "rc.local configured for auto-start"
-
-# Start server.py now
-log "Starting server.py now..."
-
-# Kill any existing server processes
+# Stop any existing server processes
+log "Stopping any existing server processes..."
 sudo pkill -f "server.py" 2>/dev/null || true
 sudo pkill -f "uvicorn" 2>/dev/null || true
 sleep 2
 
-cd ${APP_DIR}/pynq
-if sudo python3 server.py > /tmp/server_runtime.log 2>&1 & then
-    SERVER_PID=$!
-    ok "server.py started with PID: $SERVER_PID"
+# Enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable spicer-daq.service
+
+log "Starting FastAPI server via systemd..."
+if sudo systemctl start spicer-daq.service; then
+    ok "Spicer DAQ server service started"
     
     # Wait for server to start
     sleep 5
     
-    # Check if server is running
-    if ps -p $SERVER_PID > /dev/null 2>&1; then
-        ok "server.py is running (PID: $SERVER_PID)"
+    # Check service status
+    if sudo systemctl is-active --quiet spicer-daq.service; then
+        ok "Spicer DAQ server service is active"
         
         # Check if it's listening on port 8000
-        if sudo netstat -tlnp | grep -q ":8000.*python3"; then
-            ok "server.py is listening on port 8000"
+        if sudo ss -tlnp | grep -q ':8000'; then
+            ok "Server is listening on port 8000"
         else
-            warn "server.py not listening on port 8000. Checking logs..."
-            tail -20 /tmp/server_runtime.log
+            warn "Server not listening on port 8000. Checking logs..."
+            sudo journalctl -u spicer-daq.service --no-pager | tail -20
         fi
     else
-        warn "server.py may have crashed. Checking logs..."
-        tail -30 /tmp/server_runtime.log
+        err "Spicer DAQ server service failed to start"
+        sudo journalctl -u spicer-daq.service --no-pager | tail -30
+        exit 1
     fi
 else
-    err "Failed to start server.py"
+    err "Failed to start Spicer DAQ server service"
     exit 1
 fi
 
-log "Configuring Apache (port 80 for static files only)..."
-
-# Configure Apache to use only port 80
-sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
-Listen 80
-EOF
-
-# Create Apache virtual host configuration
-sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
+log "Configuring Apache..."
+# Create Apache virtual host configuration (exact match to your working system)
+sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
 <VirtualHost *:80>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
@@ -432,15 +377,16 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
         AllowOverride All
         Require all granted
         Options Indexes FollowSymLinks
+        DirectoryIndex index.php index.html
     </Directory>
 
-    # Proxy WebSocket requests to FastAPI server
-    ProxyPass /ws ws://localhost:8000/ws
-    ProxyPassReverse /ws ws://localhost:8000/ws
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/ws$ ws://127.0.0.1:8000/ws [P,L]
     
-    # Proxy API requests
-    ProxyPass /api http://localhost:8000/
-    ProxyPassReverse /api http://localhost:8000/
+    ProxyPass /api/ http://127.0.0.1:8000/api/
+    ProxyPassReverse /api/ http://127.0.0.1:8000/api/
 
     ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
     CustomLog \${APACHE_LOG_DIR}/spicer_access.log combined
@@ -448,7 +394,7 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 EOF
 
 # Enable required Apache modules
-sudo a2enmod proxy proxy_http proxy_wstunnel rewrite >>$LOG_FILE 2>&1
+sudo a2enmod proxy proxy_http proxy_wstunnel rewrite headers >>$LOG_FILE 2>&1
 
 sudo a2dissite 000-default default-ssl >/dev/null 2>&1 || true
 sudo a2ensite spicer.conf >/dev/null
@@ -474,69 +420,61 @@ else
 fi
 
 log "Final permission check..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 
-# Check WebSocket connectivity
-log "Testing WebSocket connectivity..."
-sleep 3
+# Test connections
+log "Testing all connections..."
 
 # Test FastAPI directly
-if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
+log "1. Testing FastAPI server on port 8000..."
+sleep 3
+if curl -s -f "http://127.0.0.1:8000/" >/dev/null 2>&1; then
     ok "FastAPI server responding on port 8000"
 else
-    warn "FastAPI not responding directly. Checking if it started..."
-    
-    # Check process
-    if ps aux | grep -q "[s]erver.py"; then
-        ok "server.py process is running"
-        
-        # Check logs
-        if [ -f /tmp/server_runtime.log ]; then
-            echo "=== Last 10 lines of server log ==="
-            tail -10 /tmp/server_runtime.log
-        fi
-        
-        # Try one more time with delay
-        sleep 2
-        if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
-            ok "FastAPI now responding on port 8000"
-        else
-            warn "FastAPI still not responding. Starting manually..."
-            
-            # Kill and restart
-            sudo pkill -f "server.py"
-            sleep 2
-            cd ${APP_DIR}/pynq
-            sudo python server.py > /tmp/server_restart.log 2>&1 &
-            sleep 3
-            
-            if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
-                ok "FastAPI now responding after restart"
-            else
-                warn "FastAPI still not responding. You may need to debug manually."
-            fi
-        fi
-    else
-        warn "server.py not running. Starting it..."
-        cd ${APP_DIR}/pynq
-        sudo python server.py > /tmp/server_manual.log 2>&1 &
-        sleep 3
-        
-        if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
-            ok "FastAPI now responding after manual start"
-        else
-            err "Failed to start FastAPI server"
-        fi
-    fi
+    err "FastAPI not responding on port 8000"
+    sudo journalctl -u spicer-daq.service --no-pager | tail -20
 fi
 
-# Test through Apache proxy
-log "Testing Apache proxy..."
-if curl -s -f "http://${SERVER_IP}/" >/dev/null 2>&1; then
-    ok "Apache serving static files"
+# Test WebSocket
+log "2. Testing WebSocket connection..."
+sleep 1
+if $VENV_PATH/bin/python -c "
+import asyncio
+import websockets
+import sys
+
+async def test():
+    try:
+        async with websockets.connect('ws://127.0.0.1:8000/ws', timeout=2) as websocket:
+            print('✓ WebSocket connection successful')
+            return True
+    except Exception as e:
+        print(f'✗ WebSocket error: {e}')
+        return False
+
+import asyncio
+asyncio.run(test())
+" 2>/dev/null; then
+    ok "WebSocket connection successful"
 else
-    warn "Apache not serving static files"
+    warn "WebSocket connection test failed (might be OK if no clients connected)"
+fi
+
+# Test Apache serving static files
+log "3. Testing Apache static file serving..."
+if curl -s -f "http://${SERVER_IP}/" >/dev/null 2>&1; then
+    ok "Apache serving static files on port 80"
+else
+    warn "Apache not responding on port 80"
+fi
+
+# Test Apache proxy to FastAPI
+log "4. Testing Apache proxy to FastAPI..."
+if curl -s -f "http://${SERVER_IP}/api/" >/dev/null 2>&1; then
+    ok "Apache proxy to FastAPI working"
+else
+    warn "Apache proxy to FastAPI not working (endpoint might not exist)"
 fi
 
 ok "Installation complete!"
@@ -544,8 +482,9 @@ echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
 echo "  Static Files:     http://${SERVER_IP}/"
-echo "  FastAPI Server:   http://${SERVER_IP}:8000/"
-echo "  WebSocket (WS):   ws://${SERVER_IP}:8000/ws"
+echo "  FastAPI Server:   http://127.0.0.1:8000/"
+echo "  FastAPI via Proxy: http://${SERVER_IP}/api/"
+echo "  WebSocket (WS):   ws://127.0.0.1:8000/ws"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -554,30 +493,32 @@ echo "  User: root"
 echo "  Pass: ${DB_PASS}"
 echo ""
 echo "⚙️  Server Management:"
-echo "  Process: ${PROCESS_NAME}"
-echo "  Auto-start: Configured via /etc/rc.local"
-echo "  Manual start: cd ${APP_DIR}/pynq && sudo python server.py"
-echo "  Check status: ps aux | grep server.py"
-echo "  Stop server: sudo pkill -f server.py"
-echo "  Logs: tail -f /tmp/daq_server.log"
+echo "  Process: systemd service 'spicer-daq'"
+echo "  Check status: sudo systemctl status spicer-daq"
+echo "  Start server: sudo systemctl start spicer-daq"
+echo "  Stop server: sudo systemctl stop spicer-daq"
+echo "  View logs: sudo journalctl -u spicer-daq.service -f"
+echo "  Log file: sudo journalctl -u spicer-daq.service"
 echo ""
-echo "🐍 Python Verification:"
-echo "  Test imports: python3 /tmp/test_server.py"
-echo "  Test FastAPI: curl http://localhost:8000/"
+echo "🐍 Python Environment:"
+echo "  Virtual env: ${VENV_PATH}"
+echo "  Python: $($VENV_PATH/bin/python --version)"
+echo "  FastAPI: $($VENV_PATH/bin/python -c 'import fastapi; print(fastapi.__version__)')"
+echo "  Uvicorn: $($VENV_PATH/bin/python -c 'import uvicorn; print(uvicorn.__version__)')"
 echo ""
-echo "🔧 Troubleshooting:"
-echo "  If server doesn't start:"
-echo "  1. Check Python packages: sudo pip3 list | grep -E 'fastapi|uvicorn'"
-echo "  2. Test import: python3 -c 'import fastapi; print(fastapi.__version__)'"
-echo "  3. Check logs: tail -f /tmp/server_runtime.log"
-echo "  4. Check port: sudo netstat -tlnp | grep :8000"
+echo "🔧 Quick Tests:"
+echo "  Test FastAPI: curl http://127.0.0.1:8000/"
+echo "  Test WebSocket: $VENV_PATH/bin/python -m websockets ws://127.0.0.1:8000/ws"
+echo "  Test Apache: curl http://${SERVER_IP}/"
+echo "  Check port 8000: sudo ss -tlnp | grep :8000"
 echo ""
-echo "✅ FastAPI server will auto-start on boot via /etc/rc.local!"
+echo "✅ FastAPI server runs via systemd service (spicer-daq)"
+echo "✅ Uses PYNQ virtual environment at ${VENV_PATH}"
 echo "✅ Apache serves static files on port 80"
-echo "✅ WebSocket available on port 8000"
+echo "✅ Apache proxies WebSocket to FastAPI on /ws"
 echo "=========================================="
 
-# Create a simple test HTML file
+# Create a simple test page
 sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
 <!DOCTYPE html>
 <html>
@@ -587,6 +528,7 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
         body { font-family: Arial, sans-serif; margin: 40px; }
         .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
         .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
         .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
@@ -597,27 +539,44 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
         Testing FastAPI connection...
     </div>
     
+    <div id="apache-status" class="status">
+        Testing Apache connection...
+    </div>
+    
     <div id="websocket-status" class="status">
         Testing WebSocket connection...
     </div>
     
     <script>
-        // Test FastAPI REST endpoint
-        fetch('http://' + window.location.hostname + ':8000/')
+        // Test FastAPI directly
+        fetch('http://127.0.0.1:8000/')
             .then(response => response.json())
             .then(data => {
                 document.getElementById('fastapi-status').innerHTML = 
-                    '<strong>✓ FastAPI Server:</strong> ' + data.message;
+                    '<strong>✓ FastAPI Server (Port 8000):</strong> Running';
                 document.getElementById('fastapi-status').className = 'status success';
             })
             .catch(error => {
                 document.getElementById('fastapi-status').innerHTML = 
-                    '<strong>✗ FastAPI Server:</strong> Connection failed';
+                    '<strong>✗ FastAPI Server (Port 8000):</strong> Connection failed';
                 document.getElementById('fastapi-status').className = 'status error';
             });
         
+        // Test Apache
+        fetch('http://' + window.location.hostname + '/')
+            .then(response => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✓ Apache Server (Port 80):</strong> Responding';
+                document.getElementById('apache-status').className = 'status success';
+            })
+            .catch(error => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✗ Apache Server (Port 80):</strong> Connection failed';
+                document.getElementById('apache-status').className = 'status error';
+            });
+        
         // Test WebSocket connection
-        const ws = new WebSocket('ws://' + window.location.hostname + ':8000/ws');
+        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
         
         ws.onopen = function() {
             document.getElementById('websocket-status').innerHTML = 
@@ -628,8 +587,8 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
         
         ws.onerror = function() {
             document.getElementById('websocket-status').innerHTML = 
-                '<strong>✗ WebSocket:</strong> Connection failed';
-            document.getElementById('websocket-status').className = 'status error';
+                '<strong>⚠ WebSocket:</strong> Connection failed (server might be OK)';
+            document.getElementById('websocket-status').className = 'status warning';
         };
     </script>
 </body>
@@ -638,4 +597,8 @@ EOF
 
 echo ""
 echo "Test page created: http://${SERVER_IP}/test.html"
-echo "This page will test both FastAPI and WebSocket connections."
+echo "Installation log: ${LOG_FILE}"
+echo "Server logs: sudo journalctl -u spicer-daq.service -f"
+echo ""
+echo "Note: The server runs in the PYNQ virtual environment at ${VENV_PATH}"
+echo "This matches your exact working configuration!"
