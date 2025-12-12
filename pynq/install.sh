@@ -6,7 +6,6 @@ APP_DIR="/var/www/html"
 WWW_USER="root"
 DB_PASS="daq"
 DB_NAME="daq"
-SERVICE="spicer-daq"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
 
@@ -21,7 +20,6 @@ ok(){ echo -e "${GREEN}[OK] $*${NC}"; }
 warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 err(){ echo -e "${RED}[ERROR] $*${NC}"; }
 
- 
 log "Starting installation (preserving PYNQ on :9090)..."
 sudo apt update -y >>$LOG_FILE
 
@@ -114,61 +112,99 @@ else
     warn "No SQL file found at ${SQL_FILE}"
 fi
 
-log "Installing FastAPI service ${SERVICE}..."
-
 # Detect Python virtual environment
 PYNQ_VENV="/usr/local/share/pynq-venv/bin/python"
 if [ -f "$PYNQ_VENV" ]; then
     PYTHON_PATH="$PYNQ_VENV"
+    PIP_PATH="/usr/local/share/pynq-venv/bin/pip"
     ok "Using PYNQ virtual environment: $PYTHON_PATH"
 else
     PYTHON_PATH="/usr/bin/python3"
+    PIP_PATH="/usr/bin/pip3"
     warn "PYNQ venv not found, using system python3"
 fi
 
-# Check if FastAPI is installed
-log "Checking FastAPI installation..."
-if $PYTHON_PATH -c "import fastapi" 2>/dev/null; then
-    ok "FastAPI is available"
+# Install FastAPI and Uvicorn
+log "Installing FastAPI and Uvicorn..."
+if [ -f "${APP_DIR}/pynq/requirements.txt" ]; then
+    log "Installing from requirements.txt..."
+    sudo $PIP_PATH install -r ${APP_DIR}/pynq/requirements.txt >>$LOG_FILE 2>&1 || true
 else
-    warn "FastAPI not found. Installing dependencies..."
-    if [ -f "${APP_DIR}/pynq/requirements.txt" ]; then
-        $PYTHON_PATH -m pip install -r ${APP_DIR}/pynq/requirements.txt >>$LOG_FILE 2>&1 || true
-    else
-        $PYTHON_PATH -m pip install fastapi uvicorn >>$LOG_FILE 2>&1 || true
+    log "Installing FastAPI and Uvicorn directly..."
+    sudo $PIP_PATH install fastapi uvicorn >>$LOG_FILE 2>&1 || true
+fi
+
+# Verify FastAPI installation
+if $PYTHON_PATH -c "import fastapi" 2>/dev/null; then
+    ok "FastAPI installed successfully"
+else
+    err "FastAPI installation failed"
+    exit 1
+fi
+
+if $PYTHON_PATH -c "import uvicorn" 2>/dev/null; then
+    ok "Uvicorn installed successfully"
+else
+    err "Uvicorn installation failed"
+    exit 1
+fi
+
+# Update server.py to bind to 0.0.0.0 if needed
+if [ -f "${APP_DIR}/pynq/server.py" ]; then
+    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
+        log "Updating server.py to bind to 0.0.0.0..."
+        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
+        ok "server.py updated to bind to 0.0.0.0"
     fi
 fi
 
-# Create systemd service for server.py
-cat <<EOF | sudo tee /etc/systemd/system/${SERVICE}.service >/dev/null
-[Unit]
-Description=Spicer DAQ FastAPI app
-After=network.target mariadb.service
+# Setup rc.local for auto-start on boot
+log "Configuring rc.local for auto-start..."
 
-[Service]
-Type=simple
-User=xilinx
-Group=xilinx
-WorkingDirectory=${APP_DIR}/pynq
-ExecStart=${PYTHON_PATH} ${APP_DIR}/pynq/server.py
-Restart=always
-RestartSec=5
-Environment="PATH=/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="PYTHONPATH=${APP_DIR}/pynq:/usr/local/share/pynq-venv/lib/python3.8/site-packages"
+# Create rc.local if it doesn't exist
+if [ ! -f /etc/rc.local ]; then
+    sudo touch /etc/rc.local
+    sudo chmod +x /etc/rc.local
+fi
 
-[Install]
-WantedBy=multi-user.target
+# Backup existing rc.local
+if [ -s /etc/rc.local ]; then
+    sudo cp /etc/rc.local /etc/rc.local.backup.$(date +%Y%m%d_%H%M%S)
+    ok "Existing rc.local backed up"
+fi
+
+# Create new rc.local with server.py startup
+cat <<'EOF' | sudo tee /etc/rc.local >/dev/null
+#!/bin/bash
+# Auto-start server.py on boot with 1 second delay
+
+# Wait 1 second for system to stabilize
+sleep 1
+
+# Detect Python path
+if [ -f "/usr/local/share/pynq-venv/bin/python" ]; then
+    PYTHON_PATH="/usr/local/share/pynq-venv/bin/python"
+else
+    PYTHON_PATH="/usr/bin/python3"
+fi
+
+# Set environment variables
+export PATH="/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export PYTHONPATH="/var/www/html/pynq:/usr/local/share/pynq-venv/lib/python3.8/site-packages"
+
+# Start server.py in background
+cd /var/www/html/pynq && nohup $PYTHON_PATH server.py > /tmp/server.log 2>&1 &
+
+exit 0
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable ${SERVICE}.service
-ok "Service ${SERVICE} enabled for auto-start on boot"
+sudo chmod +x /etc/rc.local
+ok "rc.local configured for auto-start"
 
-# Start the service
-if sudo systemctl restart ${SERVICE}.service; then
-    ok "Service ${SERVICE} started"
-else
-    warn "Service failed to start (will check later)"
+# Enable rc-local service if it exists
+if systemctl list-unit-files | grep -q rc-local.service; then
+    sudo systemctl enable rc-local.service >/dev/null 2>&1 || true
+    ok "rc-local.service enabled"
 fi
 
 log "Configuring Apache (ports 80/443 for your app)..."
@@ -186,7 +222,7 @@ Listen 80
 </IfModule>
 EOF
 
-# Create Apache virtual host configuration - FIXED for WebSocket
+# Create Apache virtual host configuration
 sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 # HTTP -> HTTPS redirect
 <VirtualHost *:80>
@@ -269,13 +305,6 @@ sudo chmod -R 775 ${APP_DIR}
 log "Verifying installation..."
 if [ -f "${APP_DIR}/pynq/server.py" ]; then
     ok "server.py found at ${APP_DIR}/pynq/server.py"
-    
-    # Update server.py to bind to 0.0.0.0 if needed
-    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
-        log "Updating server.py to bind to 0.0.0.0..."
-        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
-        ok "server.py updated to bind to 0.0.0.0"
-    fi
 else
     err "server.py NOT found at ${APP_DIR}/pynq/server.py"
 fi
@@ -286,19 +315,17 @@ else
     warn "No index file found - verify repository contents"
 fi
 
-# Check service status
-sleep 2
-if sudo systemctl is-active --quiet ${SERVICE}; then
-    ok "FastAPI service is running"
+# Start server.py now (for immediate use)
+log "Starting server.py manually for immediate use..."
+cd ${APP_DIR}/pynq
+nohup $PYTHON_PATH server.py > /tmp/server.log 2>&1 &
+sleep 3
+
+# Check if server is running
+if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+    ok "FastAPI server responding on port 8000"
 else
-    warn "FastAPI service is not running. Starting manually..."
-    sudo systemctl start ${SERVICE}
-    sleep 2
-    if sudo systemctl is-active --quiet ${SERVICE}; then
-        ok "FastAPI service now running"
-    else
-        warn "FastAPI service still not running. Check: journalctl -u ${SERVICE} -f"
-    fi
+    warn "FastAPI not responding on port 8000 - check /tmp/server.log"
 fi
 
 # Check if PYNQ is still accessible
@@ -306,15 +333,6 @@ if ss -ltn | grep -q ':9090'; then
     ok "PYNQ still running on port 9090"
 else
     warn "PYNQ not detected on port 9090"
-fi
-
-# Check WebSocket connectivity
-log "Testing WebSocket connectivity..."
-sleep 3
-if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
-    ok "FastAPI server responding on port 8000"
-else
-    warn "FastAPI not responding on port 8000"
 fi
 
 ok "Installation complete!"
@@ -331,20 +349,24 @@ echo "  Name: ${DB_NAME}"
 echo "  User: root"
 echo "  Pass: ${DB_PASS}"
 echo ""
-echo "⚙️  Service Management:"
-echo "  Service: ${SERVICE}"
-echo "  Status:  sudo systemctl status ${SERVICE}"
-echo "  Logs:    journalctl -u ${SERVICE} -f"
-echo "  Restart: sudo systemctl restart ${SERVICE}"
-echo "  Enable:  sudo systemctl enable ${SERVICE}"
+echo "⚙️  Boot Management:"
+echo "  Auto-start: /etc/rc.local"
+echo "  Edit:       sudo nano /etc/rc.local"
+echo "  Server Log: /tmp/server.log"
+echo ""
+echo "🔄 Manual Control:"
+echo "  Start:   cd ${APP_DIR}/pynq && ${PYTHON_PATH} server.py &"
+echo "  Stop:    pkill -f 'python.*server.py'"
+echo "  Restart: pkill -f 'python.*server.py' && cd ${APP_DIR}/pynq && ${PYTHON_PATH} server.py &"
 echo ""
 echo "🌐 WebSocket Test:"
 echo "  Open: https://${SERVER_IP}/scope"
 echo "  Check browser console for WebSocket connection"
 echo ""
 echo "📁 Application: ${APP_DIR}"
-echo "📝 Server.py:   ${APP_DIR}/pynq/server.py"
+echo "📄 Server.py:   ${APP_DIR}/pynq/server.py"
 echo ""
-echo "✅ Server.py will auto-start on every boot!"
+echo "✅ Server.py will auto-start on every boot via rc.local!"
 echo "✅ Apache proxies HTTPS to FastAPI WebSocket"
+echo "✅ FastAPI and Uvicorn are installed"
 echo "=========================================="

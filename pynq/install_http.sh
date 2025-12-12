@@ -364,7 +364,7 @@ sudo tee /etc/rc.local > /dev/null << 'EOF'
 
 # Start the FastAPI server
 cd /var/www/html/pynq
-/usr/bin/python3 server.py > /tmp/daq_server.log 2>&1 &
+/usr/bin/python server.py > /tmp/daq_server.log 2>&1 &
 
 # Make sure we return 0
 exit 0
