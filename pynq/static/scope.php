@@ -109,9 +109,7 @@
 const CONFIG = {
     MAX_SAMPLES: 20000,
     BLOCK_SIZE: 2500,
-    BASE_SAMPLE_RATE: 10000, // 10 kHz base sampling rate
-    DECIMATION_FACTOR: 20,    // Default decimation
-    EFFECTIVE_SAMPLE_RATE: 500, // 10000 / 20 = 500 Hz
+    SAMPLE_RATE: 10000, // 10 kHz sampling rate
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
     SIGNAL_VARIANCE_THRESHOLD: 10
@@ -134,7 +132,7 @@ let lastTime = 0;
 let dataRate = 0.0;
 let dataWebSocket = null;
 let yRange = { min: -2000, max: 2000 };
-let lastDisplayedSamples = 10000;
+let lastDisplayedSamples = 10000; // Track what we're actually displaying
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -281,18 +279,7 @@ function parseBinaryPacket(buf) {
             
             for (let i = 0; i < numSamples; i++) {
                 const value = view.getInt16(dataOffset, true);
-                // FIX: Handle first data point if it's corrupted
-                if (i === 0 && ch === 0) {
-                    // Check if first sample is outlier (debug)
-                    const nextVal = view.getInt16(dataOffset + 2, true);
-                    if (Math.abs(value - nextVal) > 1000) {
-                        arr[i] = nextVal; // Use second sample instead
-                    } else {
-                        arr[i] = (value < -32768 || value > 32767) ? 0 : value;
-                    }
-                } else {
-                    arr[i] = (value < -32768 || value > 32767) ? 0 : value;
-                }
+                arr[i] = (value < -32768 || value > 32767) ? 0 : value;
                 dataOffset += 2;
             }
             
@@ -316,18 +303,7 @@ function parseWithDefaultChannels(buf, view, headerOffset) {
         
         const arr = new Int16Array(2500);
         for (let i = 0; i < 2500; i++) {
-            const value = view.getInt16(dataOffset, true);
-            // FIX: Handle first data point
-            if (i === 0 && ch === 0) {
-                const nextVal = view.getInt16(dataOffset + 2, true);
-                if (Math.abs(value - nextVal) > 1000) {
-                    arr[i] = nextVal;
-                } else {
-                    arr[i] = value;
-                }
-            } else {
-                arr[i] = value;
-            }
+            arr[i] = view.getInt16(dataOffset, true);
             dataOffset += 2;
         }
         samples.push(arr);
@@ -336,7 +312,7 @@ function parseWithDefaultChannels(buf, view, headerOffset) {
     return { blocks: samples };
 }
 
-// Buffer update
+// Buffer update - keeps data persistent until explicitly cleared
 function updateChannelBuffer(channel, block, timestamp) {
     if (channel < 0 || channel >= 16 || !block || block.length === 0) return;
     
@@ -356,31 +332,24 @@ function updateChannelBuffer(channel, block, timestamp) {
     }
     
     if (isDuplicate) {
+        // Mark channel as stale if receiving duplicates
         buf.lastUpdate = timestamp;
         return;
     }
     
-    // Fix first sample if it's an outlier
-    const fixedBlock = Array.from(block);
-    if (fixedBlock.length >= 2) {
-        // Check if first sample is outlier (jump > 1000 from second sample)
-        if (Math.abs(fixedBlock[0] - fixedBlock[1]) > 1000) {
-            fixedBlock[0] = fixedBlock[1];
-        }
-    }
-    
-    // Check if all zeros or flat signal
+    // Check if all zeros or flat signal - might indicate channel is off
     let allZeros = true;
     let allSame = true;
-    const firstVal = fixedBlock[0];
-    for (let i = 0; i < fixedBlock.length; i++) {
-        if (fixedBlock[i] !== 0) allZeros = false;
-        if (fixedBlock[i] !== firstVal) allSame = false;
+    const firstVal = block[0];
+    for (let i = 0; i < block.length; i++) {
+        if (block[i] !== 0) allZeros = false;
+        if (block[i] !== firstVal) allSame = false;
         if (!allZeros && !allSame) break;
     }
     
+    // If channel appears off (all zeros or all same value), clear old data
     if (allZeros || allSame) {
-        buf.data = fixedBlock;
+        buf.data = Array.from(block);
         buf.valid = true;
         buf.lastUpdate = timestamp;
         buf.hasNonZero = false;
@@ -388,16 +357,16 @@ function updateChannelBuffer(channel, block, timestamp) {
         return;
     }
     
-    // Detect discontinuity
+    // Detect discontinuity and insert NaN gap if needed
     let insertGap = false;
     if (buf.data.length > 0) {
         const lastVal = buf.data[buf.data.length - 1];
-        const firstVal = fixedBlock[0];
+        const firstVal = block[0];
         const delta = Math.abs(lastVal - firstVal);
         
         let maxIncomingDelta = 0;
-        for (let i = 1; i < fixedBlock.length; i++) {
-            const d = Math.abs(fixedBlock[i] - fixedBlock[i - 1]);
+        for (let i = 1; i < block.length; i++) {
+            const d = Math.abs(block[i] - block[i - 1]);
             if (d > maxIncomingDelta) maxIncomingDelta = d;
         }
         
@@ -406,7 +375,7 @@ function updateChannelBuffer(channel, block, timestamp) {
         }
     }
     
-    const newData = fixedBlock;
+    const newData = Array.from(block);
     
     if (insertGap) {
         buf.data.push(NaN);
@@ -416,10 +385,10 @@ function updateChannelBuffer(channel, block, timestamp) {
     buf.valid = true;
     buf.lastUpdate = timestamp;
 
-    updateChannelStatistics(buf, fixedBlock);
+    updateChannelStatistics(buf, block);
 }
 
-// Improved frequency calculation
+// Calculate frequency and amplitude
 function estimateFrequencyAndAmplitude(data) {
     if (data.length < 500) return { frequency: 0, amplitude: 0 };
     
@@ -438,54 +407,36 @@ function estimateFrequencyAndAmplitude(data) {
     // Check if signal is too flat to measure frequency
     if (amplitude < 10) return { frequency: 0, amplitude };
     
-    // Detrend the data (remove DC offset)
+    // Zero-crossing frequency estimation with sub-sample interpolation
     const mean = validData.reduce((a, b) => a + b, 0) / validData.length;
-    const detrended = validData.map(v => v - mean);
-    
-    // Find zero crossings with improved detection
     const crossings = [];
-    let lastSign = Math.sign(detrended[0]);
     
-    for (let i = 1; i < detrended.length; i++) {
-        const currentSign = Math.sign(detrended[i]);
+    for (let i = 1; i < validData.length; i++) {
+        const prev = validData[i-1] - mean;
+        const curr = validData[i] - mean;
         
-        // Detect zero crossing (positive-going)
-        if (lastSign <= 0 && currentSign > 0) {
-            // Linear interpolation for more accurate crossing point
-            const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
-            const crossingIndex = (i - 1) + t;
+        // Detect positive-going zero crossing with interpolation
+        if (prev < 0 && curr >= 0) {
+            // Linear interpolation to find exact crossing point
+            const fraction = -prev / (curr - prev);
+            const crossingIndex = (i - 1) + fraction;
             crossings.push(crossingIndex);
         }
-        lastSign = currentSign;
     }
     
     if (crossings.length < 2) return { frequency: 0, amplitude };
     
-    // Calculate periods between crossings
-    const periods = [];
+    // Calculate average period from all crossing intervals
+    let totalPeriod = 0;
     for (let i = 1; i < crossings.length; i++) {
-        periods.push(crossings[i] - crossings[i-1]);
+        totalPeriod += crossings[i] - crossings[i-1];
     }
+    const avgPeriodSamples = totalPeriod / (crossings.length - 1);
     
-    // Remove outliers (periods that deviate by more than 50% from median)
-    const medianPeriod = periods.sort((a, b) => a - b)[Math.floor(periods.length / 2)];
-    const filteredPeriods = periods.filter(p => 
-        p > medianPeriod * 0.5 && p < medianPeriod * 1.5
-    );
+    // Convert period in samples to frequency in Hz
+    const frequency = CONFIG.SAMPLE_RATE / avgPeriodSamples;
     
-    if (filteredPeriods.length === 0) return { frequency: 0, amplitude };
-    
-    // Calculate average period
-    const avgPeriodSamples = filteredPeriods.reduce((a, b) => a + b, 0) / filteredPeriods.length;
-    
-    // Calculate frequency: f = sample_rate / period_in_samples
-    // With 20x decimation: 10000/20 = 500 Hz effective sample rate
-    const frequency = CONFIG.EFFECTIVE_SAMPLE_RATE / avgPeriodSamples;
-    
-    return { 
-        frequency: Math.min(frequency, CONFIG.EFFECTIVE_SAMPLE_RATE / 2), // Nyquist limit
-        amplitude 
-    };
+    return { frequency, amplitude };
 }
 
 // Statistics calculation
@@ -515,8 +466,8 @@ function updateChannelStatistics(buf, block) {
     const mean = sum / validSamples;
     const variance = (sumSq / validSamples) - (mean * mean);
     
-    // Estimate frequency and amplitude from all available data
-    const recentData = buf.data.slice(-5000); // Use 5 seconds of data for better accuracy
+    // Estimate frequency and amplitude from all available data for better accuracy
+    const recentData = buf.data.slice(-10000); // Use up to 1 second of data for 0.1 Hz resolution
     const { frequency, amplitude } = estimateFrequencyAndAmplitude(recentData);
     
     buf.statistics = {
@@ -552,7 +503,7 @@ function updateChannelDisplay(channel) {
     if (vEl) vEl.textContent = isNaN(lastValue) ? '—' : lastValue.toFixed(0);
     if (nEl) nEl.textContent = stats.min.toFixed(0);
     if (xEl) xEl.textContent = stats.max.toFixed(0);
-    if (fEl) fEl.textContent = stats.frequency > 0.1 ? stats.frequency.toFixed(2) + ' Hz' : '—';
+    if (fEl) fEl.textContent = stats.frequency > 0 ? stats.frequency.toFixed(2) + ' Hz' : '—';
     if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(1) : '—';
 
     const dot = document.getElementById(`d${channel}`);
