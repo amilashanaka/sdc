@@ -179,7 +179,8 @@ function connectDataWebSocket() {
     }
 
     try {
-        dataWebSocket = new WebSocket('ws://' + location.host + '/ws');
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        dataWebSocket = new WebSocket(wsProtocol + '//' + location.host + '/ws');
         dataWebSocket.binaryType = 'arraybuffer';
 
         dataWebSocket.onopen = () => {

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import uvicorn
 import asyncio
 import os
@@ -13,9 +11,6 @@ os.environ['XILINX_XRT'] = '/usr'
 os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
 
 app = FastAPI()
-
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Try to import and initialize DAQ with error handling
 daq = None
@@ -94,18 +89,6 @@ if not daq_initialized:
     
     daq = SimulatedDAQ()
     daq.start_background()
-
-@app.get("/")
-async def serve_index():
-    return FileResponse("static/index.php", media_type="text/html")
-
-@app.get("/scope")
-async def serve_scope():
-    return FileResponse("static/scope.php", media_type="text/html")
-
-@app.get("/dash")
-async def serve_dash():
-    return FileResponse("static/dash.php", media_type="text/html")
 
 @app.websocket("/ws")
 async def websocket_data(websocket: WebSocket):

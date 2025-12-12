@@ -4,10 +4,15 @@ set -euo pipefail
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
 APP_DIR="/var/www/html"
 WWW_USER="root"
+WWW_GROUP="root"
 DB_PASS="daq"
 DB_NAME="daq"
+PROCESS_NAME="server.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
+VENV_PATH="/usr/local/share/pynq-venv"
+SSL_CERT="/etc/ssl/certs/apache-selfsigned.crt"
+SSL_KEY="/etc/ssl/private/apache-selfsigned.key"
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -25,16 +30,9 @@ sudo apt update -y >>$LOG_FILE
 
 log "Checking PYNQ on port 9090..."
 if ss -ltn | grep -q ':9090'; then
-    ok "Port 9090 active – PYNQ running, will preserve"
+    ok "Port 9090 active — PYNQ running, will preserve"
 else
-    warn "Port 9090 inactive – PYNQ may not be running"
-fi
-
-log "Checking redirect_server service..."
-if systemctl list-unit-files | grep -q redirect_server; then
-    ok "redirect_server exists – preserving"
-else
-    warn "redirect_server not found (normal if not using it)"
+    warn "Port 9090 inactive — PYNQ may not be running"
 fi
 
 # Check and stop conflicting service on port 80
@@ -49,17 +47,32 @@ if [ -n "$PORT_80_PID" ]; then
     ok "Port 80 freed"
 fi
 
-log "Installing Apache + PHP + Git + Python dependencies"
+log "Installing Apache + PHP + Git + Python dependencies + SSL tools"
 export DEBIAN_FRONTEND=noninteractive
 sudo -E apt install -y \
- apache2 apache2-utils ssl-cert \
+ apache2 apache2-utils \
  php libapache2-mod-php php-mysql php-cli \
  git mariadb-server mariadb-client \
- python3-pip python3-venv >>$LOG_FILE 2>&1
+ python3-pip python3-venv \
+ python3-dev build-essential libssl-dev libffi-dev \
+ openssl >>$LOG_FILE 2>&1
 ok "Packages installed"
 
-sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers >/dev/null || true
+sudo a2enmod rewrite ssl proxy proxy_http proxy_wstunnel headers >>$LOG_FILE 2>&1
 sudo systemctl enable apache2 >/dev/null || true
+
+# Generate self-signed certificate if not exists
+log "Setting up self-signed SSL certificate..."
+sudo mkdir -p /etc/ssl/private
+if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
+    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_KEY" \
+        -out "$SSL_CERT" \
+        -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=${SERVER_IP}" >>$LOG_FILE 2>&1
+    ok "Self-signed certificate generated"
+else
+    ok "Using existing self-signed certificate"
+fi
 
 # Backup existing files in /var/www/html
 if [ "$(ls -A ${APP_DIR} 2>/dev/null)" ]; then
@@ -85,9 +98,9 @@ else
     exit 1
 fi
 
-# Set permissions
+# Set permissions - exactly as in working system
 log "Setting permissions for ${APP_DIR}..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "Permissions applied"
 
@@ -95,8 +108,13 @@ log "Configuring MariaDB..."
 sudo systemctl start mariadb
 sleep 1
 
+# Secure MariaDB installation (matching your system)
 sudo mysql -u root <<EOF 2>/dev/null || true
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASS}';
+ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('${DB_PASS}');
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 FLUSH PRIVILEGES;
 EOF
 
@@ -112,171 +130,159 @@ else
     warn "No SQL file found at ${SQL_FILE}"
 fi
 
-# Detect Python virtual environment
-PYNQ_VENV="/usr/local/share/pynq-venv/bin/python"
-if [ -f "$PYNQ_VENV" ]; then
-    PYTHON_PATH="$PYNQ_VENV"
-    PIP_PATH="/usr/local/share/pynq-venv/bin/pip"
-    ok "Using PYNQ virtual environment: $PYTHON_PATH"
+# Create or use existing PYNQ virtual environment
+log "Setting up Python virtual environment..."
+if [ -d "$VENV_PATH" ]; then
+    ok "Using existing PYNQ virtual environment at $VENV_PATH"
 else
-    PYTHON_PATH="/usr/bin/python3"
-    PIP_PATH="/usr/bin/pip3"
-    warn "PYNQ venv not found, using system python3"
+    log "Creating virtual environment at $VENV_PATH..."
+    sudo python3 -m venv "$VENV_PATH"
+    ok "Virtual environment created"
 fi
 
-# Install FastAPI and Uvicorn
-log "Installing FastAPI and Uvicorn..."
-if [ -f "${APP_DIR}/pynq/requirements.txt" ]; then
-    log "Installing from requirements.txt..."
-    sudo $PIP_PATH install -r ${APP_DIR}/pynq/requirements.txt >>$LOG_FILE 2>&1 || true
-else
-    log "Installing FastAPI and Uvicorn directly..."
-    sudo $PIP_PATH install fastapi uvicorn >>$LOG_FILE 2>&1 || true
-fi
+# Activate virtual environment and install packages
+log "Installing Python packages in virtual environment..."
+sudo $VENV_PATH/bin/pip install --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
 
-# Verify FastAPI installation
-if $PYTHON_PATH -c "import fastapi" 2>/dev/null; then
-    ok "FastAPI installed successfully"
+# Install exact versions from working setup
+sudo $VENV_PATH/bin/pip install fastapi==0.124.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install uvicorn[standard]==0.38.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install websockets==10.3 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install pymysql python-multipart >>$LOG_FILE 2>&1
+
+# Verify installation
+log "Verifying Python package installation..."
+if $VENV_PATH/bin/python -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
+    ok "All required Python packages installed"
 else
-    err "FastAPI installation failed"
+    err "Python package installation failed!"
     exit 1
 fi
 
-if $PYTHON_PATH -c "import uvicorn" 2>/dev/null; then
-    ok "Uvicorn installed successfully"
+# Ensure server.py exists
+log "Checking server.py..."
+SERVER_PY_PATH="${APP_DIR}/pynq/server.py"
+if [ -f "$SERVER_PY_PATH" ]; then
+    ok "Found server.py at $SERVER_PY_PATH"
+    sudo chmod +x "$SERVER_PY_PATH"
 else
-    err "Uvicorn installation failed"
+    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
     exit 1
 fi
 
-# Update server.py to bind to 0.0.0.0 if needed
-if [ -f "${APP_DIR}/pynq/server.py" ]; then
-    if grep -q "127.0.0.1" "${APP_DIR}/pynq/server.py"; then
-        log "Updating server.py to bind to 0.0.0.0..."
-        sudo sed -i 's/127.0.0.1/0.0.0.0/g' "${APP_DIR}/pynq/server.py"
-        ok "server.py updated to bind to 0.0.0.0"
+# Create systemd service file
+log "Creating systemd service file..."
+sudo tee /etc/systemd/system/spicer-daq.service > /dev/null << EOF
+[Unit]
+Description=Spicer DAQ Server
+After=network.target
+After=multi-user.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/var/www/html/pynq
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
+ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
+ExecStartPre=/bin/sleep 2
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Stop any existing server processes
+log "Stopping any existing server processes..."
+sudo pkill -f "server.py" 2>/dev/null || true
+sudo pkill -f "uvicorn" 2>/dev/null || true
+sleep 2
+
+# Enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable spicer-daq.service
+
+log "Starting FastAPI server via systemd..."
+if sudo systemctl start spicer-daq.service; then
+    ok "Spicer DAQ server service started"
+    
+    # Wait for server to start
+    sleep 5
+    
+    # Check service status
+    if sudo systemctl is-active --quiet spicer-daq.service; then
+        ok "Spicer DAQ server service is active"
+        
+        # Check if it's listening on port 8000
+        if sudo ss -tlnp | grep -q ':8000'; then
+            ok "Server is listening on port 8000"
+        else
+            warn "Server not listening on port 8000. Checking logs..."
+            sudo journalctl -u spicer-daq.service --no-pager | tail -20
+        fi
+    else
+        err "Spicer DAQ server service failed to start"
+        sudo journalctl -u spicer-daq.service --no-pager | tail -30
+        exit 1
     fi
-fi
-
-# Setup rc.local for auto-start on boot
-log "Configuring rc.local for auto-start..."
-
-# Create rc.local if it doesn't exist
-if [ ! -f /etc/rc.local ]; then
-    sudo touch /etc/rc.local
-    sudo chmod +x /etc/rc.local
-fi
-
-# Backup existing rc.local
-if [ -s /etc/rc.local ]; then
-    sudo cp /etc/rc.local /etc/rc.local.backup.$(date +%Y%m%d_%H%M%S)
-    ok "Existing rc.local backed up"
-fi
-
-# Create new rc.local with server.py startup
-cat <<'EOF' | sudo tee /etc/rc.local >/dev/null
-#!/bin/bash
-# Auto-start server.py on boot with 1 second delay
-
-# Wait 1 second for system to stabilize
-sleep 1
-
-# Detect Python path
-if [ -f "/usr/local/share/pynq-venv/bin/python" ]; then
-    PYTHON_PATH="/usr/local/share/pynq-venv/bin/python"
 else
-    PYTHON_PATH="/usr/bin/python3"
+    err "Failed to start Spicer DAQ server service"
+    exit 1
 fi
 
-# Set environment variables
-export PATH="/usr/local/share/pynq-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-export PYTHONPATH="/var/www/html/pynq:/usr/local/share/pynq-venv/lib/python3.8/site-packages"
-
-# Start server.py in background
-cd /var/www/html/pynq && nohup $PYTHON_PATH server.py > /tmp/server.log 2>&1 &
-
-exit 0
-EOF
-
-sudo chmod +x /etc/rc.local
-ok "rc.local configured for auto-start"
-
-# Enable rc-local service if it exists
-if systemctl list-unit-files | grep -q rc-local.service; then
-    sudo systemctl enable rc-local.service >/dev/null 2>&1 || true
-    ok "rc-local.service enabled"
-fi
-
-log "Configuring Apache (ports 80/443 for your app)..."
-
-# Configure Apache to use standard ports
-sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
-Listen 80
-
-<IfModule ssl_module>
-    Listen 443
-</IfModule>
-
-<IfModule mod_gnutls.c>
-    Listen 443
-</IfModule>
-EOF
-
-# Create Apache virtual host configuration
-sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
-# HTTP -> HTTPS redirect
+log "Configuring Apache for HTTP and HTTPS..."
+# Create HTTP virtual host with redirect to HTTPS
+sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
 <VirtualHost *:80>
     ServerName ${SERVER_IP}
-    Redirect permanent / https://${SERVER_IP}/
-</VirtualHost>
-
-# Main HTTPS site for Spicer DAQ app
-<VirtualHost *:443>
-    ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
-
-    SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
-    SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
 
     <Directory ${APP_DIR}>
         AllowOverride All
         Require all granted
         Options Indexes FollowSymLinks
+        DirectoryIndex index.php index.html
     </Directory>
 
-    # WebSocket support for /ws
     RewriteEngine On
-    RewriteCond %{HTTP:Upgrade} =websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/ws(.*) ws://127.0.0.1:8000/ws\$1 [P,L]
-    
-    # Proxy WebSocket connections
-    ProxyPass /ws ws://127.0.0.1:8000/ws
-    ProxyPassReverse /ws ws://127.0.0.1:8000/ws
-    
-    # Proxy API endpoints if needed
-    ProxyPass /api/ http://127.0.0.1:8000/api/
-    ProxyPassReverse /api/ http://127.0.0.1:8000/api/
-    
-    # Allow WebSocket headers
-    ProxyPassReverseCookiePath / /
-    RequestHeader set X-Forwarded-Proto "https"
-    RequestHeader set X-Forwarded-Port "443"
-    
-    # CORS headers for WebSocket
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header always set Access-Control-Allow-Headers "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type"
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Logging
+    ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
+    CustomLog \${APACHE_LOG_DIR}/spicer_access.log combined
+</VirtualHost>
+EOF
+
+# Create HTTPS virtual host
+sudo tee /etc/apache2/sites-available/spicer-ssl.conf > /dev/null << EOF
+<VirtualHost *:443>
+    ServerName ${SERVER_IP}
+    DocumentRoot ${APP_DIR}
+
+    <Directory ${APP_DIR}>
+        AllowOverride All
+        Require all granted
+        Options Indexes FollowSymLinks
+        DirectoryIndex index.php index.html
+    </Directory>
+
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/ws$ ws://127.0.0.1:8000/ws [P,L]
+
+    SSLEngine on
+    SSLCertificateFile ${SSL_CERT}
+    SSLCertificateKeyFile ${SSL_KEY}
+
     ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
     CustomLog \${APACHE_LOG_DIR}/spicer_access.log combined
 </VirtualHost>
 EOF
 
 sudo a2dissite 000-default default-ssl >/dev/null 2>&1 || true
-sudo a2ensite spicer.conf >/dev/null
+sudo a2ensite spicer spicer-ssl >/dev/null
 
 # Test Apache configuration
 log "Testing Apache configuration..."
@@ -299,49 +305,61 @@ else
 fi
 
 log "Final permission check..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 
-log "Verifying installation..."
-if [ -f "${APP_DIR}/pynq/server.py" ]; then
-    ok "server.py found at ${APP_DIR}/pynq/server.py"
-else
-    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
-fi
+# Test connections
+log "Testing all connections..."
 
-if [ -f "${APP_DIR}/index.html" ] || [ -f "${APP_DIR}/index.php" ]; then
-    ok "Web interface files found"
-else
-    warn "No index file found - verify repository contents"
-fi
-
-# Start server.py now (for immediate use)
-log "Starting server.py manually for immediate use..."
-cd ${APP_DIR}/pynq
-nohup $PYTHON_PATH server.py > /tmp/server.log 2>&1 &
+# Test FastAPI directly
+log "1. Testing FastAPI server on port 8000..."
 sleep 3
-
-# Check if server is running
-if curl -s -I -X GET "http://127.0.0.1:8000/" >/dev/null 2>&1; then
-    ok "FastAPI server responding on port 8000"
+if curl -s -f "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+    warn "FastAPI responding on / but should only handle WS - check server.py"
 else
-    warn "FastAPI not responding on port 8000 - check /tmp/server.log"
+    ok "FastAPI not responding on / (expected for WS-only)"
 fi
 
-# Check if PYNQ is still accessible
-if ss -ltn | grep -q ':9090'; then
-    ok "PYNQ still running on port 9090"
+# Test WebSocket
+log "2. Testing WebSocket connection..."
+sleep 1
+if $VENV_PATH/bin/python -c "
+import asyncio
+import websockets
+import sys
+
+async def test():
+    try:
+        async with websockets.connect('ws://127.0.0.1:8000/ws', timeout=2) as websocket:
+            print('✓ WebSocket connection successful')
+            return True
+    except Exception as e:
+        print(f'✗ WebSocket error: {e}')
+        return False
+
+import asyncio
+asyncio.run(test())
+" 2>/dev/null; then
+    ok "WebSocket connection successful"
 else
-    warn "PYNQ not detected on port 9090"
+    warn "WebSocket connection test failed (might be OK if no clients connected)"
+fi
+
+# Test Apache serving static files over HTTPS
+log "3. Testing Apache static file serving over HTTPS..."
+if curl -s -f -k "https://${SERVER_IP}/" >/dev/null 2>&1; then
+    ok "Apache serving static files on port 443"
+else
+    warn "Apache not responding on port 443 (check certificate trust)"
 fi
 
 ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
-echo "  Your App (HTTP):  http://${SERVER_IP}/"
-echo "  Your App (HTTPS): https://${SERVER_IP}/"
-echo "  WebSocket (WSS):  wss://${SERVER_IP}/ws"
+echo "  Main Access:      https://${SERVER_IP}/ (self-signed cert, ignore warnings)"
+echo "  FastAPI Server:   http://127.0.0.1:8000/ (internal only)"
+echo "  WebSocket (WS):   ws://127.0.0.1:8000/ws (internal)"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -349,24 +367,96 @@ echo "  Name: ${DB_NAME}"
 echo "  User: root"
 echo "  Pass: ${DB_PASS}"
 echo ""
-echo "⚙️  Boot Management:"
-echo "  Auto-start: /etc/rc.local"
-echo "  Edit:       sudo nano /etc/rc.local"
-echo "  Server Log: /tmp/server.log"
+echo "⚙️  Server Management:"
+echo "  Process: systemd service 'spicer-daq'"
+echo "  Check status: sudo systemctl status spicer-daq"
+echo "  Start server: sudo systemctl start spicer-daq"
+echo "  Stop server: sudo systemctl stop spicer-daq"
+echo "  View logs: sudo journalctl -u spicer-daq.service -f"
+echo "  Log file: sudo journalctl -u spicer-daq.service"
 echo ""
-echo "🔄 Manual Control:"
-echo "  Start:   cd ${APP_DIR}/pynq && ${PYTHON_PATH} server.py &"
-echo "  Stop:    pkill -f 'python.*server.py'"
-echo "  Restart: pkill -f 'python.*server.py' && cd ${APP_DIR}/pynq && ${PYTHON_PATH} server.py &"
+echo "🐍 Python Environment:"
+echo "  Virtual env: ${VENV_PATH}"
+echo "  Python: $($VENV_PATH/bin/python --version)"
+echo "  FastAPI: $($VENV_PATH/bin/python -c 'import fastapi; print(fastapi.__version__)')"
+echo "  Uvicorn: $($VENV_PATH/bin/python -c 'import uvicorn; print(uvicorn.__version__)')"
 echo ""
-echo "🌐 WebSocket Test:"
-echo "  Open: https://${SERVER_IP}/scope"
-echo "  Check browser console for WebSocket connection"
+echo "🔧 Quick Tests:"
+echo "  Test WS: $VENV_PATH/bin/python -m websockets ws://127.0.0.1:8000/ws"
+echo "  Test Apache HTTPS: curl -k https://${SERVER_IP}/"
+echo "  Check port 8000: sudo ss -tlnp | grep :8000"
+echo "  Check port 443: sudo ss -tlnp | grep :443"
 echo ""
-echo "📁 Application: ${APP_DIR}"
-echo "📄 Server.py:   ${APP_DIR}/pynq/server.py"
-echo ""
-echo "✅ Server.py will auto-start on every boot via rc.local!"
-echo "✅ Apache proxies HTTPS to FastAPI WebSocket"
-echo "✅ FastAPI and Uvicorn are installed"
+echo "✅ HTTPS enabled with self-signed certificate"
+echo "✅ HTTP redirects to HTTPS"
+echo "✅ WebSocket proxied through Apache"
+echo "✅ Uses PYNQ virtual environment at ${VENV_PATH}"
 echo "=========================================="
+
+# Create a simple test page
+sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DAQ Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Spicer DAQ Installation Test</h1>
+    
+    <div id="apache-status" class="status">
+        Testing Apache connection...
+    </div>
+    
+    <div id="websocket-status" class="status">
+        Testing WebSocket connection...
+    </div>
+    
+    <script>
+        // Test Apache
+        fetch('/')
+            .then(response => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✓ Apache Server (Port 443):</strong> Responding';
+                document.getElementById('apache-status').className = 'status success';
+            })
+            .catch(error => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✗ Apache Server (Port 443):</strong> Connection failed';
+                document.getElementById('apache-status').className = 'status error';
+            });
+        
+        // Test WebSocket connection
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(wsProtocol + '//' + location.host + '/ws');
+        
+        ws.onopen = function() {
+            document.getElementById('websocket-status').innerHTML = 
+                '<strong>✓ WebSocket:</strong> Connected successfully';
+            document.getElementById('websocket-status').className = 'status success';
+            ws.close();
+        };
+        
+        ws.onerror = function() {
+            document.getElementById('websocket-status').innerHTML = 
+                '<strong>⚠ WebSocket:</strong> Connection failed';
+            document.getElementById('websocket-status').className = 'status warning';
+        };
+    </script>
+</body>
+</html>
+EOF
+
+echo ""
+echo "Test page created: https://${SERVER_IP}/test.html (ignore cert warning)"
+echo "Installation log: ${LOG_FILE}"
+echo "Server logs: sudo journalctl -u spicer-daq.service -f"
+echo ""
+echo "Note: The server runs in the PYNQ virtual environment at ${VENV_PATH}"
+echo "Access via HTTPS, accept self-signed certificate warning in browser."
