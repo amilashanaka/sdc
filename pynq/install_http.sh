@@ -56,8 +56,8 @@ sudo -E apt install -y \
  apache2 apache2-utils \
  php libapache2-mod-php php-mysql php-cli \
  git mariadb-server mariadb-client \
- python3-pip python3-venv \
- python3-dev build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
+ python-pip python-venv \
+ python-dev build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
 ok "Packages installed"
 
 sudo a2enmod rewrite >/dev/null || true
@@ -121,22 +121,22 @@ fi
 
 log "Setting up Python environment for FastAPI..."
 
-# Check Python3 version
+# Check python version
 log "Checking Python installation..."
-PYTHON_VERSION=$(python3 --version 2>&1)
+PYTHON_VERSION=$(python --version 2>&1)
 ok "Found: $PYTHON_VERSION"
 
 # Force reinstall pip and setuptools
 log "Installing/upgrading pip and setuptools..."
-sudo python3 -m pip install --force-reinstall --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
+sudo python -m pip install --force-reinstall --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
 
 # Install Python dependencies for FastAPI
 log "Installing Python dependencies for FastAPI..."
-sudo python3 -m pip install fastapi uvicorn[standard] websockets pymysql python-multipart >>$LOG_FILE 2>&1
+sudo python -m pip install fastapi uvicorn[standard] websockets pymysql python-multipart >>$LOG_FILE 2>&1
 
 # Verify installation
 log "Verifying Python package installation..."
-if python3 -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
+if python -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
     ok "All required Python packages installed"
 else
     err "Python package installation failed!"
@@ -158,7 +158,7 @@ if [ -f "$SERVER_PY_PATH" ]; then
     
     # Create a new server.py with proper fixes
     sudo tee "$SERVER_PY_PATH" > /dev/null << 'EOF'
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
 import uvicorn
@@ -312,7 +312,7 @@ fi
 # Create a simple test to verify the installation
 log "Creating test script..."
 sudo tee /tmp/test_server.py > /dev/null << 'EOF'
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys
 import os
 
@@ -348,7 +348,7 @@ sudo chmod +x /tmp/test_server.py
 
 # Test the import
 log "Testing server.py import..."
-if python3 /tmp/test_server.py; then
+if python /tmp/test_server.py; then
     ok "server.py imports successfully"
 else
     err "server.py import test failed"
@@ -388,7 +388,7 @@ sudo pkill -f "uvicorn" 2>/dev/null || true
 sleep 2
 
 cd ${APP_DIR}/pynq
-if sudo python3 server.py > /tmp/server_runtime.log 2>&1 & then
+if sudo python server.py > /tmp/server_runtime.log 2>&1 & then
     SERVER_PID=$!
     ok "server.py started with PID: $SERVER_PID"
     
@@ -400,7 +400,7 @@ if sudo python3 server.py > /tmp/server_runtime.log 2>&1 & then
         ok "server.py is running (PID: $SERVER_PID)"
         
         # Check if it's listening on port 8000
-        if sudo netstat -tlnp | grep -q ":8000.*python3"; then
+        if sudo netstat -tlnp | grep -q ":8000.*python"; then
             ok "server.py is listening on port 8000"
         else
             warn "server.py not listening on port 8000. Checking logs..."
@@ -508,7 +508,7 @@ else
             sudo pkill -f "server.py"
             sleep 2
             cd ${APP_DIR}/pynq
-            sudo python3 server.py > /tmp/server_restart.log 2>&1 &
+            sudo python server.py > /tmp/server_restart.log 2>&1 &
             sleep 3
             
             if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
@@ -520,7 +520,7 @@ else
     else
         warn "server.py not running. Starting it..."
         cd ${APP_DIR}/pynq
-        sudo python3 server.py > /tmp/server_manual.log 2>&1 &
+        sudo python server.py > /tmp/server_manual.log 2>&1 &
         sleep 3
         
         if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
@@ -556,19 +556,19 @@ echo ""
 echo "⚙️  Server Management:"
 echo "  Process: ${PROCESS_NAME}"
 echo "  Auto-start: Configured via /etc/rc.local"
-echo "  Manual start: cd ${APP_DIR}/pynq && sudo python3 server.py"
+echo "  Manual start: cd ${APP_DIR}/pynq && sudo python server.py"
 echo "  Check status: ps aux | grep server.py"
 echo "  Stop server: sudo pkill -f server.py"
 echo "  Logs: tail -f /tmp/daq_server.log"
 echo ""
 echo "🐍 Python Verification:"
-echo "  Test imports: python3 /tmp/test_server.py"
+echo "  Test imports: python /tmp/test_server.py"
 echo "  Test FastAPI: curl http://localhost:8000/"
 echo ""
 echo "🔧 Troubleshooting:"
 echo "  If server doesn't start:"
 echo "  1. Check Python packages: sudo pip3 list | grep -E 'fastapi|uvicorn'"
-echo "  2. Test import: python3 -c 'import fastapi; print(fastapi.__version__)'"
+echo "  2. Test import: python -c 'import fastapi; print(fastapi.__version__)'"
 echo "  3. Check logs: tail -f /tmp/server_runtime.log"
 echo "  4. Check port: sudo netstat -tlnp | grep :8000"
 echo ""
