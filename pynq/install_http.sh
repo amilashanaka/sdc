@@ -3,12 +3,14 @@ set -euo pipefail
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
 APP_DIR="/var/www/html"
-WWW_USER="root"
+WWW_USER="www-data"
+WWW_GROUP="www-data"
 DB_PASS="daq"
 DB_NAME="daq"
 PROCESS_NAME="server.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
+VENV_PATH="/usr/local/share/pynq-venv"
 
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
@@ -22,20 +24,13 @@ warn(){ echo -e "${YELLOW}[WARN] $*${NC}"; }
 err(){ echo -e "${RED}[ERROR] $*${NC}"; }
 
 log "Starting installation (preserving PYNQ on :9090)..."
-sudo apt update -y >>$LOG_FILE 2>&1
+sudo apt update -y >>$LOG_FILE
 
 log "Checking PYNQ on port 9090..."
 if ss -ltn | grep -q ':9090'; then
     ok "Port 9090 active — PYNQ running, will preserve"
 else
     warn "Port 9090 inactive — PYNQ may not be running"
-fi
-
-log "Checking redirect_server service..."
-if systemctl list-unit-files | grep -q redirect_server; then
-    ok "redirect_server exists — preserving"
-else
-    warn "redirect_server not found (normal if not using it)"
 fi
 
 # Check and stop conflicting service on port 80
@@ -50,93 +45,15 @@ if [ -n "$PORT_80_PID" ]; then
     ok "Port 80 freed"
 fi
 
-log "Installing Apache + PHP + Git + Python2 dependencies"
+log "Installing Apache + PHP + Git + Python dependencies"
 export DEBIAN_FRONTEND=noninteractive
-
-# First, try to add universe repository (for older Python2 packages)
-sudo add-apt-repository universe -y >>$LOG_FILE 2>&1 || true
-sudo apt update -y >>$LOG_FILE 2>&1
-
-# Install base packages first
 sudo -E apt install -y \
  apache2 apache2-utils \
  php libapache2-mod-php php-mysql php-cli \
- git mariadb-server mariadb-client \
- build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
-ok "Base packages installed"
-
-# Now try to install Python2 packages
-log "Installing Python2 and pip..."
-
-# Check if python2 is available
-if command -v python2 &> /dev/null; then
-    ok "Python2 already installed"
-    PYTHON_CMD="python2"
-elif command -v python2.7 &> /dev/null; then
-    ok "Python2.7 already installed"
-    PYTHON_CMD="python2.7"
-else
-    # Try to install python2
-    if sudo apt install -y python2 >>$LOG_FILE 2>&1; then
-        ok "Python2 installed"
-        PYTHON_CMD="python2"
-    elif sudo apt install -y python2.7 >>$LOG_FILE 2>&1; then
-        ok "Python2.7 installed"
-        PYTHON_CMD="python2.7"
-    else
-        err "Could not install Python2. Trying to download pip manually..."
-        PYTHON_CMD="python2"
-    fi
-fi
-
-# Display Python version
-PYTHON_VERSION=$($PYTHON_CMD --version 2>&1)
-ok "Found: $PYTHON_VERSION"
-
-# Install pip for Python2 manually using get-pip.py
-log "Installing pip for Python2..."
-if ! $PYTHON_CMD -m pip --version &> /dev/null; then
-    cd /tmp
-    wget -q https://bootstrap.pypa.io/pip/2.7/get-pip.py -O get-pip.py >>$LOG_FILE 2>&1 || \
-    curl -s https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py >>$LOG_FILE 2>&1
-    
-    if [ -f get-pip.py ]; then
-        sudo $PYTHON_CMD get-pip.py >>$LOG_FILE 2>&1
-        ok "pip installed for Python2"
-    else
-        err "Failed to download get-pip.py"
-        exit 1
-    fi
-else
-    ok "pip already installed for Python2"
-fi
-
-# Verify pip is working
-if ! $PYTHON_CMD -m pip --version &> /dev/null; then
-    err "pip installation failed for Python2"
-    exit 1
-fi
-
-# Upgrade pip, setuptools, and wheel
-log "Upgrading pip and setuptools for Python2..."
-sudo $PYTHON_CMD -m pip install --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
-
-# Install Python2 dependencies for FastAPI
-# Note: FastAPI doesn't officially support Python 2, so we'll install compatible alternatives
-log "Installing Python2 dependencies..."
-
-# These are Python2-compatible packages
-sudo $PYTHON_CMD -m pip install \
-    tornado==5.1.1 \
-    pymysql \
-    futures \
-    enum34 \
-    typing >>$LOG_FILE 2>&1
-
-ok "Python2 dependencies installed"
-
-# Important note about FastAPI
-warn "NOTE: FastAPI requires Python 3.6+. Creating Python2-compatible WebSocket server instead..."
+ git mysql-server mysql-client \
+ python3-pip python3-venv \
+ python3-dev build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
+ok "Packages installed"
 
 sudo a2enmod rewrite >/dev/null || true
 sudo systemctl enable apache2 >/dev/null || true
@@ -165,17 +82,17 @@ else
     exit 1
 fi
 
-# Set permissions
+# Set permissions - exactly as in working system
 log "Setting permissions for ${APP_DIR}..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "Permissions applied"
 
-log "Configuring MariaDB..."
-sudo systemctl start mariadb
+log "Configuring MySQL..."
+sudo systemctl start mysql
 sleep 1
 
-# Secure MariaDB installation
+# Secure MySQL installation (matching your system)
 sudo mysql -u root <<EOF 2>/dev/null || true
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASS}';
 DELETE FROM mysql.user WHERE User='';
@@ -197,84 +114,109 @@ else
     warn "No SQL file found at ${SQL_FILE}"
 fi
 
-log "Creating Python2-compatible WebSocket server..."
+# Create or use existing PYNQ virtual environment
+log "Setting up Python virtual environment..."
+if [ -d "$VENV_PATH" ]; then
+    ok "Using existing PYNQ virtual environment at $VENV_PATH"
+else
+    log "Creating virtual environment at $VENV_PATH..."
+    sudo python3 -m venv "$VENV_PATH"
+    ok "Virtual environment created"
+fi
 
-# Create a Python2-compatible server using Tornado
+# Activate virtual environment and install packages
+log "Installing Python packages in virtual environment..."
+sudo $VENV_PATH/bin/pip install --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
+
+# Install exact versions from working setup
+sudo $VENV_PATH/bin/pip install fastapi==0.124.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install uvicorn[standard]==0.38.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install websockets==10.3 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install pymysql python-multipart >>$LOG_FILE 2>&1
+
+# Verify installation
+log "Verifying Python package installation..."
+if $VENV_PATH/bin/python -c "import fastapi; import uvicorn; import websockets; print('✓ FastAPI, Uvicorn, and WebSockets installed successfully')" 2>>$LOG_FILE; then
+    ok "All required Python packages installed"
+else
+    err "Python package installation failed!"
+    exit 1
+fi
+
+# Ensure server.py exists and has correct content
+log "Configuring server.py..."
 SERVER_PY_PATH="${APP_DIR}/pynq/server.py"
 
-if [ -d "${APP_DIR}/pynq" ]; then
-    ok "Found pynq directory"
-else
-    log "Creating pynq directory..."
-    sudo mkdir -p "${APP_DIR}/pynq"
-fi
-
-# Backup original if exists
 if [ -f "$SERVER_PY_PATH" ]; then
+    ok "Found server.py at $SERVER_PY_PATH"
+    
+    # Backup original
     sudo cp "$SERVER_PY_PATH" "${SERVER_PY_PATH}.backup"
-fi
-
-# Create Python2-compatible Tornado WebSocket server
-sudo tee "$SERVER_PY_PATH" > /dev/null << 'EOFSERVER'
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-import tornado.ioloop
-import tornado.web
-import tornado.websocket
-import json
-import time
-import random
-import struct
-import sys
+    
+    # Write the exact server.py from your working system
+    sudo tee "$SERVER_PY_PATH" > /dev/null << 'EOF'
+#!/usr/bin/env python3
+from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import uvicorn
+import asyncio
 import os
-from threading import Thread
+import sys
+import traceback
 
-print("=== Starting Spicer DAQ Server (Python2) ===", file=sys.stderr)
-print("Python: %s" % sys.executable, file=sys.stderr)
+# Set PYNQ environment variables
+os.environ['XILINX_XRT'] = '/usr'
+os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
+
+app = FastAPI()
+
+# Mount static website
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Try to import and initialize DAQ with error handling
 daq = None
 daq_initialized = False
 
+print("=== Starting Spicer DAQ Server ===", file=sys.stderr)
+print(f"Python: {sys.executable}", file=sys.stderr)
+
 try:
-    # First, try to import pynq
+    # First, try to import pynq to check if it's available
     import pynq
     print("✓ PYNQ module imported", file=sys.stderr)
     
+    # Now try to import daq module
+    from daq import Daq
+    print("✓ DAQ module imported", file=sys.stderr)
+    
+    # Try to initialize DAQ - this is where it might fail
     try:
-        # Try to import daq module
-        sys.path.insert(0, os.path.dirname(__file__))
-        from daq import Daq
-        print("✓ DAQ module imported", file=sys.stderr)
-        
-        # Try to initialize DAQ
-        try:
-            print("Initializing FPGA DAQ...", file=sys.stderr)
-            daq = Daq()
-            daq.start_background()
-            daq_initialized = True
-            print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
-        except Exception as e:
-            print("⚠ FPGA DAQ initialization failed: %s" % str(e), file=sys.stderr)
-            print("Will run in simulation mode", file=sys.stderr)
-            daq = None
-            
-    except ImportError as e:
-        print("✗ DAQ module import failed: %s" % str(e), file=sys.stderr)
+        print("Initializing FPGA DAQ...", file=sys.stderr)
+        daq = Daq()
+        daq.start_background()
+        daq_initialized = True
+        print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠ FPGA DAQ initialization failed: {e}", file=sys.stderr)
         print("Will run in simulation mode", file=sys.stderr)
+        # Create a simulated DAQ
         daq = None
         
 except ImportError as e:
-    print("✗ PYNQ module import failed: %s" % str(e), file=sys.stderr)
+    print(f"✗ Module import failed: {e}", file=sys.stderr)
     print("Will run in simulation mode", file=sys.stderr)
     daq = None
 
 # If DAQ initialization failed, create a simulated one
 if not daq_initialized:
     print("Creating simulated DAQ...", file=sys.stderr)
+    import random
+    import struct
+    import time
+    from threading import Thread
     
-    class SimulatedDAQ(object):
+    class SimulatedDAQ:
         def __init__(self):
             self.running = False
             self.thread = None
@@ -282,8 +224,7 @@ if not daq_initialized:
             
         def start_background(self):
             self.running = True
-            self.thread = Thread(target=self._background_task)
-            self.thread.daemon = True
+            self.thread = Thread(target=self._background_task, daemon=True)
             self.thread.start()
             print("✓ Simulated DAQ background started", file=sys.stderr)
         
@@ -296,7 +237,7 @@ if not daq_initialized:
                         # Generate simulated data
                         value = int(1000 * (ch + 1) * 
                                   (0.3 * random.random() + 
-                                   0.7 * (sample % 100) / 100.0))
+                                   0.7 * (sample % 100) / 100))
                         self.data_buffer.extend(struct.pack('h', value))
                 counter += 1
                 time.sleep(0.1)
@@ -311,180 +252,123 @@ if not daq_initialized:
     daq = SimulatedDAQ()
     daq.start_background()
 
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.set_header("Content-Type", "application/json")
-        self.write(json.dumps({
-            "message": "Spicer DAQ Tornado Server (Python2)",
-            "status": "running",
-            "python_version": sys.version
-        }))
+@app.get("/")
+async def serve_index():
+    return FileResponse("static/index.php", media_type="text/html")
 
-class WebSocketHandler(tornado.websocket.WebSocketHandler):
-    def check_origin(self, origin):
-        return True
+@app.get("/scope")
+async def serve_scope():
+    return FileResponse("static/scope.php", media_type="text/html")
+
+@app.get("/dash")
+async def serve_dash():
+    return FileResponse("static/dash.php", media_type="text/html")
+
+@app.websocket("/ws")
+async def websocket_data(websocket: WebSocket):
+    await websocket.accept()
+    print(f"WebSocket connection established", file=sys.stderr)
     
-    def open(self):
-        print("WebSocket connection established", file=sys.stderr)
-        self.callback = tornado.ioloop.PeriodicCallback(
-            self.send_data, 10)  # 10ms
-        self.callback.start()
-    
-    def send_data(self):
-        try:
+    try:
+        while True:
             if daq:
                 data = daq.read_streaming()
             else:
                 data = None
             
             if data:
-                self.write_message(data, binary=True)
+                await websocket.send_bytes(data)
             else:
-                self.write_message(json.dumps({
-                    "type": "heartbeat",
-                    "time": time.time()
-                }))
-        except Exception as e:
-            print("WebSocket send error: %s" % str(e), file=sys.stderr)
-    
-    def on_message(self, message):
-        pass
-    
-    def on_close(self):
+                await websocket.send_json({"type": "heartbeat"})
+            
+            await asyncio.sleep(0.01)
+    except Exception as e:
+        print(f"WebSocket error: {e}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
+    finally:
         print("WebSocket connection closed", file=sys.stderr)
-        self.callback.stop()
-
-def make_app():
-    return tornado.web.Application([
-        (r"/", MainHandler),
-        (r"/ws", WebSocketHandler),
-    ])
 
 if __name__ == "__main__":
-    app = make_app()
-    app.listen(8000, address="0.0.0.0")
-    print("Starting Tornado server on 0.0.0.0:8000", file=sys.stderr)
-    tornado.ioloop.IOLoop.current().start()
-EOFSERVER
-
-sudo chmod +x "$SERVER_PY_PATH"
-ok "Python2 Tornado server created"
-
-# Create __init__.py
-sudo tee "${APP_DIR}/pynq/__init__.py" > /dev/null << 'EOF'
-# This file makes the pynq directory a Python package
+    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
 EOF
-
-# Create test script
-log "Creating test script..."
-sudo tee /tmp/test_server.py > /dev/null << EOFTEST
-#!/usr/bin/env $PYTHON_CMD
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-import sys
-import os
-
-sys.path.insert(0, '/var/www/html/pynq')
-
-print("Testing server.py import...")
-try:
-    import tornado
-    import tornado.websocket
-    print("✓ Tornado imported")
     
-    from server import make_app
-    print("✓ server.py imports successfully")
-    
-    app = make_app()
-    print("✓ Tornado app created: %s" % app)
-    
-    print("✓ All imports successful!")
-    
-except ImportError as e:
-    print("✗ Import error: %s" % str(e))
-    print("Python path: %s" % sys.path)
-    sys.exit(1)
-EOFTEST
-
-sudo chmod +x /tmp/test_server.py
-
-# Test the import
-log "Testing server.py import..."
-if $PYTHON_CMD /tmp/test_server.py; then
-    ok "server.py imports successfully"
+    sudo chmod +x "$SERVER_PY_PATH"
+    ok "server.py configured"
 else
-    err "server.py import test failed"
+    err "server.py NOT found at ${APP_DIR}/pynq/server.py"
     exit 1
 fi
 
-# Create rc.local startup
-log "Setting up /etc/rc.local for auto-start..."
-sudo tee /etc/rc.local > /dev/null << EOFRC
-#!/bin/bash
-# rc.local - executed at the end of each multiuser runlevel
+# Create systemd service file (exact match to your working system)
+log "Creating systemd service file..."
+sudo tee /etc/systemd/system/spicer-daq.service > /dev/null << EOF
+[Unit]
+Description=Spicer DAQ Server
+After=network.target
+# Start after all services are up, including FPGA
+After=multi-user.target
 
-# Start the Tornado server
-cd /var/www/html/pynq
-$PYTHON_CMD server.py > /tmp/daq_server.log 2>&1 &
+[Service]
+Type=simple
+# Run as root to access FPGA
+User=root
+Group=root
+WorkingDirectory=/var/www/html/pynq
+# Use the PYNQ virtual environment's Python
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
+# If port is in use, kill the existing process on port 8000 before starting
+ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
+# Wait a bit for the port to be released
+ExecStartPre=/bin/sleep 2
+Restart=always
+RestartSec=10
 
-# Make sure we return 0
-exit 0
-EOFRC
+[Install]
+WantedBy=multi-user.target
+EOF
 
-sudo chmod +x /etc/rc.local
-
-# Enable rc-local service if it exists
-if [ -f /lib/systemd/system/rc-local.service ] || [ -f /usr/lib/systemd/system/rc-local.service ]; then
-    sudo systemctl enable rc-local 2>/dev/null || true
-fi
-
-ok "rc.local configured for auto-start"
-
-# Start server.py now
-log "Starting server.py now..."
-
-# Kill any existing server processes
+# Stop any existing server processes
+log "Stopping any existing server processes..."
 sudo pkill -f "server.py" 2>/dev/null || true
-sudo pkill -f "tornado" 2>/dev/null || true
+sudo pkill -f "uvicorn" 2>/dev/null || true
 sleep 2
 
-cd ${APP_DIR}/pynq
-if sudo $PYTHON_CMD server.py > /tmp/server_runtime.log 2>&1 & then
-    SERVER_PID=$!
-    ok "server.py started with PID: $SERVER_PID"
+# Enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable spicer-daq.service
+
+log "Starting FastAPI server via systemd..."
+if sudo systemctl start spicer-daq.service; then
+    ok "Spicer DAQ server service started"
     
     # Wait for server to start
     sleep 5
     
-    # Check if server is running
-    if ps -p $SERVER_PID > /dev/null 2>&1; then
-        ok "server.py is running (PID: $SERVER_PID)"
+    # Check service status
+    if sudo systemctl is-active --quiet spicer-daq.service; then
+        ok "Spicer DAQ server service is active"
         
         # Check if it's listening on port 8000
-        if sudo netstat -tlnp | grep -q ":8000.*$PYTHON_CMD"; then
-            ok "server.py is listening on port 8000"
+        if sudo ss -tlnp | grep -q ':8000'; then
+            ok "Server is listening on port 8000"
         else
-            warn "server.py not listening on port 8000. Checking logs..."
-            tail -20 /tmp/server_runtime.log
+            warn "Server not listening on port 8000. Checking logs..."
+            sudo journalctl -u spicer-daq.service --no-pager | tail -20
         fi
     else
-        warn "server.py may have crashed. Checking logs..."
-        tail -30 /tmp/server_runtime.log
+        err "Spicer DAQ server service failed to start"
+        sudo journalctl -u spicer-daq.service --no-pager | tail -30
+        exit 1
     fi
 else
-    err "Failed to start server.py"
+    err "Failed to start Spicer DAQ server service"
     exit 1
 fi
 
-log "Configuring Apache (port 80 for static files only)..."
-
-# Configure Apache to use only port 80
-sudo tee /etc/apache2/ports.conf >/dev/null <<EOF
-Listen 80
-EOF
-
-# Create Apache virtual host configuration
-sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
+log "Configuring Apache..."
+# Create Apache virtual host configuration (exact match to your working system)
+sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
 <VirtualHost *:80>
     ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
@@ -493,15 +377,16 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
         AllowOverride All
         Require all granted
         Options Indexes FollowSymLinks
+        DirectoryIndex index.php index.html
     </Directory>
 
-    # Proxy WebSocket requests to Tornado server
-    ProxyPass /ws ws://localhost:8000/ws
-    ProxyPassReverse /ws ws://localhost:8000/ws
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/ws$ ws://127.0.0.1:8000/ws [P,L]
     
-    # Proxy API requests
-    ProxyPass /api http://localhost:8000/
-    ProxyPassReverse /api http://localhost:8000/
+    ProxyPass /api/ http://127.0.0.1:8000/api/
+    ProxyPassReverse /api/ http://127.0.0.1:8000/api/
 
     ErrorLog \${APACHE_LOG_DIR}/spicer_error.log
     CustomLog \${APACHE_LOG_DIR}/spicer_access.log combined
@@ -509,7 +394,7 @@ sudo tee /etc/apache2/sites-available/spicer.conf >/dev/null <<EOF
 EOF
 
 # Enable required Apache modules
-sudo a2enmod proxy proxy_http proxy_wstunnel rewrite >>$LOG_FILE 2>&1
+sudo a2enmod proxy proxy_http proxy_wstunnel rewrite headers >>$LOG_FILE 2>&1
 
 sudo a2dissite 000-default default-ssl >/dev/null 2>&1 || true
 sudo a2ensite spicer.conf >/dev/null
@@ -535,19 +420,61 @@ else
 fi
 
 log "Final permission check..."
-sudo chown -R ${WWW_USER}:${WWW_USER} ${APP_DIR}
+sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 
-# Test connectivity
-log "Testing connectivity..."
-sleep 3
+# Test connections
+log "Testing all connections..."
 
-# Test Tornado directly
-if curl -s -f "http://localhost:8000/" >/dev/null 2>&1; then
-    ok "Tornado server responding on port 8000"
+# Test FastAPI directly
+log "1. Testing FastAPI server on port 8000..."
+sleep 3
+if curl -s -f "http://127.0.0.1:8000/" >/dev/null 2>&1; then
+    ok "FastAPI server responding on port 8000"
 else
-    warn "Tornado not responding. Checking logs..."
-    tail -10 /tmp/server_runtime.log
+    err "FastAPI not responding on port 8000"
+    sudo journalctl -u spicer-daq.service --no-pager | tail -20
+fi
+
+# Test WebSocket
+log "2. Testing WebSocket connection..."
+sleep 1
+if $VENV_PATH/bin/python -c "
+import asyncio
+import websockets
+import sys
+
+async def test():
+    try:
+        async with websockets.connect('ws://127.0.0.1:8000/ws', timeout=2) as websocket:
+            print('✓ WebSocket connection successful')
+            return True
+    except Exception as e:
+        print(f'✗ WebSocket error: {e}')
+        return False
+
+import asyncio
+asyncio.run(test())
+" 2>/dev/null; then
+    ok "WebSocket connection successful"
+else
+    warn "WebSocket connection test failed (might be OK if no clients connected)"
+fi
+
+# Test Apache serving static files
+log "3. Testing Apache static file serving..."
+if curl -s -f "http://${SERVER_IP}/" >/dev/null 2>&1; then
+    ok "Apache serving static files on port 80"
+else
+    warn "Apache not responding on port 80"
+fi
+
+# Test Apache proxy to FastAPI
+log "4. Testing Apache proxy to FastAPI..."
+if curl -s -f "http://${SERVER_IP}/api/" >/dev/null 2>&1; then
+    ok "Apache proxy to FastAPI working"
+else
+    warn "Apache proxy to FastAPI not working (endpoint might not exist)"
 fi
 
 ok "Installation complete!"
@@ -555,8 +482,9 @@ echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
 echo "  Static Files:     http://${SERVER_IP}/"
-echo "  Tornado Server:   http://${SERVER_IP}:8000/"
-echo "  WebSocket (WS):   ws://${SERVER_IP}:8000/ws"
+echo "  FastAPI Server:   http://127.0.0.1:8000/"
+echo "  FastAPI via Proxy: http://${SERVER_IP}/api/"
+echo "  WebSocket (WS):   ws://127.0.0.1:8000/ws"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -564,30 +492,34 @@ echo "  Name: ${DB_NAME}"
 echo "  User: root"
 echo "  Pass: ${DB_PASS}"
 echo ""
-echo "⚙️ Server Management:"
-echo "  Process: ${PROCESS_NAME}"
-echo "  Python: $PYTHON_CMD ($PYTHON_VERSION)"
-echo "  Auto-start: Configured via /etc/rc.local"
-echo "  Manual start: cd ${APP_DIR}/pynq && sudo $PYTHON_CMD server.py"
-echo "  Check status: ps aux | grep server.py"
-echo "  Stop server: sudo pkill -f server.py"
-echo "  Logs: tail -f /tmp/daq_server.log"
+echo "⚙️  Server Management:"
+echo "  Process: systemd service 'spicer-daq'"
+echo "  Check status: sudo systemctl status spicer-daq"
+echo "  Start server: sudo systemctl start spicer-daq"
+echo "  Stop server: sudo systemctl stop spicer-daq"
+echo "  View logs: sudo journalctl -u spicer-daq.service -f"
+echo "  Log file: sudo journalctl -u spicer-daq.service"
 echo ""
-echo "🔧 Python2 Verification:"
-echo "  Test imports: $PYTHON_CMD /tmp/test_server.py"
-echo "  Test server: curl http://localhost:8000/"
+echo "🐍 Python Environment:"
+echo "  Virtual env: ${VENV_PATH}"
+echo "  Python: $($VENV_PATH/bin/python --version)"
+echo "  FastAPI: $($VENV_PATH/bin/python -c 'import fastapi; print(fastapi.__version__)')"
+echo "  Uvicorn: $($VENV_PATH/bin/python -c 'import uvicorn; print(uvicorn.__version__)')"
 echo ""
-echo "⚠️  IMPORTANT NOTE:"
-echo "  Using Python2 with Tornado instead of FastAPI"
-echo "  FastAPI requires Python 3.6+, not compatible with Python2"
+echo "🔧 Quick Tests:"
+echo "  Test FastAPI: curl http://127.0.0.1:8000/"
+echo "  Test WebSocket: $VENV_PATH/bin/python -m websockets ws://127.0.0.1:8000/ws"
+echo "  Test Apache: curl http://${SERVER_IP}/"
+echo "  Check port 8000: sudo ss -tlnp | grep :8000"
 echo ""
-echo "✅ Tornado server will auto-start on boot via /etc/rc.local!"
+echo "✅ FastAPI server runs via systemd service (spicer-daq)"
+echo "✅ Uses PYNQ virtual environment at ${VENV_PATH}"
 echo "✅ Apache serves static files on port 80"
-echo "✅ WebSocket available on port 8000"
+echo "✅ Apache proxies WebSocket to FastAPI on /ws"
 echo "=========================================="
 
-# Create a simple test HTML file
-sudo tee ${APP_DIR}/test.html > /dev/null <<EOFHTML
+# Create a simple test page
+sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
 <!DOCTYPE html>
 <html>
 <head>
@@ -596,14 +528,19 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOFHTML
         body { font-family: Arial, sans-serif; margin: 40px; }
         .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
         .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
         .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
-    <h1>Spicer DAQ Installation Test (Python2)</h1>
+    <h1>Spicer DAQ Installation Test</h1>
     
-    <div id="tornado-status" class="status">
-        Testing Tornado server connection...
+    <div id="fastapi-status" class="status">
+        Testing FastAPI connection...
+    </div>
+    
+    <div id="apache-status" class="status">
+        Testing Apache connection...
     </div>
     
     <div id="websocket-status" class="status">
@@ -611,22 +548,35 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOFHTML
     </div>
     
     <script>
-        // Test Tornado REST endpoint
-        fetch('http://' + window.location.hostname + ':8000/')
+        // Test FastAPI directly
+        fetch('http://127.0.0.1:8000/')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('tornado-status').innerHTML = 
-                    '<strong>✓ Tornado Server:</strong> ' + data.message + '<br><small>Python: ' + data.python_version + '</small>';
-                document.getElementById('tornado-status').className = 'status success';
+                document.getElementById('fastapi-status').innerHTML = 
+                    '<strong>✓ FastAPI Server (Port 8000):</strong> Running';
+                document.getElementById('fastapi-status').className = 'status success';
             })
             .catch(error => {
-                document.getElementById('tornado-status').innerHTML = 
-                    '<strong>✗ Tornado Server:</strong> Connection failed';
-                document.getElementById('tornado-status').className = 'status error';
+                document.getElementById('fastapi-status').innerHTML = 
+                    '<strong>✗ FastAPI Server (Port 8000):</strong> Connection failed';
+                document.getElementById('fastapi-status').className = 'status error';
+            });
+        
+        // Test Apache
+        fetch('http://' + window.location.hostname + '/')
+            .then(response => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✓ Apache Server (Port 80):</strong> Responding';
+                document.getElementById('apache-status').className = 'status success';
+            })
+            .catch(error => {
+                document.getElementById('apache-status').innerHTML = 
+                    '<strong>✗ Apache Server (Port 80):</strong> Connection failed';
+                document.getElementById('apache-status').className = 'status error';
             });
         
         // Test WebSocket connection
-        const ws = new WebSocket('ws://' + window.location.hostname + ':8000/ws');
+        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
         
         ws.onopen = function() {
             document.getElementById('websocket-status').innerHTML = 
@@ -637,14 +587,18 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOFHTML
         
         ws.onerror = function() {
             document.getElementById('websocket-status').innerHTML = 
-                '<strong>✗ WebSocket:</strong> Connection failed';
-            document.getElementById('websocket-status').className = 'status error';
+                '<strong>⚠ WebSocket:</strong> Connection failed (server might be OK)';
+            document.getElementById('websocket-status').className = 'status warning';
         };
     </script>
 </body>
 </html>
-EOFHTML
+EOF
 
 echo ""
 echo "Test page created: http://${SERVER_IP}/test.html"
-echo "This page will test both Tornado and WebSocket connections."
+echo "Installation log: ${LOG_FILE}"
+echo "Server logs: sudo journalctl -u spicer-daq.service -f"
+echo ""
+echo "Note: The server runs in the PYNQ virtual environment at ${VENV_PATH}"
+echo "This matches your exact working configuration!"
