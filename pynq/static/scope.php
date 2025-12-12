@@ -40,16 +40,48 @@
   .stat-label { font-weight:bold; color:var(--accent); }
   .y-range-controls { display:flex; gap:8px; align-items:center; margin:8px 0; }
   .y-range-controls input { width:80px; padding:6px; }
+  .server-controls { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+  .server-status { padding:8px; border-radius:6px; font-size:12px; text-align:center; }
+  .server-running { background:#d4edda; color:#155724; }
+  .server-stopped { background:#f8d7da; color:#721c24; }
+  .server-starting { background:#fff3cd; color:#856404; }
+  .server-output { background:#f8f9fa; border:1px solid var(--border); border-radius:6px; padding:10px; font-family:monospace; font-size:11px; max-height:200px; overflow-y:auto; margin-top:10px; display:none; }
+  .server-output.active { display:block; }
+  .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+  .modal.active { display:flex; }
+  .modal-content { background:var(--panel); padding:20px; border-radius:12px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; }
 </style>
 </head>
 <body>
 
 <button class="theme-btn" id="themeBtn">🌙 Dark Mode</button>
 
+<div class="modal" id="serverModal">
+  <div class="modal-content">
+    <h2>DAQ Server Control</h2>
+    <div id="serverOutput" class="server-output"></div>
+    <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+      <button id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <div class="panel left">
     <h1>Spicer 16-Ch DAQ</h1>
     
+    <!-- Server Controls -->
+    <div class="server-controls">
+      <div class="controls">
+        <button id="runDaqBtn" class="run-btn">▶ Run DAQ Server</button>
+        <button id="stopDaqBtn" class="stop-btn" disabled>⏹ Stop Server</button>
+      </div>
+      <div class="server-status server-stopped" id="serverStatus">
+        Server Status: Stopped
+      </div>
+      <button id="viewLogsBtn" style="font-size:12px; padding:6px 12px;">📋 View Logs</button>
+    </div>
+
     <!-- System Controls -->
     <div class="controls">
       <button id="refreshBtn">🔄 Refresh</button>
@@ -112,7 +144,8 @@ const CONFIG = {
     SAMPLE_RATE: 10000, // 10 kHz sampling rate
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
-    SIGNAL_VARIANCE_THRESHOLD: 10
+    SIGNAL_VARIANCE_THRESHOLD: 10,
+    SERVER_CHECK_INTERVAL: 5000
 };
 
 // Buffer management
@@ -132,7 +165,9 @@ let lastTime = 0;
 let dataRate = 0.0;
 let dataWebSocket = null;
 let yRange = { min: -2000, max: 2000 };
-let lastDisplayedSamples = 10000; // Track what we're actually displaying
+let lastDisplayedSamples = 10000;
+let serverCheckInterval = null;
+let serverProcessId = null;
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -167,6 +202,155 @@ function buildChannelTable() {
             plot();
         };
         tbody.appendChild(tr);
+    }
+}
+
+// Server control functions
+async function startDaqServer() {
+    const runBtn = document.getElementById('runDaqBtn');
+    const stopBtn = document.getElementById('stopDaqBtn');
+    const statusEl = document.getElementById('serverStatus');
+    
+    runBtn.disabled = true;
+    runBtn.textContent = '🚀 Starting...';
+    statusEl.className = 'server-status server-starting';
+    statusEl.textContent = 'Server Status: Starting...';
+    
+    try {
+        const response = await fetch('/api/server/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            serverProcessId = result.pid;
+            statusEl.className = 'server-status server-running';
+            statusEl.textContent = `Server Status: Running (PID: ${result.pid})`;
+            stopBtn.disabled = false;
+            
+            // Show success message
+            showServerOutput('✅ DAQ server started successfully!\n' + 
+                           `Process ID: ${result.pid}\n` +
+                           `Python script: ./var/www/html/pynq/server.py\n` +
+                           'WebSocket server listening on port 8765');
+            
+            // Check server status periodically
+            if (serverCheckInterval) clearInterval(serverCheckInterval);
+            serverCheckInterval = setInterval(checkServerStatus, CONFIG.SERVER_CHECK_INTERVAL);
+            
+            // Connect WebSocket after a short delay
+            setTimeout(() => {
+                connectDataWebSocket();
+            }, 2000);
+            
+        } else {
+            throw new Error(result.error || 'Failed to start server');
+        }
+    } catch (error) {
+        statusEl.className = 'server-status server-stopped';
+        statusEl.textContent = 'Server Status: Failed to start';
+        showServerOutput('❌ Error starting DAQ server:\n' + error.message);
+    } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = '▶ Run DAQ Server';
+    }
+}
+
+async function stopDaqServer() {
+    const runBtn = document.getElementById('runDaqBtn');
+    const stopBtn = document.getElementById('stopDaqBtn');
+    const statusEl = document.getElementById('serverStatus');
+    
+    stopBtn.disabled = true;
+    stopBtn.textContent = '🛑 Stopping...';
+    
+    try {
+        const response = await fetch('/api/server/stop', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ pid: serverProcessId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusEl.className = 'server-status server-stopped';
+            statusEl.textContent = 'Server Status: Stopped';
+            serverProcessId = null;
+            
+            showServerOutput('🛑 DAQ server stopped successfully');
+            
+            if (serverCheckInterval) {
+                clearInterval(serverCheckInterval);
+                serverCheckInterval = null;
+            }
+            
+            // Update WebSocket status
+            updateStatus('🔴 Server Stopped', 'disconnected');
+            
+        } else {
+            throw new Error(result.error || 'Failed to stop server');
+        }
+    } catch (error) {
+        showServerOutput('❌ Error stopping DAQ server:\n' + error.message);
+    } finally {
+        stopBtn.disabled = true;
+        stopBtn.textContent = '⏹ Stop Server';
+        runBtn.disabled = false;
+    }
+}
+
+async function checkServerStatus() {
+    try {
+        const response = await fetch('/api/server/status');
+        const result = await response.json();
+        
+        const statusEl = document.getElementById('serverStatus');
+        const stopBtn = document.getElementById('stopDaqBtn');
+        
+        if (result.running) {
+            statusEl.className = 'server-status server-running';
+            statusEl.textContent = `Server Status: Running (PID: ${result.pid})`;
+            stopBtn.disabled = false;
+            serverProcessId = result.pid;
+        } else {
+            statusEl.className = 'server-status server-stopped';
+            statusEl.textContent = 'Server Status: Stopped';
+            stopBtn.disabled = true;
+            serverProcessId = null;
+        }
+    } catch (error) {
+        console.error('Failed to check server status:', error);
+    }
+}
+
+function showServerOutput(message) {
+    const outputEl = document.getElementById('serverOutput');
+    const modalEl = document.getElementById('serverModal');
+    
+    outputEl.textContent = message;
+    outputEl.className = 'server-output active';
+    modalEl.classList.add('active');
+}
+
+async function getServerLogs() {
+    try {
+        const response = await fetch('/api/server/logs');
+        const result = await response.json();
+        
+        if (result.success) {
+            showServerOutput('📋 Server Logs:\n' + result.logs);
+        } else {
+            showServerOutput('❌ Failed to retrieve logs');
+        }
+    } catch (error) {
+        showServerOutput('❌ Error retrieving logs:\n' + error.message);
     }
 }
 
@@ -708,10 +892,26 @@ document.getElementById('refreshBtn').onclick = () => {
     location.reload();
 };
 
+// Server control event handlers
+document.getElementById('runDaqBtn').onclick = startDaqServer;
+document.getElementById('stopDaqBtn').onclick = stopDaqServer;
+document.getElementById('viewLogsBtn').onclick = getServerLogs;
+document.getElementById('closeModal').onclick = () => {
+    document.getElementById('serverModal').classList.remove('active');
+};
+
 // Initialize
-function init() {
+async function init() {
     buildChannelTable();
-    connectDataWebSocket();
+    
+    // Check server status on startup
+    await checkServerStatus();
+    
+    // If server is running, connect WebSocket
+    if (serverProcessId) {
+        connectDataWebSocket();
+    }
+    
     setInterval(updateSystemStats, 2000);
     plot();
 }
