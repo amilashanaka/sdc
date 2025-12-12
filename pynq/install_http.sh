@@ -50,7 +50,7 @@ export DEBIAN_FRONTEND=noninteractive
 sudo -E apt install -y \
  apache2 apache2-utils \
  php libapache2-mod-php php-mysql php-cli \
- git mysql-server mysql-client \
+ git mariadb-server mariadb-client \
  python3-pip python3-venv \
  python3-dev build-essential libssl-dev libffi-dev >>$LOG_FILE 2>&1
 ok "Packages installed"
@@ -88,13 +88,13 @@ sudo chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 sudo chmod -R 775 ${APP_DIR}
 ok "Permissions applied"
 
-log "Configuring MySQL..."
-sudo systemctl start mysql
+log "Configuring MariaDB..."
+sudo systemctl start mariadb
 sleep 1
 
-# Secure MySQL installation (matching your system)
+# Secure MariaDB installation (matching your system)
 sudo mysql -u root <<EOF 2>/dev/null || true
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_PASS}';
+ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('${DB_PASS}');
 DELETE FROM mysql.user WHERE User='';
 DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
 DROP DATABASE IF EXISTS test;
