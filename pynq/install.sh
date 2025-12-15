@@ -393,68 +393,7 @@ echo "✅ WebSocket proxied through Apache"
 echo "✅ Uses PYNQ virtual environment at ${VENV_PATH}"
 echo "=========================================="
 
-# Create a simple test page
-sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
-<!DOCTYPE html>
-<html>
-<head>
-    <title>DAQ Test Page</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .warning { background-color: #fff3cd; color: #856404; }
-        .error { background-color: #f8d7da; color: #721c24; }
-    </style>
-</head>
-<body>
-    <h1>Spicer DAQ Installation Test</h1>
-    
-    <div id="apache-status" class="status">
-        Testing Apache connection...
-    </div>
-    
-    <div id="websocket-status" class="status">
-        Testing WebSocket connection...
-    </div>
-    
-    <script>
-        // Test Apache
-        fetch('/')
-            .then(response => {
-                document.getElementById('apache-status').innerHTML = 
-                    '<strong>✓ Apache Server (Port 443):</strong> Responding';
-                document.getElementById('apache-status').className = 'status success';
-            })
-            .catch(error => {
-                document.getElementById('apache-status').innerHTML = 
-                    '<strong>✗ Apache Server (Port 443):</strong> Connection failed';
-                document.getElementById('apache-status').className = 'status error';
-            });
-        
-        // Test WebSocket connection
-        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(wsProtocol + '//' + location.host + '/ws');
-        
-        ws.onopen = function() {
-            document.getElementById('websocket-status').innerHTML = 
-                '<strong>✓ WebSocket:</strong> Connected successfully';
-            document.getElementById('websocket-status').className = 'status success';
-            ws.close();
-        };
-        
-        ws.onerror = function() {
-            document.getElementById('websocket-status').innerHTML = 
-                '<strong>⚠ WebSocket:</strong> Connection failed';
-            document.getElementById('websocket-status').className = 'status warning';
-        };
-    </script>
-</body>
-</html>
-EOF
-
-echo ""
-echo "Test page created: https://${SERVER_IP}/test.html (ignore cert warning)"
+# Write log file
 echo "Installation log: ${LOG_FILE}"
 echo "Server logs: sudo journalctl -u spicer-daq.service -f"
 echo ""
