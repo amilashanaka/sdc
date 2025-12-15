@@ -235,7 +235,7 @@ Group=root
 WorkingDirectory=${APP_DIR}/pynq
 
 # Use SYSTEM Python3 (has PYNQ libraries)
-ExecStart=/usr/bin/python3 ${APP_DIR}/pynq/server.py
+ExecStart=/usr/bin/python ${APP_DIR}/pynq/server.py
 
 # Kill any process on port 8000 before starting
 ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
