@@ -5,6 +5,7 @@ import asyncio
 import os
 import sys
 import traceback
+import time
 
 # Set PYNQ environment variables
 os.environ['XILINX_XRT'] = '/usr'
@@ -22,11 +23,11 @@ print(f"Python: {sys.executable}", file=sys.stderr)
 try:
     # First, try to import pynq to check if it's available
     import pynq
-    print("✓ PYNQ module imported", file=sys.stderr)
+    print("âœ“ PYNQ module imported", file=sys.stderr)
     
     # Now try to import daq module
     from daq import Daq
-    print("✓ DAQ module imported", file=sys.stderr)
+    print("âœ“ DAQ module imported", file=sys.stderr)
     
     # Try to initialize DAQ - this is where it might fail
     try:
@@ -34,15 +35,15 @@ try:
         daq = Daq()
         daq.start_background()
         daq_initialized = True
-        print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
+        print("âœ“ FPGA DAQ initialized successfully", file=sys.stderr)
     except Exception as e:
-        print(f"⚠ FPGA DAQ initialization failed: {e}", file=sys.stderr)
+        print(f"âš  FPGA DAQ initialization failed: {e}", file=sys.stderr)
         print("Will run in simulation mode", file=sys.stderr)
         # Create a simulated DAQ
         daq = None
         
 except ImportError as e:
-    print(f"✗ Module import failed: {e}", file=sys.stderr)
+    print(f"âœ— Module import failed: {e}", file=sys.stderr)
     print("Will run in simulation mode", file=sys.stderr)
     daq = None
 
@@ -52,6 +53,7 @@ if not daq_initialized:
     import random
     import struct
     import time
+    import numpy as np
     from threading import Thread
     
     class SimulatedDAQ:
@@ -64,19 +66,19 @@ if not daq_initialized:
             self.running = True
             self.thread = Thread(target=self._background_task, daemon=True)
             self.thread.start()
-            print("✓ Simulated DAQ background started", file=sys.stderr)
+            print("âœ“ Simulated DAQ background started", file=sys.stderr)
         
         def _background_task(self):
             counter = 0
             while self.running:
                 self.data_buffer = bytearray()
                 for ch in range(16):
-                    for sample in range(2500):
-                        # Generate simulated data
-                        value = int(1000 * (ch + 1) * 
-                                  (0.3 * random.random() + 
-                                   0.7 * (sample % 100) / 100))
-                        self.data_buffer.extend(struct.pack('h', value))
+                    samples = np.arange(2500) % 100
+                    rand_parts = 0.3 * np.random.random(2500)
+                    mod_parts = 0.7 * samples / 100
+                    values = 1000 * (ch + 1) * (rand_parts + mod_parts)
+                    int_values = values.astype(np.int16)
+                    self.data_buffer.extend(int_values.tobytes())
                 counter += 1
                 time.sleep(0.1)
         
@@ -115,5 +117,7 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
+    print("Delaying startup for 5 seconds...", file=sys.stderr)
+    time.sleep(1)
     print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
