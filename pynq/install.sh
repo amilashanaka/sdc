@@ -22,7 +22,7 @@ fi
 
 LOG_FILE="/tmp/install_$(date +%Y%m%d_%H%M%S).log"
 APP_DIR="/var/www/html"
-WWW_USER="xilinx"
+WWW_USER="root"
 WWW_GROUP="root"
 DB_PASS="daq"
 DB_NAME="daq"
