@@ -105,22 +105,32 @@ apt install -y \
 ok "System packages installed"
 
 # ============================================================================
-# Install Python Packages to SYSTEM Python (as xilinx user)
+# Setup Python Environment - Use PYNQ Virtual Environment
 # ============================================================================
-log "Installing Python packages to system Python3..."
-# Install as xilinx user to respect PYNQ environment
-sudo -u ${PYNQ_USER} python3 -m pip install --user --upgrade pip >>$LOG_FILE 2>&1
+VENV_PATH="/usr/local/share/pynq-venv"
 
-# Install only FastAPI/WebSocket dependencies (PYNQ already installed)
-sudo -u ${PYNQ_USER} python3 -m pip install --user fastapi==0.124.0 >>$LOG_FILE 2>&1
-sudo -u ${PYNQ_USER} python3 -m pip install --user 'uvicorn[standard]==0.38.0' >>$LOG_FILE 2>&1
-sudo -u ${PYNQ_USER} python3 -m pip install --user websockets==10.3 >>$LOG_FILE 2>&1
-sudo -u ${PYNQ_USER} python3 -m pip install --user pymysql python-multipart >>$LOG_FILE 2>&1
+log "Checking PYNQ virtual environment..."
+if [ -d "$VENV_PATH" ]; then
+    ok "Found PYNQ virtual environment at $VENV_PATH"
+else
+    err "PYNQ virtual environment not found at $VENV_PATH"
+    exit 1
+fi
+
+log "Installing Python packages to PYNQ virtual environment..."
+# Use the PYNQ venv - this is what works when you run manually
+sudo $VENV_PATH/bin/pip install --upgrade pip setuptools wheel >>$LOG_FILE 2>&1
+
+# Install exact versions from original working setup
+sudo $VENV_PATH/bin/pip install fastapi==0.124.0 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install 'uvicorn[standard]==0.38.0' >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install websockets==10.3 >>$LOG_FILE 2>&1
+sudo $VENV_PATH/bin/pip install pymysql python-multipart >>$LOG_FILE 2>&1
 
 # Verify installation
 log "Verifying Python packages..."
-if sudo -u ${PYNQ_USER} python3 -c "import fastapi; import uvicorn; import websockets; print('OK')" 2>>$LOG_FILE; then
-    ok "Python packages installed successfully"
+if $VENV_PATH/bin/python -c "import fastapi; import uvicorn; import websockets; print('OK')" 2>>$LOG_FILE; then
+    ok "All required Python packages installed in PYNQ venv"
 else
     err "Python package installation failed!"
     exit 1
@@ -237,7 +247,7 @@ else
 fi
 
 # ============================================================================
-# Create systemd Service (Running as xilinx user)
+# Create systemd Service (Using PYNQ Virtual Environment)
 # ============================================================================
 log "Creating systemd service for WebSocket server..."
 cat > /etc/systemd/system/spicer-daq.service <<EOF
@@ -253,8 +263,8 @@ User=${PYNQ_USER}
 Group=${PYNQ_USER}
 WorkingDirectory=${APP_DIR}/pynq
 
-# Use system Python3 as xilinx user (has PYNQ libraries)
-ExecStart=/usr/bin/python ${APP_DIR}/pynq/server.py
+# Use PYNQ virtual environment Python (same as when running manually)
+ExecStart=${VENV_PATH}/bin/python ${APP_DIR}/pynq/server.py
 
 # Kill any process on port 8000 before starting
 ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
@@ -268,6 +278,7 @@ RestartSec=10
 Environment="PYTHONUNBUFFERED=1"
 Environment="XILINX_XRT=/usr"
 Environment="HOME=/home/${PYNQ_USER}"
+Environment="PATH=${VENV_PATH}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Logging
 StandardOutput=journal
@@ -476,9 +487,10 @@ echo "   Logs:     sudo journalctl -u spicer-daq -f"
 echo ""
 echo "🐍 Python Environment:"
 echo "   User:     ${PYNQ_USER}"
-echo "   Python:   /usr/bin/python3 (system Python with PYNQ)"
-echo "   Version:  $(sudo -u ${PYNQ_USER} python3 --version)"
-echo "   FastAPI:  $(sudo -u ${PYNQ_USER} python3 -c 'import fastapi; print(fastapi.__version__)')"
+echo "   Python:   ${VENV_PATH}/bin/python (PYNQ virtual environment)"
+echo "   Version:  $(${VENV_PATH}/bin/python --version)"
+echo "   FastAPI:  $(${VENV_PATH}/bin/python -c 'import fastapi; print(fastapi.__version__)')"
+echo "   Uvicorn:  $(${VENV_PATH}/bin/python -c 'import uvicorn; print(uvicorn.__version__)')"
 echo ""
 echo "🔒 Security:"
 echo "   ✓ HTTPS enabled (self-signed certificate)"
@@ -490,7 +502,7 @@ echo "📝 Architecture:"
 echo "   Apache/PHP → Web Interface (port 443, runs as www-data)"
 echo "   Python     → WebSocket Server (port 8000, runs as ${PYNQ_USER})"
 echo "   MariaDB    → Database (port 3306)"
-echo "   PYNQ       → FPGA/Hardware Access (${PYNQ_USER} user context)"
+echo "   PYNQ       → FPGA/Hardware Access (${VENV_PATH})"
 echo ""
 echo "🚀 Auto-start on Boot:"
 echo "   ✓ spicer-daq.service enabled"
