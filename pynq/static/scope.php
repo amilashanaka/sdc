@@ -40,48 +40,16 @@
   .stat-label { font-weight:bold; color:var(--accent); }
   .y-range-controls { display:flex; gap:8px; align-items:center; margin:8px 0; }
   .y-range-controls input { width:80px; padding:6px; }
-  .server-controls { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
-  .server-status { padding:8px; border-radius:6px; font-size:12px; text-align:center; }
-  .server-running { background:#d4edda; color:#155724; }
-  .server-stopped { background:#f8d7da; color:#721c24; }
-  .server-starting { background:#fff3cd; color:#856404; }
-  .server-output { background:#f8f9fa; border:1px solid var(--border); border-radius:6px; padding:10px; font-family:monospace; font-size:11px; max-height:200px; overflow-y:auto; margin-top:10px; display:none; }
-  .server-output.active { display:block; }
-  .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
-  .modal.active { display:flex; }
-  .modal-content { background:var(--panel); padding:20px; border-radius:12px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; }
 </style>
 </head>
 <body>
 
 <button class="theme-btn" id="themeBtn">🌙 Dark Mode</button>
 
-<div class="modal" id="serverModal">
-  <div class="modal-content">
-    <h2>DAQ Server Control</h2>
-    <div id="serverOutput" class="server-output"></div>
-    <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
-      <button id="closeModal">Close</button>
-    </div>
-  </div>
-</div>
-
 <div class="container">
   <div class="panel left">
     <h1>Spicer 16-Ch DAQ</h1>
     
-    <!-- Server Controls -->
-    <div class="server-controls">
-      <div class="controls">
-        <button id="runDaqBtn" class="run-btn">▶ Run DAQ Server</button>
-        <button id="stopDaqBtn" class="stop-btn" disabled>⏹ Stop Server</button>
-      </div>
-      <div class="server-status server-stopped" id="serverStatus">
-        Server Status: Stopped
-      </div>
-      <button id="viewLogsBtn" style="font-size:12px; padding:6px 12px;">📋 View Logs</button>
-    </div>
-
     <!-- System Controls -->
     <div class="controls">
       <button id="refreshBtn">🔄 Refresh</button>
@@ -141,11 +109,13 @@
 const CONFIG = {
     MAX_SAMPLES: 20000,
     BLOCK_SIZE: 2500,
-    SAMPLE_RATE: 10000, // 10 kHz sampling rate
+    BASE_SAMPLE_RATE: 10000, // 10 kHz base sampling rate
+    DECIMATION_FACTOR: 20,    // Default decimation
+    EFFECTIVE_SAMPLE_RATE: 500, // 10000 / 20 = 500 Hz
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
     SIGNAL_VARIANCE_THRESHOLD: 10,
-    SERVER_CHECK_INTERVAL: 5000
+    PLOT_THROTTLE_MS: 200 // Throttle plot updates to every 200ms
 };
 
 // Buffer management
@@ -166,8 +136,8 @@ let dataRate = 0.0;
 let dataWebSocket = null;
 let yRange = { min: -2000, max: 2000 };
 let lastDisplayedSamples = 10000;
-let serverCheckInterval = null;
-let serverProcessId = null;
+let lastPlotTime = 0;
+let plotPending = false;
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -199,158 +169,9 @@ function buildChannelTable() {
                 selected = new Set([i]);
             }
             updateSelection();
-            plot();
+            schedulePlot();
         };
         tbody.appendChild(tr);
-    }
-}
-
-// Server control functions
-async function startDaqServer() {
-    const runBtn = document.getElementById('runDaqBtn');
-    const stopBtn = document.getElementById('stopDaqBtn');
-    const statusEl = document.getElementById('serverStatus');
-    
-    runBtn.disabled = true;
-    runBtn.textContent = '🚀 Starting...';
-    statusEl.className = 'server-status server-starting';
-    statusEl.textContent = 'Server Status: Starting...';
-    
-    try {
-        const response = await fetch('/api/server/start', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            serverProcessId = result.pid;
-            statusEl.className = 'server-status server-running';
-            statusEl.textContent = `Server Status: Running (PID: ${result.pid})`;
-            stopBtn.disabled = false;
-            
-            // Show success message
-            showServerOutput('✅ DAQ server started successfully!\n' + 
-                           `Process ID: ${result.pid}\n` +
-                           `Python script: ./var/www/html/pynq/server.py\n` +
-                           'WebSocket server listening on port 8765');
-            
-            // Check server status periodically
-            if (serverCheckInterval) clearInterval(serverCheckInterval);
-            serverCheckInterval = setInterval(checkServerStatus, CONFIG.SERVER_CHECK_INTERVAL);
-            
-            // Connect WebSocket after a short delay
-            setTimeout(() => {
-                connectDataWebSocket();
-            }, 2000);
-            
-        } else {
-            throw new Error(result.error || 'Failed to start server');
-        }
-    } catch (error) {
-        statusEl.className = 'server-status server-stopped';
-        statusEl.textContent = 'Server Status: Failed to start';
-        showServerOutput('❌ Error starting DAQ server:\n' + error.message);
-    } finally {
-        runBtn.disabled = false;
-        runBtn.textContent = '▶ Run DAQ Server';
-    }
-}
-
-async function stopDaqServer() {
-    const runBtn = document.getElementById('runDaqBtn');
-    const stopBtn = document.getElementById('stopDaqBtn');
-    const statusEl = document.getElementById('serverStatus');
-    
-    stopBtn.disabled = true;
-    stopBtn.textContent = '🛑 Stopping...';
-    
-    try {
-        const response = await fetch('/api/server/stop', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ pid: serverProcessId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            statusEl.className = 'server-status server-stopped';
-            statusEl.textContent = 'Server Status: Stopped';
-            serverProcessId = null;
-            
-            showServerOutput('🛑 DAQ server stopped successfully');
-            
-            if (serverCheckInterval) {
-                clearInterval(serverCheckInterval);
-                serverCheckInterval = null;
-            }
-            
-            // Update WebSocket status
-            updateStatus('🔴 Server Stopped', 'disconnected');
-            
-        } else {
-            throw new Error(result.error || 'Failed to stop server');
-        }
-    } catch (error) {
-        showServerOutput('❌ Error stopping DAQ server:\n' + error.message);
-    } finally {
-        stopBtn.disabled = true;
-        stopBtn.textContent = '⏹ Stop Server';
-        runBtn.disabled = false;
-    }
-}
-
-async function checkServerStatus() {
-    try {
-        const response = await fetch('/api/server/status');
-        const result = await response.json();
-        
-        const statusEl = document.getElementById('serverStatus');
-        const stopBtn = document.getElementById('stopDaqBtn');
-        
-        if (result.running) {
-            statusEl.className = 'server-status server-running';
-            statusEl.textContent = `Server Status: Running (PID: ${result.pid})`;
-            stopBtn.disabled = false;
-            serverProcessId = result.pid;
-        } else {
-            statusEl.className = 'server-status server-stopped';
-            statusEl.textContent = 'Server Status: Stopped';
-            stopBtn.disabled = true;
-            serverProcessId = null;
-        }
-    } catch (error) {
-        console.error('Failed to check server status:', error);
-    }
-}
-
-function showServerOutput(message) {
-    const outputEl = document.getElementById('serverOutput');
-    const modalEl = document.getElementById('serverModal');
-    
-    outputEl.textContent = message;
-    outputEl.className = 'server-output active';
-    modalEl.classList.add('active');
-}
-
-async function getServerLogs() {
-    try {
-        const response = await fetch('/api/server/logs');
-        const result = await response.json();
-        
-        if (result.success) {
-            showServerOutput('📋 Server Logs:\n' + result.logs);
-        } else {
-            showServerOutput('❌ Failed to retrieve logs');
-        }
-    } catch (error) {
-        showServerOutput('❌ Error retrieving logs:\n' + error.message);
     }
 }
 
@@ -361,7 +182,8 @@ function connectDataWebSocket() {
     }
 
     try {
-        dataWebSocket = new WebSocket('ws://' + location.host + '/ws');
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        dataWebSocket = new WebSocket(wsProtocol + '//' + location.host + '/ws');
         dataWebSocket.binaryType = 'arraybuffer';
 
         dataWebSocket.onopen = () => {
@@ -416,11 +238,28 @@ function processBinaryData(buffer) {
             }
         }
 
-        plot();
+        schedulePlot();
         updateInfoDisplay();
 
     } catch (err) {
         console.error('Error processing data:', err);
+    }
+}
+
+// Schedule plot update with throttling
+function schedulePlot() {
+    const now = performance.now();
+    if (now - lastPlotTime > CONFIG.PLOT_THROTTLE_MS) {
+        plot();
+        lastPlotTime = now;
+        plotPending = false;
+    } else if (!plotPending) {
+        plotPending = true;
+        setTimeout(() => {
+            plot();
+            lastPlotTime = performance.now();
+            plotPending = false;
+        }, CONFIG.PLOT_THROTTLE_MS - (now - lastPlotTime));
     }
 }
 
@@ -463,7 +302,18 @@ function parseBinaryPacket(buf) {
             
             for (let i = 0; i < numSamples; i++) {
                 const value = view.getInt16(dataOffset, true);
-                arr[i] = (value < -32768 || value > 32767) ? 0 : value;
+                // FIX: Handle first data point if it's corrupted
+                if (i === 0 && ch === 0) {
+                    // Check if first sample is outlier (debug)
+                    const nextVal = view.getInt16(dataOffset + 2, true);
+                    if (Math.abs(value - nextVal) > 1000) {
+                        arr[i] = nextVal; // Use second sample instead
+                    } else {
+                        arr[i] = (value < -32768 || value > 32767) ? 0 : value;
+                    }
+                } else {
+                    arr[i] = (value < -32768 || value > 32767) ? 0 : value;
+                }
                 dataOffset += 2;
             }
             
@@ -487,7 +337,18 @@ function parseWithDefaultChannels(buf, view, headerOffset) {
         
         const arr = new Int16Array(2500);
         for (let i = 0; i < 2500; i++) {
-            arr[i] = view.getInt16(dataOffset, true);
+            const value = view.getInt16(dataOffset, true);
+            // FIX: Handle first data point
+            if (i === 0 && ch === 0) {
+                const nextVal = view.getInt16(dataOffset + 2, true);
+                if (Math.abs(value - nextVal) > 1000) {
+                    arr[i] = nextVal;
+                } else {
+                    arr[i] = value;
+                }
+            } else {
+                arr[i] = value;
+            }
             dataOffset += 2;
         }
         samples.push(arr);
@@ -496,7 +357,7 @@ function parseWithDefaultChannels(buf, view, headerOffset) {
     return { blocks: samples };
 }
 
-// Buffer update - keeps data persistent until explicitly cleared
+// Buffer update
 function updateChannelBuffer(channel, block, timestamp) {
     if (channel < 0 || channel >= 16 || !block || block.length === 0) return;
     
@@ -516,24 +377,31 @@ function updateChannelBuffer(channel, block, timestamp) {
     }
     
     if (isDuplicate) {
-        // Mark channel as stale if receiving duplicates
         buf.lastUpdate = timestamp;
         return;
     }
     
-    // Check if all zeros or flat signal - might indicate channel is off
+    // Fix first sample if it's an outlier
+    const fixedBlock = Array.from(block);
+    if (fixedBlock.length >= 2) {
+        // Check if first sample is outlier (jump > 1000 from second sample)
+        if (Math.abs(fixedBlock[0] - fixedBlock[1]) > 1000) {
+            fixedBlock[0] = fixedBlock[1];
+        }
+    }
+    
+    // Check if all zeros or flat signal
     let allZeros = true;
     let allSame = true;
-    const firstVal = block[0];
-    for (let i = 0; i < block.length; i++) {
-        if (block[i] !== 0) allZeros = false;
-        if (block[i] !== firstVal) allSame = false;
+    const firstVal = fixedBlock[0];
+    for (let i = 0; i < fixedBlock.length; i++) {
+        if (fixedBlock[i] !== 0) allZeros = false;
+        if (fixedBlock[i] !== firstVal) allSame = false;
         if (!allZeros && !allSame) break;
     }
     
-    // If channel appears off (all zeros or all same value), clear old data
     if (allZeros || allSame) {
-        buf.data = Array.from(block);
+        buf.data = fixedBlock;
         buf.valid = true;
         buf.lastUpdate = timestamp;
         buf.hasNonZero = false;
@@ -541,16 +409,16 @@ function updateChannelBuffer(channel, block, timestamp) {
         return;
     }
     
-    // Detect discontinuity and insert NaN gap if needed
+    // Detect discontinuity
     let insertGap = false;
     if (buf.data.length > 0) {
         const lastVal = buf.data[buf.data.length - 1];
-        const firstVal = block[0];
+        const firstVal = fixedBlock[0];
         const delta = Math.abs(lastVal - firstVal);
         
         let maxIncomingDelta = 0;
-        for (let i = 1; i < block.length; i++) {
-            const d = Math.abs(block[i] - block[i - 1]);
+        for (let i = 1; i < fixedBlock.length; i++) {
+            const d = Math.abs(fixedBlock[i] - fixedBlock[i - 1]);
             if (d > maxIncomingDelta) maxIncomingDelta = d;
         }
         
@@ -559,7 +427,7 @@ function updateChannelBuffer(channel, block, timestamp) {
         }
     }
     
-    const newData = Array.from(block);
+    const newData = fixedBlock;
     
     if (insertGap) {
         buf.data.push(NaN);
@@ -569,10 +437,10 @@ function updateChannelBuffer(channel, block, timestamp) {
     buf.valid = true;
     buf.lastUpdate = timestamp;
 
-    updateChannelStatistics(buf, block);
+    updateChannelStatistics(buf, fixedBlock);
 }
 
-// Calculate frequency and amplitude
+// Improved frequency calculation
 function estimateFrequencyAndAmplitude(data) {
     if (data.length < 500) return { frequency: 0, amplitude: 0 };
     
@@ -591,36 +459,54 @@ function estimateFrequencyAndAmplitude(data) {
     // Check if signal is too flat to measure frequency
     if (amplitude < 10) return { frequency: 0, amplitude };
     
-    // Zero-crossing frequency estimation with sub-sample interpolation
+    // Detrend the data (remove DC offset)
     const mean = validData.reduce((a, b) => a + b, 0) / validData.length;
-    const crossings = [];
+    const detrended = validData.map(v => v - mean);
     
-    for (let i = 1; i < validData.length; i++) {
-        const prev = validData[i-1] - mean;
-        const curr = validData[i] - mean;
+    // Find zero crossings with improved detection
+    const crossings = [];
+    let lastSign = Math.sign(detrended[0]);
+    
+    for (let i = 1; i < detrended.length; i++) {
+        const currentSign = Math.sign(detrended[i]);
         
-        // Detect positive-going zero crossing with interpolation
-        if (prev < 0 && curr >= 0) {
-            // Linear interpolation to find exact crossing point
-            const fraction = -prev / (curr - prev);
-            const crossingIndex = (i - 1) + fraction;
+        // Detect zero crossing (positive-going)
+        if (lastSign <= 0 && currentSign > 0) {
+            // Linear interpolation for more accurate crossing point
+            const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
+            const crossingIndex = (i - 1) + t;
             crossings.push(crossingIndex);
         }
+        lastSign = currentSign;
     }
     
     if (crossings.length < 2) return { frequency: 0, amplitude };
     
-    // Calculate average period from all crossing intervals
-    let totalPeriod = 0;
+    // Calculate periods between crossings
+    const periods = [];
     for (let i = 1; i < crossings.length; i++) {
-        totalPeriod += crossings[i] - crossings[i-1];
+        periods.push(crossings[i] - crossings[i-1]);
     }
-    const avgPeriodSamples = totalPeriod / (crossings.length - 1);
     
-    // Convert period in samples to frequency in Hz
-    const frequency = CONFIG.SAMPLE_RATE / avgPeriodSamples;
+    // Remove outliers (periods that deviate by more than 50% from median)
+    const medianPeriod = periods.sort((a, b) => a - b)[Math.floor(periods.length / 2)];
+    const filteredPeriods = periods.filter(p => 
+        p > medianPeriod * 0.5 && p < medianPeriod * 1.5
+    );
     
-    return { frequency, amplitude };
+    if (filteredPeriods.length === 0) return { frequency: 0, amplitude };
+    
+    // Calculate average period
+    const avgPeriodSamples = filteredPeriods.reduce((a, b) => a + b, 0) / filteredPeriods.length;
+    
+    // Calculate frequency: f = sample_rate / period_in_samples
+    // With 20x decimation: 10000/20 = 500 Hz effective sample rate
+    const frequency = CONFIG.EFFECTIVE_SAMPLE_RATE / avgPeriodSamples;
+    
+    return { 
+        frequency: Math.min(frequency, CONFIG.EFFECTIVE_SAMPLE_RATE / 2), // Nyquist limit
+        amplitude 
+    };
 }
 
 // Statistics calculation
@@ -650,8 +536,8 @@ function updateChannelStatistics(buf, block) {
     const mean = sum / validSamples;
     const variance = (sumSq / validSamples) - (mean * mean);
     
-    // Estimate frequency and amplitude from all available data for better accuracy
-    const recentData = buf.data.slice(-10000); // Use up to 1 second of data for 0.1 Hz resolution
+    // Estimate frequency and amplitude from all available data
+    const recentData = buf.data.slice(-5000); // Use 5 seconds of data for better accuracy
     const { frequency, amplitude } = estimateFrequencyAndAmplitude(recentData);
     
     buf.statistics = {
@@ -687,7 +573,7 @@ function updateChannelDisplay(channel) {
     if (vEl) vEl.textContent = isNaN(lastValue) ? '—' : lastValue.toFixed(0);
     if (nEl) nEl.textContent = stats.min.toFixed(0);
     if (xEl) xEl.textContent = stats.max.toFixed(0);
-    if (fEl) fEl.textContent = stats.frequency > 0 ? stats.frequency.toFixed(2) + ' Hz' : '—';
+    if (fEl) fEl.textContent = stats.frequency > 0.1 ? stats.frequency.toFixed(2) + ' Hz' : '—';
     if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(1) : '—';
 
     const dot = document.getElementById(`d${channel}`);
@@ -839,10 +725,10 @@ async function updateSystemStats() {
 }
 
 // Control event handlers
-document.getElementById('samples').onchange = plot;
-document.getElementById('autoY').onchange = plot;
-document.getElementById('grid').onchange = plot;
-document.getElementById('legend').onchange = plot;
+document.getElementById('samples').onchange = schedulePlot;
+document.getElementById('autoY').onchange = schedulePlot;
+document.getElementById('grid').onchange = schedulePlot;
+document.getElementById('legend').onchange = schedulePlot;
 
 document.getElementById('applyYRange').onclick = () => {
     const minVal = parseInt(document.getElementById('yMin').value);
@@ -860,7 +746,7 @@ document.getElementById('applyYRange').onclick = () => {
     
     yRange.min = minVal;
     yRange.max = maxVal;
-    plot();
+    schedulePlot();
 };
 
 document.getElementById('clear').onclick = () => {
@@ -871,7 +757,7 @@ document.getElementById('clear').onclick = () => {
     });
     frameCount = 0;
     dataRate = 0;
-    plot();
+    schedulePlot();
     updateInfoDisplay();
 };
 
@@ -885,35 +771,19 @@ document.getElementById('pause').onclick = function() {
 document.getElementById('deselect').onclick = () => { 
     selected.clear(); 
     updateSelection(); 
-    plot(); 
+    schedulePlot(); 
 };
 
 document.getElementById('refreshBtn').onclick = () => {
     location.reload();
 };
 
-// Server control event handlers
-document.getElementById('runDaqBtn').onclick = startDaqServer;
-document.getElementById('stopDaqBtn').onclick = stopDaqServer;
-document.getElementById('viewLogsBtn').onclick = getServerLogs;
-document.getElementById('closeModal').onclick = () => {
-    document.getElementById('serverModal').classList.remove('active');
-};
-
 // Initialize
-async function init() {
+function init() {
     buildChannelTable();
-    
-    // Check server status on startup
-    await checkServerStatus();
-    
-    // If server is running, connect WebSocket
-    if (serverProcessId) {
-        connectDataWebSocket();
-    }
-    
+    connectDataWebSocket();
     setInterval(updateSystemStats, 2000);
-    plot();
+    schedulePlot();
 }
 
 if (document.readyState === 'loading') {
