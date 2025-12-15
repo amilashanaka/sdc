@@ -118,6 +118,6 @@ async def websocket_data(websocket: WebSocket):
 
 if __name__ == "__main__":
     print("Delaying startup for 5 seconds...", file=sys.stderr)
-    time.sleep(5)
+    time.sleep(1)
     print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
