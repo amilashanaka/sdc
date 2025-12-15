@@ -5,6 +5,7 @@ import asyncio
 import os
 import sys
 import traceback
+import time
 
 # Set PYNQ environment variables
 os.environ['XILINX_XRT'] = '/usr'
@@ -52,6 +53,7 @@ if not daq_initialized:
     import random
     import struct
     import time
+    import numpy as np
     from threading import Thread
     
     class SimulatedDAQ:
@@ -71,12 +73,12 @@ if not daq_initialized:
             while self.running:
                 self.data_buffer = bytearray()
                 for ch in range(16):
-                    for sample in range(2500):
-                        # Generate simulated data
-                        value = int(1000 * (ch + 1) * 
-                                  (0.3 * random.random() + 
-                                   0.7 * (sample % 100) / 100))
-                        self.data_buffer.extend(struct.pack('h', value))
+                    samples = np.arange(2500) % 100
+                    rand_parts = 0.3 * np.random.random(2500)
+                    mod_parts = 0.7 * samples / 100
+                    values = 1000 * (ch + 1) * (rand_parts + mod_parts)
+                    int_values = values.astype(np.int16)
+                    self.data_buffer.extend(int_values.tobytes())
                 counter += 1
                 time.sleep(0.1)
         
@@ -115,5 +117,7 @@ async def websocket_data(websocket: WebSocket):
         print("WebSocket connection closed", file=sys.stderr)
 
 if __name__ == "__main__":
+    print("Delaying startup for 5 seconds...", file=sys.stderr)
+    time.sleep(5)
     print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
