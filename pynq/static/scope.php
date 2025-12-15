@@ -114,8 +114,7 @@ const CONFIG = {
     EFFECTIVE_SAMPLE_RATE: 500, // 10000 / 20 = 500 Hz
     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
     RECONNECT_DELAY: 3000,
-    SIGNAL_VARIANCE_THRESHOLD: 10,
-    PLOT_THROTTLE_MS: 200 // Throttle plot updates to every 200ms
+    SIGNAL_VARIANCE_THRESHOLD: 10
 };
 
 // Buffer management
@@ -136,8 +135,6 @@ let dataRate = 0.0;
 let dataWebSocket = null;
 let yRange = { min: -2000, max: 2000 };
 let lastDisplayedSamples = 10000;
-let lastPlotTime = 0;
-let plotPending = false;
 
 // Theme management
 document.getElementById('themeBtn').onclick = () => {
@@ -169,7 +166,7 @@ function buildChannelTable() {
                 selected = new Set([i]);
             }
             updateSelection();
-            schedulePlot();
+            plot();
         };
         tbody.appendChild(tr);
     }
@@ -238,28 +235,11 @@ function processBinaryData(buffer) {
             }
         }
 
-        schedulePlot();
+        plot();
         updateInfoDisplay();
 
     } catch (err) {
         console.error('Error processing data:', err);
-    }
-}
-
-// Schedule plot update with throttling
-function schedulePlot() {
-    const now = performance.now();
-    if (now - lastPlotTime > CONFIG.PLOT_THROTTLE_MS) {
-        plot();
-        lastPlotTime = now;
-        plotPending = false;
-    } else if (!plotPending) {
-        plotPending = true;
-        setTimeout(() => {
-            plot();
-            lastPlotTime = performance.now();
-            plotPending = false;
-        }, CONFIG.PLOT_THROTTLE_MS - (now - lastPlotTime));
     }
 }
 
@@ -725,10 +705,10 @@ async function updateSystemStats() {
 }
 
 // Control event handlers
-document.getElementById('samples').onchange = schedulePlot;
-document.getElementById('autoY').onchange = schedulePlot;
-document.getElementById('grid').onchange = schedulePlot;
-document.getElementById('legend').onchange = schedulePlot;
+document.getElementById('samples').onchange = plot;
+document.getElementById('autoY').onchange = plot;
+document.getElementById('grid').onchange = plot;
+document.getElementById('legend').onchange = plot;
 
 document.getElementById('applyYRange').onclick = () => {
     const minVal = parseInt(document.getElementById('yMin').value);
@@ -746,7 +726,7 @@ document.getElementById('applyYRange').onclick = () => {
     
     yRange.min = minVal;
     yRange.max = maxVal;
-    schedulePlot();
+    plot();
 };
 
 document.getElementById('clear').onclick = () => {
@@ -757,7 +737,7 @@ document.getElementById('clear').onclick = () => {
     });
     frameCount = 0;
     dataRate = 0;
-    schedulePlot();
+    plot();
     updateInfoDisplay();
 };
 
@@ -771,7 +751,7 @@ document.getElementById('pause').onclick = function() {
 document.getElementById('deselect').onclick = () => { 
     selected.clear(); 
     updateSelection(); 
-    schedulePlot(); 
+    plot(); 
 };
 
 document.getElementById('refreshBtn').onclick = () => {
@@ -783,7 +763,7 @@ function init() {
     buildChannelTable();
     connectDataWebSocket();
     setInterval(updateSystemStats, 2000);
-    schedulePlot();
+    plot();
 }
 
 if (document.readyState === 'loading') {
