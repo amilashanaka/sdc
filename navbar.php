@@ -19,6 +19,11 @@
       </a>
     </li>
 
+    <li class="nav-item">
+      <a class="nav-link" id="themeToggle" href="#" role="button">
+        <i class="fas fa-moon"></i>
+      </a>
+    </li>
 
 
     <li class="nav-item dropdown user-menu">
@@ -60,7 +65,6 @@
 
 
 
-
         </li>
       </ul>
     </li>
@@ -69,3 +73,25 @@
 </nav>
 </nav>
 <!-- /.navbar -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    
+    if (currentTheme === 'dark') {
+      body.classList.add('dark-mode');
+      themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    } else {
+      themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+    }
+
+    themeToggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      body.classList.toggle('dark-mode');
+      const isDark = body.classList.contains('dark-mode');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    });
+  });
+</script>
