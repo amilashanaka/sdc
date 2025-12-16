@@ -17,12 +17,12 @@ PYNQ_PASS="xilinx"
 KEEP_JUPYTER="false"
 
 # Windows Network Share Configuration
-WIN_SERVER="192.168.1.100"           # Replace with your Windows PC IP
-WIN_SHARE="Software"                  # Share name (Y: drive root)
+WIN_SERVER="192.168.0.41"           # Replace with your Windows PC IP
+WIN_SHARE="\General\Software\sdc_dev" # Share name (Y: drive root)
 WIN_SUBDIR="sdc_dev"                  # Subdirectory within share
-WIN_USER="yourusername"               # Windows username (leave empty for guest)
-WIN_PASS="yourpassword"               # Windows password (leave empty for guest)
-DOMAIN="WORKGROUP"                    # Windows domain/workgroup
+WIN_USER=""               # Windows username (leave empty for guest)
+WIN_PASS=""               # Windows password (leave empty for guest)
+DOMAIN="spicer.local"                    # Windows domain/workgroup
 
 # Local mount point (will be created)
 MOUNT_POINT="/mnt/windows_share"
