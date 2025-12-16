@@ -1,274 +1,405 @@
-                :root {
-                    --bg: #f8f9fa;
-                    --panel: #fff;
-                    --text: #222;
-                    --border: #dee2e6;
-                    --accent: #1976d2;
-                    --green: #28a745;
-                    --red: #dc3545;
-                    --orange: #fd7e14;
-                }
+/* scope.css - Optimized with Channel Table */
 
-                body.dark-mode {
-                    --bg: #0d1117;
-                    --panel: #161b22;
-                    --text: #e6edf3;
-                    --border: #30363d;
-                    --accent: #58a6ff;
-                    --green: #3fb950;
-                    --red: #f85149;
-                    --orange: #d29922;
-                }
+.scope-container {
+    display: flex;
+    gap: 20px;
+    min-height: 700px;
+    height: 85vh;
+}
 
-                .scope-body {
-                    font-family: 'Segoe UI', sans-serif;
-                    background: var(--bg);
-                    color: var(--text);
-                    transition: 0.3s;
-                }
+.scope-panel {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
 
-                .scope-container {
-                    display: flex;
-                    gap: 20px;
-                    max-width: 1920px;
-                    margin: auto;
-                    padding: 20px;
-                }
+.scope-left {
+    flex: 0 0 350px;
+    display: flex;
+    flex-direction: column;
+}
 
-                .scope-panel {
-                    background: var(--panel);
-                    border-radius: 12px;
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-                    padding: 24px;
-                    border: 1px solid var(--border);
-                }
+.scope-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 
-                .scope-left {
-                    flex: 0 0 440px;
-                    max-height: 90vh;
-                    overflow-y: auto;
-                }
+.scope-h1 {
+    margin: 0 0 20px 0;
+    font-size: 1.5em;
+    color: var(--primary);
+    text-align: center;
+}
 
-                .scope-right {
-                    flex: 1;
-                    min-width: 0;
-                }
+.scope-section {
+    margin: 20px 0 10px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary);
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95em;
+}
 
-                .scope-h1 {
-                    margin: 0 0 20px;
-                    color: var(--accent);
-                    font-size: 26px;
-                    font-weight: 600;
-                }
+/* Controls */
+.scope-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
 
-                .scope-h2 {
-                    margin: 0 0 16px;
-                    color: var(--text);
-                    font-size: 22px;
-                    font-weight: 600;
-                }
+.scope-btn {
+    padding: 8px 12px;
+    background: var(--secondary);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 60px;
+}
 
-                .scope-controls {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    margin-bottom: 20px;
-                }
+.scope-btn:hover {
+    background: var(--primary);
+    transform: translateY(-1px);
+}
 
-                .scope-btn,
-                .scope-select,
-                .scope-input {
-                    padding: 10px 18px;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    cursor: pointer;
-                    background: var(--border);
-                    color: var(--text);
-                    font-weight: 500;
-                    transition: 0.2s;
-                }
+.scope-btn.paused {
+    background: var(--danger);
+}
 
-                .scope-btn:hover {
-                    background: var(--accent);
-                    color: white;
-                    transform: translateY(-1px);
-                }
+.scope-select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text);
+    flex: 2;
+    min-width: 120px;
+}
 
-                .scope-status {
-                    padding: 14px;
-                    border-radius: 8px;
-                    text-align: center;
-                    font-weight: 600;
-                    margin-top: 16px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    transition: all 0.3s ease;
-                }
+/* Stats Grid */
+.scope-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
 
-                .scope-connected {
-                    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                    color: #155724;
-                    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
-                }
+.scope-stat {
+    background: var(--hover-bg);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
 
-                .scope-disconnected {
-                    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-                    color: #721c24;
-                    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
-                }
+.scope-stat-label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
-                .scope-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 13px;
-                    margin-top: 12px;
-                }
+.scope-stat-value {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: var(--primary);
+    font-family: monospace;
+}
 
-                .scope-table th,
-                .scope-table td {
-                    padding: 10px 8px;
-                    text-align: center;
-                    border: 1px solid var(--border);
-                    transition: background 0.2s;
-                }
+/* Channel Table */
+.channel-table-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--table-bg);
+}
 
-                .scope-table th {
-                    background: var(--accent);
-                    color: white;
-                    font-weight: 600;
-                    font-size: 11px;
-                    text-transform: uppercase;
-                }
+.channel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
 
-                .scope-table tbody tr:hover {
-                    background: rgba(25, 118, 210, 0.1);
-                    cursor: pointer;
-                }
+.channel-table th {
+    background: var(--table-header-bg);
+    color: var(--text);
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
 
-                .scope-table tr.scope-selected {
-                    background: rgba(25, 118, 210, 0.3);
-                    font-weight: 600;
-                }
+.channel-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
 
-                .scope-dot {
-                    display: inline-block;
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    transition: all 0.3s ease;
-                }
+.channel-table tbody tr:hover {
+    background: var(--hover-bg);
+}
 
-                .scope-dot-green {
-                    background: var(--green);
-                    box-shadow: 0 0 12px var(--green);
-                    animation: glow 2s infinite;
-                }
+.channel-table tbody tr.selected {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-left: 3px solid var(--primary);
+}
 
-                .scope-dot-orange {
-                    background: var(--orange);
-                    box-shadow: 0 0 12px var(--orange);
-                    animation: glow 2s infinite;
-                }
+.channel-table td:first-child {
+    font-weight: 600;
+    color: var(--primary);
+}
 
-                .scope-dot-gray {
-                    background: #888;
-                    opacity: 0.4;
-                }
+.channel-value {
+    font-weight: bold;
+    font-family: monospace;
+}
 
-                @keyframes glow {
+.channel-min, .channel-max {
+    color: var(--muted);
+    font-family: monospace;
+}
 
-                    0%,
-                    100% {
-                        opacity: 0.7
-                    }
+.channel-freq, .channel-amp {
+    color: var(--success);
+    font-family: monospace;
+    font-weight: 500;
+}
 
-                    50% {
-                        opacity: 1
-                    }
-                }
+.channel-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+}
 
-                #scopePlot {
-                    width: 100%;
-                    height: 600px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
+.channel-dot.active {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
 
-                .scope-info {
-                    margin-top: 16px;
-                    padding: 14px;
-                    background: var(--border);
-                    border-radius: 8px;
-                    font-family: monospace;
-                    font-size: 13px;
-                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-                }
+.channel-dot.inactive {
+    background: var(--warning);
+}
 
-                .scope-stats {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 10px;
-                    margin: 20px 0;
-                }
+/* Y-Axis Controls */
+.scope-y-controls {
+    margin-bottom: 15px;
+}
 
-                .scope-stat {
-                    padding: 12px;
-                    background: var(--border);
-                    border-radius: 8px;
-                    transition: box-shadow 0.2s;
-                }
+.y-range-inputs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
 
-                .scope-stat:hover {
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                }
+.y-range-inputs input[type="number"] {
+    width: 80px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text);
+    text-align: center;
+}
 
-                .scope-stat-label {
-                    font-weight: 600;
-                    color: var(--accent);
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    display: block;
-                    margin-bottom: 4px;
-                }
+.y-range-inputs span {
+    color: var(--muted);
+    font-size: 0.9em;
+}
 
-                .scope-stat-value {
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: var(--text);
-                }
+/* Status Display */
+.scope-status {
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9em;
+    margin-top: auto;
+}
 
-                .scope-y-controls {
-                    display: flex;
-                    gap: 10px;
-                    align-items: center;
-                    margin: 16px 0;
-                    padding: 12px;
-                    background: var(--border);
-                    border-radius: 8px;
-                }
+.scope-status.connected {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
 
-                .scope-y-controls input {
-                    width: 90px;
-                    padding: 8px;
-                    border: 1px solid var(--border);
-                    background: var(--panel);
-                    color: var(--text);
-                    border-radius: 6px;
-                    transition: border-color 0.2s;
-                }
+.scope-status.disconnected {
+    background: rgba(244, 67, 54, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
 
-                .scope-y-controls input:focus {
-                    border-color: var(--accent);
-                    outline: none;
-                }
+.scope-status.error {
+    background: rgba(255, 152, 0, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
 
-                .scope-section {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: var(--accent);
-                    margin: 20px 0 12px;
-                    text-transform: uppercase;
-                }
+#statusIcon {
+    font-size: 1.2em;
+}
+
+/* Right Panel Styling */
+.plot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.scope-h2 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#chTitle {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.plot-controls {
+    display: flex;
+    gap: 15px;
+}
+
+.plot-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text);
+}
+
+.plot-checkbox input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Canvas Container */
+.canvas-container {
+    flex: 1;
+    position: relative;
+    background: var(--canvas-bg);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+#scopeCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Plot Info */
+.plot-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    font-size: 0.9em;
+}
+
+#plotStatus {
+    color: var(--text);
+    font-weight: 500;
+}
+
+#plotStats {
+    color: var(--muted);
+    font-family: monospace;
+    background: var(--hover-bg);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .scope-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .scope-left {
+        flex: none;
+        max-height: 500px;
+    }
+    
+    .scope-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .scope-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .plot-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .plot-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .plot-info {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .channel-table-container {
+    background: #1a1a1a;
+}
+
+[data-theme="dark"] .canvas-container {
+    background: #0a0a0a;
+}
+
+/* Scrollbar Styling */
+.channel-table-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.channel-table-container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.channel-table-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+.channel-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
