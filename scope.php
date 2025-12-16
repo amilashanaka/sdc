@@ -124,16 +124,19 @@ include_once './sidebar.php';
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
+                    transition: all 0.3s ease;
                 }
 
                 .scope-connected {
                     background: linear-gradient(135deg, #d4edda, #c3e6cb);
                     color: #155724;
+                    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
                 }
 
                 .scope-disconnected {
                     background: linear-gradient(135deg, #f8d7da, #f5c6cb);
                     color: #721c24;
+                    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
                 }
 
                 .scope-table {
@@ -148,6 +151,7 @@ include_once './sidebar.php';
                     padding: 10px 8px;
                     text-align: center;
                     border: 1px solid var(--border);
+                    transition: background 0.2s;
                 }
 
                 .scope-table th {
@@ -173,6 +177,7 @@ include_once './sidebar.php';
                     width: 12px;
                     height: 12px;
                     border-radius: 50%;
+                    transition: all 0.3s ease;
                 }
 
                 .scope-dot-green {
@@ -208,6 +213,7 @@ include_once './sidebar.php';
                     width: 100%;
                     height: 600px;
                     border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
                 }
 
                 .scope-info {
@@ -217,6 +223,7 @@ include_once './sidebar.php';
                     border-radius: 8px;
                     font-family: monospace;
                     font-size: 13px;
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
                 }
 
                 .scope-theme-btn {
@@ -231,6 +238,11 @@ include_once './sidebar.php';
                     border: 1px solid var(--border);
                     cursor: pointer;
                     font-size: 16px;
+                    transition: transform 0.2s;
+                }
+
+                .scope-theme-btn:hover {
+                    transform: scale(1.05);
                 }
 
                 .scope-stats {
@@ -244,6 +256,11 @@ include_once './sidebar.php';
                     padding: 12px;
                     background: var(--border);
                     border-radius: 8px;
+                    transition: box-shadow 0.2s;
+                }
+
+                .scope-stat:hover {
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                 }
 
                 .scope-stat-label {
@@ -278,6 +295,12 @@ include_once './sidebar.php';
                     background: var(--panel);
                     color: var(--text);
                     border-radius: 6px;
+                    transition: border-color 0.2s;
+                }
+
+                .scope-y-controls input:focus {
+                    border-color: var(--accent);
+                    outline: none;
                 }
 
                 .scope-section {
@@ -326,10 +349,10 @@ include_once './sidebar.php';
                         <div class="scope-section">Display Controls</div>
                         <div class="scope-controls">
                             <select class="scope-select" id="samples">
-                                <option value="2500">1 Frame</option>
-                                <option value="5000">2 Frames</option>
-                                <option value="10000" selected>4 Frames</option>
-                                <option value="20000">8 Frames</option>
+                                <option value="2500">1 Frame (2500)</option>
+                                <option value="5000">2 Frames (5000)</option>
+                                <option value="10000" selected>4 Frames (10000)</option>
+                                <option value="20000">8 Frames (20000)</option>
                             </select>
                             <button class="scope-btn" id="clear">Clear</button>
                             <button class="scope-btn" id="pause">⏸ Pause</button>
@@ -370,35 +393,38 @@ include_once './sidebar.php';
 
             <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
             <script>
+                // Configuration
                 const CONFIG = {
                     MAX_SAMPLES: 20000,
                     BLOCK_SIZE: 2500,
-                    EFFECTIVE_RATE: 500,
-                    COLORS: ['#1976d2', '#e91e63', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4', '#f44336', '#8bc34a'],
-                    RECONNECT: 3000
+                    BASE_SAMPLE_RATE: 10000,
+                    DECIMATION_FACTOR: 20,
+                    EFFECTIVE_SAMPLE_RATE: 500,
+                    COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
+                    RECONNECT_DELAY: 3000,
+                    SIGNAL_VARIANCE_THRESHOLD: 10
                 };
+
+                // Buffer management
                 const buffers = Array(16).fill().map(() => ({
                     data: [],
                     valid: false,
-                    stats: {
-                        min: 0,
-                        max: 0,
-                        freq: 0,
-                        amp: 0
-                    }
+                    lastUpdate: 0,
+                    hasNonZero: false,
+                    statistics: { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 }
                 }));
-                let selected = new Set(),
-                    paused = false,
-                    frameCount = 0,
-                    lastTime = 0,
-                    rate = 0,
-                    ws = null,
-                    yRange = {
-                        min: -2000,
-                        max: 2000
-                    };
 
-                // Theme
+                // State variables
+                let selected = new Set();
+                let paused = false;
+                let frameCount = 0;
+                let lastTime = 0;
+                let dataRate = 0.0;
+                let dataWebSocket = null;
+                let yRange = { min: -2000, max: 2000 };
+                let lastDisplayedSamples = 10000;
+
+                // Theme management
                 const body = document.getElementById('scopeBody');
                 const theme = localStorage.getItem('theme') || 'light';
                 if (theme === 'dark') {
@@ -413,269 +439,638 @@ include_once './sidebar.php';
                     plot();
                 };
 
-                // Build table
-                function buildTable() {
+                // Build channel table
+                function buildChannelTable() {
                     const tbody = document.querySelector('#chTable tbody');
                     tbody.innerHTML = '';
+                    
                     for (let i = 0; i < 16; i++) {
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `<td><strong>CH${i}</strong></td><td id="v${i}">—</td><td id="n${i}">—</td><td id="x${i}">—</td><td id="f${i}">—</td><td id="a${i}">—</td><td><span class="scope-dot scope-dot-gray" id="d${i}"></span></td>`;
+                        tr.innerHTML = `
+                            <td><strong>CH${i}</strong></td>
+                            <td id="v${i}">—</td>
+                            <td id="n${i}">—</td>
+                            <td id="x${i}">—</td>
+                            <td id="f${i}">—</td>
+                            <td id="a${i}">—</td>
+                            <td><span class="scope-dot scope-dot-gray" id="d${i}"></span></td>
+                        `;
                         tr.onclick = (e) => {
-                            if (e.ctrlKey || e.metaKey) selected.has(i) ? selected.delete(i) : selected.add(i);
-                            else selected = new Set([i]);
-                            updateSel();
+                            if (e.ctrlKey || e.metaKey) {
+                                selected.has(i) ? selected.delete(i) : selected.add(i);
+                            } else {
+                                selected = new Set([i]);
+                            }
+                            updateSelection();
                             plot();
                         };
                         tbody.appendChild(tr);
                     }
                 }
 
-                // WebSocket
-                function connect() {
-                    if (ws && ws.readyState === WebSocket.OPEN) return;
-                    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    ws = new WebSocket(proto + '//' + location.host + '/ws');
-                    ws.binaryType = 'arraybuffer';
-                    ws.onopen = () => updateStatus('🟢 Connected', 'scope-connected');
-                    ws.onmessage = (e) => {
-                        if (!paused && e.data instanceof ArrayBuffer) processData(e.data);
-                    };
-                    ws.onclose = () => {
-                        updateStatus('🔴 Reconnecting...', 'scope-disconnected');
-                        setTimeout(connect, CONFIG.RECONNECT);
-                    };
+                // WebSocket connection
+                function connectDataWebSocket() {
+                    if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
+                        return;
+                    }
+
+                    try {
+                        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                        dataWebSocket = new WebSocket(wsProtocol + '//' + location.host + '/ws');
+                        dataWebSocket.binaryType = 'arraybuffer';
+
+                        dataWebSocket.onopen = () => {
+                            updateStatus('🟢 Connected', 'scope-connected');
+                        };
+
+                        dataWebSocket.onmessage = handleDataMessage;
+                        
+                        dataWebSocket.onclose = () => {
+                            updateStatus('🔴 Disconnected - Reconnecting...', 'scope-disconnected');
+                            setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+                        };
+
+                        dataWebSocket.onerror = (error) => {
+                            updateStatus('⚠️ Connection error', 'scope-disconnected');
+                        };
+                    } catch (error) {
+                        updateStatus('⚠️ Connection failed', 'scope-disconnected');
+                        setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+                    }
                 }
 
-                // Process data
-                function processData(buf) {
+                // Message handler
+                function handleDataMessage(event) {
+                    if (paused) return;
+
+                    if (event.data instanceof ArrayBuffer) {
+                        processBinaryData(event.data);
+                    }
+                }
+
+                // Binary data processing
+                function processBinaryData(buffer) {
                     const now = performance.now();
-                    if (lastTime > 0) rate = 1000 / (now - lastTime);
+                    if (lastTime > 0) {
+                        dataRate = 1000 / (now - lastTime);
+                    }
                     lastTime = now;
                     frameCount++;
 
-                    const result = parse(buf);
-                    if (!result?.blocks) return;
-
-                    for (let ch = 0; ch < result.blocks.length && ch < 16; ch++) {
-                        if (result.blocks[ch]?.length > 0) {
-                            updateBuf(ch, result.blocks[ch]);
-                            updateDisplay(ch);
+                    try {
+                        const result = parseBinaryPacket(buffer);
+                        
+                        if (!result || !result.blocks || result.blocks.length === 0) {
+                            return;
                         }
+
+                        for (let ch = 0; ch < result.blocks.length && ch < 16; ch++) {
+                            if (result.blocks[ch] && result.blocks[ch].length > 0) {
+                                updateChannelBuffer(ch, result.blocks[ch], now);
+                                updateChannelDisplay(ch);
+                            }
+                        }
+
+                        plot();
+                        updateInfoDisplay();
+
+                    } catch (err) {
+                        console.error('Error processing data:', err);
                     }
-                    plot();
-                    updateInfo();
                 }
 
-                // Parse packet
-                function parse(buf) {
+                // Packet parser
+                function parseBinaryPacket(buf) {
                     try {
                         const view = new DataView(buf);
-                        const h = buf.byteLength - 34;
-                        if (buf.byteLength < 34) return {
-                            blocks: []
-                        };
-                        const nc = view.getInt16(h, false);
-                        if (nc < 1 || nc > 16) return {
-                            blocks: []
-                        };
+                        const HEADER_SIZE = 34;
+                        
+                        if (buf.byteLength < HEADER_SIZE) {
+                            return { blocks: [] };
+                        }
+
+                        const headerOffset = buf.byteLength - HEADER_SIZE;
+                        const numChannels = view.getInt16(headerOffset, false);
+
+                        if (numChannels < 1 || numChannels > 16) {
+                            return parseWithDefaultChannels(buf, view, headerOffset);
+                        }
+
+                        const blockSizes = [];
+                        for (let i = 0; i < 16; i++) {
+                            const size = view.getInt16(headerOffset + 2 + (i * 2), false);
+                            blockSizes.push(size);
+                        }
+
                         const samples = [];
-                        let off = 8;
-                        for (let ch = 0; ch < nc; ch++) {
-                            const size = view.getInt16(h + 2 + ch * 2, false);
-                            const n = size / 2;
-                            if (size < 0 || off + size > h) {
+                        let dataOffset = 8;
+
+                        for (let ch = 0; ch < numChannels; ch++) {
+                            const blockSizeBytes = blockSizes[ch];
+                            const numSamples = blockSizeBytes / 2;
+
+                            if (blockSizeBytes < 0 || blockSizeBytes > 10000 || dataOffset + blockSizeBytes > headerOffset) {
                                 samples.push(new Int16Array(0));
                                 continue;
                             }
-                            const arr = new Int16Array(n);
-                            for (let i = 0; i < n; i++) {
-                                arr[i] = view.getInt16(off, true);
-                                off += 2;
+
+                            const arr = new Int16Array(numSamples);
+                            
+                            for (let i = 0; i < numSamples; i++) {
+                                const value = view.getInt16(dataOffset, true);
+                                // FIX: Handle first data point if it's corrupted
+                                if (i === 0 && ch === 0) {
+                                    // Check if first sample is outlier (debug)
+                                    const nextVal = view.getInt16(dataOffset + 2, true);
+                                    if (Math.abs(value - nextVal) > 1000) {
+                                        arr[i] = nextVal; // Use second sample instead
+                                    } else {
+                                        arr[i] = (value < -32768 || value > 32767) ? 0 : value;
+                                    }
+                                } else {
+                                    arr[i] = (value < -32768 || value > 32767) ? 0 : value;
+                                }
+                                dataOffset += 2;
                             }
+                            
                             samples.push(arr);
                         }
-                        return {
-                            blocks: samples
-                        };
-                    } catch {
-                        return {
-                            blocks: []
-                        };
+
+                        return { blocks: samples };
+
+                    } catch (error) {
+                        return { blocks: [] };
                     }
                 }
 
-                // Update buffer
-                function updateBuf(ch, block) {
-                    const b = buffers[ch];
-                    const fixed = Array.from(block);
-                    if (fixed.length >= 2 && Math.abs(fixed[0] - fixed[1]) > 1000) fixed[0] = fixed[1];
-
-                    let allZero = true,
-                        allSame = true;
-                    for (let i = 0; i < fixed.length; i++) {
-                        if (fixed[i] !== 0) allZero = false;
-                        if (fixed[i] !== fixed[0]) allSame = false;
+                // Fallback parser
+                function parseWithDefaultChannels(buf, view, headerOffset) {
+                    const samples = [];
+                    let dataOffset = 8;
+                    
+                    for (let ch = 0; ch < 16; ch++) {
+                        if (dataOffset + 5000 > headerOffset) break;
+                        
+                        const arr = new Int16Array(2500);
+                        for (let i = 0; i < 2500; i++) {
+                            const value = view.getInt16(dataOffset, true);
+                            // FIX: Handle first data point
+                            if (i === 0 && ch === 0) {
+                                const nextVal = view.getInt16(dataOffset + 2, true);
+                                if (Math.abs(value - nextVal) > 1000) {
+                                    arr[i] = nextVal;
+                                } else {
+                                    arr[i] = value;
+                                }
+                            } else {
+                                arr[i] = value;
+                            }
+                            dataOffset += 2;
+                        }
+                        samples.push(arr);
                     }
+                    
+                    return { blocks: samples };
+                }
 
-                    b.data = [...b.data, ...fixed].slice(-CONFIG.MAX_SAMPLES);
-                    b.valid = true;
-
-                    if (allZero || allSame) {
-                        b.stats = {
-                            min: 0,
-                            max: 0,
-                            freq: 0,
-                            amp: 0
-                        };
+                // Buffer update
+                function updateChannelBuffer(channel, block, timestamp) {
+                    if (channel < 0 || channel >= 16 || !block || block.length === 0) return;
+                    
+                    const buf = buffers[channel];
+                    
+                    // Check for duplicate block
+                    let isDuplicate = false;
+                    if (buf.data.length >= CONFIG.BLOCK_SIZE && block.length === CONFIG.BLOCK_SIZE) {
+                        const lastBlock = buf.data.slice(-CONFIG.BLOCK_SIZE);
+                        isDuplicate = true;
+                        for (let i = 0; i < CONFIG.BLOCK_SIZE; i++) {
+                            if (lastBlock[i] !== block[i]) {
+                                isDuplicate = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (isDuplicate) {
+                        buf.lastUpdate = timestamp;
                         return;
                     }
-
-                    let min = Infinity,
-                        max = -Infinity;
-                    for (let v of fixed) {
-                        if (v < min) min = v;
-                        if (v > max) max = v;
+                    
+                    // Fix first sample if it's an outlier
+                    const fixedBlock = Array.from(block);
+                    if (fixedBlock.length >= 2) {
+                        // Check if first sample is outlier (jump > 1000 from second sample)
+                        if (Math.abs(fixedBlock[0] - fixedBlock[1]) > 1000) {
+                            fixedBlock[0] = fixedBlock[1];
+                        }
                     }
-                    const amp = (max - min) / 2;
-                    b.stats = {
-                        min,
-                        max,
-                        freq: 0,
-                        amp
+                    
+                    // Check if all zeros or flat signal
+                    let allZeros = true;
+                    let allSame = true;
+                    const firstVal = fixedBlock[0];
+                    for (let i = 0; i < fixedBlock.length; i++) {
+                        if (fixedBlock[i] !== 0) allZeros = false;
+                        if (fixedBlock[i] !== firstVal) allSame = false;
+                        if (!allZeros && !allSame) break;
+                    }
+                    
+                    if (allZeros || allSame) {
+                        buf.data = fixedBlock;
+                        buf.valid = true;
+                        buf.lastUpdate = timestamp;
+                        buf.hasNonZero = false;
+                        buf.statistics = { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 };
+                        return;
+                    }
+                    
+                    // Detect discontinuity
+                    let insertGap = false;
+                    if (buf.data.length > 0) {
+                        const lastVal = buf.data[buf.data.length - 1];
+                        const firstVal = fixedBlock[0];
+                        const delta = Math.abs(lastVal - firstVal);
+                        
+                        let maxIncomingDelta = 0;
+                        for (let i = 1; i < fixedBlock.length; i++) {
+                            const d = Math.abs(fixedBlock[i] - fixedBlock[i - 1]);
+                            if (d > maxIncomingDelta) maxIncomingDelta = d;
+                        }
+                        
+                        if (maxIncomingDelta > 0 && delta > 5 * maxIncomingDelta) {
+                            insertGap = true;
+                        }
+                    }
+                    
+                    const newData = fixedBlock;
+                    
+                    if (insertGap) {
+                        buf.data.push(NaN);
+                    }
+                    
+                    buf.data = [...buf.data, ...newData].slice(-CONFIG.MAX_SAMPLES);
+                    buf.valid = true;
+                    buf.lastUpdate = timestamp;
+
+                    updateChannelStatistics(buf, fixedBlock);
+                }
+
+                // Improved frequency calculation
+                function estimateFrequencyAndAmplitude(data) {
+                    if (data.length < 500) return { frequency: 0, amplitude: 0 };
+                    
+                    // Filter out NaN values
+                    const validData = data.filter(v => !isNaN(v));
+                    if (validData.length < 500) return { frequency: 0, amplitude: 0 };
+                    
+                    // Calculate amplitude (peak-to-peak / 2)
+                    let min = Infinity, max = -Infinity;
+                    for (let i = 0; i < validData.length; i++) {
+                        if (validData[i] < min) min = validData[i];
+                        if (validData[i] > max) max = validData[i];
+                    }
+                    const amplitude = (max - min) / 2;
+                    
+                    // Check if signal is too flat to measure frequency
+                    if (amplitude < 10) return { frequency: 0, amplitude };
+                    
+                    // Detrend the data (remove DC offset)
+                    const mean = validData.reduce((a, b) => a + b, 0) / validData.length;
+                    const detrended = validData.map(v => v - mean);
+                    
+                    // Find zero crossings with improved detection
+                    const crossings = [];
+                    let lastSign = Math.sign(detrended[0]);
+                    
+                    for (let i = 1; i < detrended.length; i++) {
+                        const currentSign = Math.sign(detrended[i]);
+                        
+                        // Detect zero crossing (positive-going)
+                        if (lastSign <= 0 && currentSign > 0) {
+                            // Linear interpolation for more accurate crossing point
+                            const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
+                            const crossingIndex = (i - 1) + t;
+                            crossings.push(crossingIndex);
+                        }
+                        lastSign = currentSign;
+                    }
+                    
+                    if (crossings.length < 2) return { frequency: 0, amplitude };
+                    
+                    // Calculate periods between crossings
+                    const periods = [];
+                    for (let i = 1; i < crossings.length; i++) {
+                        periods.push(crossings[i] - crossings[i-1]);
+                    }
+                    
+                    // Remove outliers (periods that deviate by more than 50% from median)
+                    const medianPeriod = periods.sort((a, b) => a - b)[Math.floor(periods.length / 2)];
+                    const filteredPeriods = periods.filter(p => 
+                        p > medianPeriod * 0.5 && p < medianPeriod * 1.5
+                    );
+                    
+                    if (filteredPeriods.length === 0) return { frequency: 0, amplitude };
+                    
+                    // Calculate average period
+                    const avgPeriodSamples = filteredPeriods.reduce((a, b) => a + b, 0) / filteredPeriods.length;
+                    
+                    // Calculate frequency: f = sample_rate / period_in_samples
+                    const frequency = CONFIG.EFFECTIVE_SAMPLE_RATE / avgPeriodSamples;
+                    
+                    return { 
+                        frequency: Math.min(frequency, CONFIG.EFFECTIVE_SAMPLE_RATE / 2), // Nyquist limit
+                        amplitude 
                     };
                 }
 
-                // Update display
-                function updateDisplay(ch) {
-                    const b = buffers[ch];
-                    if (!b.valid) return;
-                    const last = b.data[b.data.length - 1];
-                    const v = document.getElementById(`v${ch}`);
-                    const n = document.getElementById(`n${ch}`);
-                    const x = document.getElementById(`x${ch}`);
-                    const f = document.getElementById(`f${ch}`);
-                    const a = document.getElementById(`a${ch}`);
-                    const d = document.getElementById(`d${ch}`);
-
-                    if (v) v.textContent = last?.toFixed(0) || '—';
-                    if (n) n.textContent = b.stats.min.toFixed(0);
-                    if (x) x.textContent = b.stats.max.toFixed(0);
-                    if (f) f.textContent = '—';
-                    if (a) a.textContent = b.stats.amp > 0 ? b.stats.amp.toFixed(1) : '—';
-                    if (d) d.className = b.stats.amp > 10 ? 'scope-dot scope-dot-green' : 'scope-dot scope-dot-orange';
+                // Statistics calculation
+                function updateChannelStatistics(buf, block) {
+                    if (!block || block.length === 0) return;
+                    
+                    let min = Infinity, max = -Infinity, sum = 0, sumSq = 0;
+                    let validSamples = 0;
+                    
+                    for (let i = 0; i < block.length; i++) {
+                        const val = block[i];
+                        if (val >= -32768 && val <= 32767 && val !== -32768) {
+                            if (val < min) min = val;
+                            if (val > max) max = val;
+                            sum += val;
+                            sumSq += val * val;
+                            validSamples++;
+                        }
+                    }
+                    
+                    if (validSamples === 0) {
+                        buf.statistics = { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 };
+                        buf.hasNonZero = false;
+                        return;
+                    }
+                    
+                    const mean = sum / validSamples;
+                    const variance = (sumSq / validSamples) - (mean * mean);
+                    
+                    // Estimate frequency and amplitude from all available data
+                    const recentData = buf.data.slice(-5000); // Use 5 seconds of data for better accuracy
+                    const { frequency, amplitude } = estimateFrequencyAndAmplitude(recentData);
+                    
+                    buf.statistics = {
+                        min: min,
+                        max: max,
+                        mean: mean,
+                        rms: Math.sqrt(sumSq / validSamples),
+                        variance: variance,
+                        frequency: frequency,
+                        amplitude: amplitude
+                    };
+                    
+                    buf.hasNonZero = variance > CONFIG.SIGNAL_VARIANCE_THRESHOLD;
                 }
 
-                // Plot
+                // Channel display update
+                function updateChannelDisplay(channel) {
+                    if (channel < 0 || channel >= 16) return;
+                    
+                    const buf = buffers[channel];
+                    const stats = buf.statistics;
+                    
+                    if (!buf.valid || buf.data.length === 0) return;
+                    
+                    const lastValue = buf.data[buf.data.length - 1];
+                    
+                    const vEl = document.getElementById(`v${channel}`);
+                    const nEl = document.getElementById(`n${channel}`);
+                    const xEl = document.getElementById(`x${channel}`);
+                    const fEl = document.getElementById(`f${channel}`);
+                    const aEl = document.getElementById(`a${channel}`);
+                    
+                    if (vEl) vEl.textContent = isNaN(lastValue) ? '—' : lastValue.toFixed(0);
+                    if (nEl) nEl.textContent = stats.min.toFixed(0);
+                    if (xEl) xEl.textContent = stats.max.toFixed(0);
+                    if (fEl) fEl.textContent = stats.frequency > 0.1 ? stats.frequency.toFixed(2) + ' Hz' : '—';
+                    if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(1) : '—';
+
+                    const dot = document.getElementById(`d${channel}`);
+                    if (dot) {
+                        if (!buf.valid) {
+                            dot.className = 'scope-dot scope-dot-gray';
+                            dot.title = 'No data';
+                        } else if (buf.hasNonZero) {
+                            dot.className = 'scope-dot scope-dot-green';
+                            dot.title = `Active signal`;
+                        } else {
+                            dot.className = 'scope-dot scope-dot-orange';
+                            dot.title = `Flat signal`;
+                        }
+                    }
+                }
+
+                // Get samples for display
+                function getSamples(ch, n) {
+                    if (ch < 0 || ch >= 16) return [];
+                    
+                    const buf = buffers[ch];
+                    if (!buf.valid || buf.data.length === 0) return [];
+                    
+                    return buf.data.slice(-n);
+                }
+
+                // Plot function
                 function plot() {
                     if (!selected.size) {
-                        Plotly.react('scopePlot', [], {
-                            title: 'Select channels'
+                        Plotly.react('scopePlot', [], { 
+                            title: 'Select channels to display',
+                            paper_bgcolor: 'rgba(0,0,0,0)',
+                            plot_bgcolor: 'rgba(0,0,0,0)',
+                            font: { color: getComputedStyle(body).getPropertyValue('--text') }
                         });
                         return;
                     }
-                    const n = parseInt(document.getElementById('samples').value);
+
+                    const requestedSamples = parseInt(document.getElementById('samples').value);
                     const traces = [];
-                    let i = 0;
+                    let traceIndex = 0;
+                    let maxAvailableSamples = 0;
+
+                    // Determine actual samples to display
                     for (const ch of selected) {
-                        const y = buffers[ch].data.slice(-n);
+                        const availableSamples = buffers[ch].data.length;
+                        if (availableSamples > maxAvailableSamples) {
+                            maxAvailableSamples = availableSamples;
+                        }
+                    }
+
+                    const samplesToDisplay = Math.min(requestedSamples, maxAvailableSamples);
+                    lastDisplayedSamples = samplesToDisplay;
+
+                    for (const ch of selected) {
+                        const y = getSamples(ch, samplesToDisplay);
                         if (!y.length) continue;
+                        
+                        const hasRealData = buffers[ch].hasNonZero;
+
                         traces.push({
-                            x: Array.from({
-                                length: y.length
-                            }, (_, i) => i),
-                            y,
-                            name: `CH ${ch}`,
+                            x: Array.from({length: y.length}, (_, i) => i),
+                            y: y,
+                            name: `CH ${ch}${hasRealData ? '' : ' (flat)'}`,
                             mode: 'lines',
-                            line: {
-                                color: CONFIG.COLORS[i % 8],
-                                width: 2
-                            }
+                            line: { 
+                                color: CONFIG.COLORS[traceIndex % CONFIG.COLORS.length], 
+                                width: 2.5
+                            },
+                            connectgaps: false
                         });
-                        i++;
+                        traceIndex++;
                     }
+
                     const autoY = document.getElementById('autoY').checked;
-                    const yaxis = {
-                        title: 'ADC',
-                        showgrid: document.getElementById('grid').checked
+                    
+                    const title = `${traces.length} channel${traces.length > 1 ? 's' : ''} • ${dataRate.toFixed(1)} Hz • ${samplesToDisplay} samples`;
+
+                    const yaxisConfig = {
+                        title: 'ADC Value', 
+                        showgrid: document.getElementById('grid').checked,
+                        gridcolor: 'rgba(128,128,128,0.2)'
                     };
+
                     if (!autoY) {
-                        yaxis.range = [yRange.min, yRange.max];
-                        yaxis.autorange = false;
+                        yaxisConfig.range = [yRange.min, yRange.max];
+                        yaxisConfig.autorange = false;
                     }
-                    Plotly.react('scopePlot', traces, {
-                        title: `${traces.length} ch • ${rate.toFixed(1)} Hz`,
-                        xaxis: {
-                            title: 'Sample'
+
+                    const layout = {
+                        title: title,
+                        xaxis: { 
+                            title: 'Sample', 
+                            showgrid: document.getElementById('grid').checked,
+                            gridcolor: 'rgba(128,128,128,0.2)'
                         },
-                        yaxis,
+                        yaxis: yaxisConfig,
                         showlegend: document.getElementById('legend').checked,
                         paper_bgcolor: 'rgba(0,0,0,0)',
                         plot_bgcolor: 'rgba(0,0,0,0)',
-                        font: {
-                            color: getComputedStyle(body).getPropertyValue('--text')
-                        }
-                    }, {
-                        responsive: true
+                        font: { color: getComputedStyle(body).getPropertyValue('--text') },
+                        margin: { l: 60, r: 30, t: 50, b: 50 }
+                    };
+
+                    Plotly.react('scopePlot', traces, layout, {responsive: true});
+                }
+
+                // UI update functions
+                function updateSelection() {
+                    document.querySelectorAll('#chTable tbody tr').forEach((r, i) => {
+                        r.classList.toggle('scope-selected', selected.has(i));
                     });
-                }
-
-                // UI updates
-                function updateSel() {
-                    document.querySelectorAll('#chTable tbody tr').forEach((r, i) => r.classList.toggle('scope-selected', selected.has(i)));
+                    
                     const list = Array.from(selected).sort((a, b) => a - b);
-                    document.getElementById('chTitle').textContent = list.length ? `CH ${list.join(', ')}` : '—';
+                    document.getElementById('chTitle').textContent = list.length ? 
+                        `CH ${list.join(', ')}` : '—';
                 }
 
-                function updateInfo() {
-                    const active = buffers.filter(b => b.valid && b.stats.amp > 10).length;
-                    document.getElementById('info').textContent = `Frames: ${frameCount} • Rate: ${rate.toFixed(1)} Hz • Active: ${active}/16`;
+                function updateInfoDisplay() {
+                    const active = buffers.filter(b => b.valid && b.hasNonZero).length;
+                    
+                    const infoText = `Frames: ${frameCount} • Rate: ${dataRate.toFixed(1)} Hz • Active: ${active}/16 • Displaying: ${lastDisplayedSamples} samples`;
+                    document.getElementById('info').textContent = infoText;
+
                     document.getElementById('statFrames').textContent = frameCount;
-                    document.getElementById('statRate').textContent = rate.toFixed(1) + ' Hz';
+                    document.getElementById('statRate').textContent = dataRate.toFixed(1) + ' Hz';
                     document.getElementById('statActive').textContent = `${active}/16`;
-                    document.getElementById('statRead').textContent = '0.0 ms';
+                    document.getElementById('statRead').textContent = '0.0 ms'; // Update if API provides
                 }
 
-                function updateStatus(msg, cls) {
-                    const s = document.getElementById('status');
-                    s.innerHTML = `<span>${msg.split(' ')[0]}</span><span>${msg.substring(msg.indexOf(' ')+1)}</span>`;
-                    s.className = `scope-status ${cls}`;
+                function updateStatus(message, type) {
+                    const status = document.getElementById('status');
+                    if (status) {
+                        status.innerHTML = `<span>${message.split(' ')[0]}</span><span>${message.substring(message.indexOf(' ') + 1)}</span>`;
+                        status.className = `scope-status ${type}`;
+                    }
                 }
 
-                // Controls
+                // System statistics update (if API exists)
+                async function updateSystemStats() {
+                    try {
+                        const response = await fetch('/api/stats');
+                        const stats = await response.json();
+                        
+                        document.getElementById('statFrames').textContent = stats.frames || 0;
+                        document.getElementById('statRate').textContent = (stats.frame_rate || 0).toFixed(1) + ' Hz';
+                        document.getElementById('statActive').textContent = `${stats.active || 0}/16`;
+                        document.getElementById('statRead').textContent = (stats.read_time_ms || 0).toFixed(1) + ' ms';
+                        
+                    } catch (error) {
+                        // Stats not available
+                    }
+                }
+
+                // Control event handlers
                 document.getElementById('samples').onchange = plot;
                 document.getElementById('autoY').onchange = plot;
                 document.getElementById('grid').onchange = plot;
                 document.getElementById('legend').onchange = plot;
+
                 document.getElementById('applyY').onclick = () => {
-                    yRange.min = parseInt(document.getElementById('yMin').value);
-                    yRange.max = parseInt(document.getElementById('yMax').value);
+                    const minVal = parseInt(document.getElementById('yMin').value);
+                    const maxVal = parseInt(document.getElementById('yMax').value);
+                    
+                    if (isNaN(minVal) || isNaN(maxVal)) {
+                        alert('Please enter valid numbers for Y-axis range');
+                        return;
+                    }
+                    
+                    if (minVal >= maxVal) {
+                        alert('Y-Min must be less than Y-Max');
+                        return;
+                    }
+                    
+                    yRange.min = minVal;
+                    yRange.max = maxVal;
                     plot();
                 };
+
                 document.getElementById('clear').onclick = () => {
-                    buffers.forEach(b => {
-                        b.data = [];
-                        b.valid = false;
+                    buffers.forEach(buf => {
+                        buf.data = [];
+                        buf.valid = false;
+                        buf.hasNonZero = false;
                     });
                     frameCount = 0;
-                    rate = 0;
+                    dataRate = 0;
                     plot();
-                    updateInfo();
+                    updateInfoDisplay();
                 };
-                document.getElementById('pause').onclick = function() {
-                    paused = !paused;
-                    this.textContent = paused ? '▶️ Resume' : '⏸ Pause';
-                };
-                document.getElementById('deselect').onclick = () => {
-                    selected.clear();
-                    updateSel();
-                    plot();
-                };
-                document.getElementById('refreshBtn').onclick = () => location.reload();
 
-                // Init
-                buildTable();
-                connect();
-                plot();
+                document.getElementById('pause').onclick = function() { 
+                    paused = !paused; 
+                    this.textContent = paused ? '▶️ Resume' : '⏸ Pause'; 
+                    this.style.background = paused ? 'var(--orange)' : '';
+                    this.style.color = paused ? 'white' : '';
+                };
+
+                document.getElementById('deselect').onclick = () => { 
+                    selected.clear(); 
+                    updateSelection(); 
+                    plot(); 
+                };
+
+                document.getElementById('refreshBtn').onclick = () => {
+                    location.reload();
+                };
+
+                // Initialize
+                function init() {
+                    buildChannelTable();
+                    connectDataWebSocket();
+                    setInterval(updateSystemStats, 2000);
+                    plot();
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', init);
+                } else {
+                    init();
+                }
             </script>
         </div>
     </section>
