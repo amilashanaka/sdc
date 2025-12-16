@@ -28,7 +28,7 @@ include_once './sidebar.php';
                     --orange: #fd7e14;
                 }
 
-                [data-theme="dark"] {
+                body.dark-mode {
                     --bg: #0d1117;
                     --panel: #161b22;
                     --text: #e6edf3;
@@ -226,25 +226,6 @@ include_once './sidebar.php';
                     box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
                 }
 
-                .scope-theme-btn {
-                    position: fixed;
-                    top: 80px;
-                    right: 20px;
-                    z-index: 999;
-                    padding: 12px 20px;
-                    border-radius: 50px;
-                    background: var(--panel);
-                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-                    border: 1px solid var(--border);
-                    cursor: pointer;
-                    font-size: 16px;
-                    transition: transform 0.2s;
-                }
-
-                .scope-theme-btn:hover {
-                    transform: scale(1.05);
-                }
-
                 .scope-stats {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -313,7 +294,6 @@ include_once './sidebar.php';
             </style>
 
             <div class="scope-body" id="scopeBody">
-                <button class="scope-theme-btn" id="themeBtn">🌙</button>
 
                 <div class="scope-container">
                     <div class="scope-panel scope-left">
@@ -423,21 +403,6 @@ include_once './sidebar.php';
                 let dataWebSocket = null;
                 let yRange = { min: -2000, max: 2000 };
                 let lastDisplayedSamples = 10000;
-
-                // Theme management
-                const body = document.getElementById('scopeBody');
-                const theme = localStorage.getItem('theme') || 'light';
-                if (theme === 'dark') {
-                    body.setAttribute('data-theme', 'dark');
-                    document.getElementById('themeBtn').textContent = '☀️';
-                }
-                document.getElementById('themeBtn').onclick = () => {
-                    const dark = body.getAttribute('data-theme') === 'dark';
-                    body.setAttribute('data-theme', dark ? '' : 'dark');
-                    document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
-                    localStorage.setItem('theme', dark ? 'light' : 'dark');
-                    plot();
-                };
 
                 // Build channel table
                 function buildChannelTable() {
@@ -883,7 +848,7 @@ include_once './sidebar.php';
                             title: 'Select channels to display',
                             paper_bgcolor: 'rgba(0,0,0,0)',
                             plot_bgcolor: 'rgba(0,0,0,0)',
-                            font: { color: getComputedStyle(body).getPropertyValue('--text') }
+                            font: { color: getComputedStyle(document.getElementById('scopeBody')).getPropertyValue('--text') }
                         });
                         return;
                     }
@@ -950,7 +915,7 @@ include_once './sidebar.php';
                         showlegend: document.getElementById('legend').checked,
                         paper_bgcolor: 'rgba(0,0,0,0)',
                         plot_bgcolor: 'rgba(0,0,0,0)',
-                        font: { color: getComputedStyle(body).getPropertyValue('--text') },
+                        font: { color: getComputedStyle(document.getElementById('scopeBody')).getPropertyValue('--text') },
                         margin: { l: 60, r: 30, t: 50, b: 50 }
                     };
 
@@ -1064,6 +1029,12 @@ include_once './sidebar.php';
                     connectDataWebSocket();
                     setInterval(updateSystemStats, 2000);
                     plot();
+
+                    // Observe theme changes
+                    const observer = new MutationObserver(() => {
+                        plot();
+                    });
+                    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
                 }
 
                 if (document.readyState === 'loading') {
