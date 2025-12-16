@@ -21,7 +21,7 @@
         <div class="container-fluid">
             <?php include_once './infobox.php'; ?>
 
-            <?php include_once './dashboard_report.php'; ?>
+            <?php // include_once './dashboard_report.php'; ?>
             <!-- /.row -->
 
             <!-- /.row -->
