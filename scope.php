@@ -129,618 +129,603 @@ include_once './sidebar.php';
                     </div>
                 </div>
             </div>
+ <script>
+    // Configuration
+    const CONFIG = {
+        MAX_SAMPLES: 20000,
+        BLOCK_SIZE: 2500,
+        BASE_SAMPLE_RATE: 10000,
+        DECIMATION_FACTOR: 20,
+        EFFECTIVE_SAMPLE_RATE: 5000,
+        COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
+        RECONNECT_DELAY: 3000,
+        SIGNAL_VARIANCE_THRESHOLD: 10
+    };
 
-            <script>
-                // Configuration
-                const CONFIG = {
-                    CHANNELS: 16,
-                    SAMPLES_PER_CHANNEL: 2500,
-                    MAX_SAMPLES: 20000,
-                    UPDATE_RATE: 30, // 30 FPS
-                    SAMPLE_RATE: 10000,
-                    DECIMATION: 20,
-                    EFFECTIVE_RATE: 500,
-                    COLORS: [
-                        '#1976d2', '#e91e63', '#4caf50', '#ff9800',
-                        '#9c27b0', '#00bcd4', '#f44336', '#8bc34a',
-                        '#ff5722', '#607d8b', '#795548', '#cddc39',
-                        '#009688', '#ffc107', '#673ab7', '#03a9f4'
-                    ]
-                };
+    // Buffer management
+    const buffers = Array(16).fill().map(() => ({
+        data: [],
+        valid: false,
+        lastUpdate: 0,
+        hasNonZero: false,
+        statistics: { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 }
+    }));
 
-                // State Management
-                const State = {
-                    paused: false,
-                    buffers: Array(CONFIG.CHANNELS).fill().map(() => []),
-                    channelStats: Array(CONFIG.CHANNELS).fill().map(() => ({
-                        current: 0,
-                        min: 0,
-                        max: 0,
-                        freq: 0,
-                        amp: 0,
-                        active: false,
-                        lastUpdate: 0
-                    })),
-                    selectedChannels: new Set([0]),
-                    yRange: { min: -2000, max: 2000 },
-                    frameCount: 0,
-                    dataRate: 0,
-                    lastUpdateTime: 0,
-                    activeCount: 0,
-                    ws: null,
-                    canvas: null,
-                    ctx: null,
-                    rafId: null
-                };
+    // State variables
+    let selected = new Set();
+    let paused = false;
+    let frameCount = 0;
+    let lastTime = 0;
+    let dataRate = 0.0;
+    let dataWebSocket = null;
+    let yRange = { min: -2000, max: 2000 };
+    let lastDisplayedSamples = 10000;
 
-                // DOM Elements Cache
-                const DOM = {
-                    canvas: () => document.getElementById('scopeCanvas'),
-                    channelTableBody: () => document.getElementById('channelTableBody'),
-                    connectionStatus: () => document.getElementById('connectionStatus'),
-                    statusIcon: () => document.getElementById('statusIcon'),
-                    statusText: () => document.getElementById('statusText'),
-                    chTitle: () => document.getElementById('chTitle'),
-                    statFrames: () => document.getElementById('statFrames'),
-                    statRate: () => document.getElementById('statRate'),
-                    statActive: () => document.getElementById('statActive'),
-                    statBuffer: () => document.getElementById('statBuffer'),
-                    plotStatus: () => document.getElementById('plotStatus'),
-                    plotStats: () => document.getElementById('plotStats')
-                };
-
-                // Initialize Application
-                class ScopeApp {
-                    constructor() {
-                        this.initCanvas();
-                        this.buildChannelTable();
-                        this.setupEventListeners();
-                        this.connectWebSocket();
-                        this.startAnimation();
-                    }
-
-                    // Canvas Setup
-                    initCanvas() {
-                        State.canvas = DOM.canvas();
-                        State.ctx = State.canvas.getContext('2d');
-                        this.resizeCanvas();
-                        window.addEventListener('resize', () => this.resizeCanvas());
-                    }
-
-                    resizeCanvas() {
-                        const container = State.canvas.parentElement;
-                        State.canvas.width = container.clientWidth;
-                        State.canvas.height = container.clientHeight;
-                        this.draw();
-                    }
-
-                    // Channel Table
-                    buildChannelTable() {
-                        const tbody = DOM.channelTableBody();
-                        tbody.innerHTML = '';
-                        
-                        for (let i = 0; i < CONFIG.CHANNELS; i++) {
-                            const row = document.createElement('tr');
-                            row.dataset.channel = i;
-                            row.innerHTML = `
-                                <td><strong>CH${i}</strong></td>
-                                <td class="channel-value" id="val${i}">—</td>
-                                <td class="channel-min" id="min${i}">—</td>
-                                <td class="channel-max" id="max${i}">—</td>
-                                <td class="channel-freq" id="freq${i}">—</td>
-                                <td class="channel-amp" id="amp${i}">—</td>
-                                <td>
-                                    <span class="channel-dot" id="dot${i}" title="No data">●</span>
-                                </td>
-                            `;
-                            
-                            // Click handler for channel selection
-                            row.addEventListener('click', (e) => {
-                                if (e.target.tagName === 'INPUT') return;
-                                
-                                const channel = parseInt(row.dataset.channel);
-                                const ctrl = e.ctrlKey || e.metaKey;
-                                const shift = e.shiftKey;
-                                
-                                if (shift) {
-                                    // Select range
-                                    const lastSelected = Math.max(...State.selectedChannels);
-                                    const start = Math.min(lastSelected, channel);
-                                    const end = Math.max(lastSelected, channel);
-                                    for (let ch = start; ch <= end; ch++) {
-                                        State.selectedChannels.add(ch);
-                                    }
-                                } else if (ctrl) {
-                                    // Toggle selection
-                                    if (State.selectedChannels.has(channel)) {
-                                        State.selectedChannels.delete(channel);
-                                    } else {
-                                        State.selectedChannels.add(channel);
-                                    }
-                                } else {
-                                    // Single selection
-                                    State.selectedChannels.clear();
-                                    State.selectedChannels.add(channel);
-                                }
-                                
-                                this.updateSelectionDisplay();
-                                this.draw();
-                            });
-                            
-                            tbody.appendChild(row);
-                        }
-                    }
-
-                    // WebSocket Connection
-                    connectWebSocket() {
-                        if (State.ws?.readyState === WebSocket.OPEN) return;
-                        
-                        try {
-                            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                            State.ws = new WebSocket(`${protocol}//${location.host}/ws`);
-                            State.ws.binaryType = 'arraybuffer';
-                            
-                            State.ws.onopen = () => this.updateStatus('🟢 Connected', 'connected');
-                            State.ws.onmessage = (e) => this.processData(e.data);
-                            State.ws.onclose = () => {
-                                this.updateStatus('🔴 Disconnected', 'disconnected');
-                                setTimeout(() => this.connectWebSocket(), 3000);
-                            };
-                            State.ws.onerror = () => this.updateStatus('⚠️ Error', 'error');
-                        } catch (err) {
-                            console.error('WebSocket error:', err);
-                            this.updateStatus('🔴 Failed', 'error');
-                            setTimeout(() => this.connectWebSocket(), 3000);
-                        }
-                    }
-
-                    // Data Processing
-                    processData(data) {
-                        if (State.paused || !(data instanceof ArrayBuffer)) return;
-                        
-                        const now = performance.now();
-                        const dt = now - State.lastUpdateTime;
-                        State.lastUpdateTime = now;
-                        State.frameCount++;
-                        
-                        // Calculate data rate (Hz)
-                        if (dt > 0) {
-                            State.dataRate = 1000 / dt;
-                        }
-                        
-                        try {
-                            const view = new DataView(data);
-                            const samplesPerChannel = data.byteLength / (CONFIG.CHANNELS * 2);
-                            
-                            State.activeCount = 0;
-                            
-                            for (let ch = 0; ch < CONFIG.CHANNELS; ch++) {
-                                const channelData = [];
-                                
-                                // Read channel data
-                                for (let i = 0; i < samplesPerChannel; i++) {
-                                    const offset = (ch * samplesPerChannel + i) * 2;
-                                    const value = view.getInt16(offset, true);
-                                    channelData.push(value);
-                                }
-                                
-                                // Update buffer
-                                this.updateChannelBuffer(ch, channelData);
-                                
-                                // Calculate statistics
-                                this.updateChannelStats(ch);
-                                
-                                // Update table display
-                                this.updateChannelDisplay(ch);
-                            }
-                            
-                            // Update UI
-                            this.updateStatsDisplay();
-                            this.updatePlotInfo();
-                            
-                        } catch (err) {
-                            console.error('Data processing error:', err);
-                        }
-                    }
-
-                    // Channel Buffer Management
-                    updateChannelBuffer(channel, newData) {
-                        if (!newData || newData.length === 0) return;
-                        
-                        const buffer = State.buffers[channel];
-                        
-                        // Add new data
-                        buffer.push(...newData);
-                        
-                        // Trim buffer to max size
-                        if (buffer.length > CONFIG.MAX_SAMPLES) {
-                            State.buffers[channel] = buffer.slice(-CONFIG.MAX_SAMPLES);
-                        }
-                    }
-
-                    // Channel Statistics
-                    updateChannelStats(channel) {
-                        const buffer = State.buffers[channel];
-                        if (buffer.length < 100) return;
-                        
-                        const stats = State.channelStats[channel];
-                        const recentData = buffer.slice(-1000); // Use last 1000 samples
-                        
-                        // Basic stats
-                        let min = Infinity, max = -Infinity, sum = 0;
-                        for (const val of recentData) {
-                            if (val < min) min = val;
-                            if (val > max) max = val;
-                            sum += val;
-                        }
-                        
-                        stats.current = recentData[recentData.length - 1] || 0;
-                        stats.min = min;
-                        stats.max = max;
-                        stats.amp = (max - min) / 2;
-                        
-                        // Frequency calculation
-                        const freq = this.calculateFrequency(recentData);
-                        stats.freq = freq;
-                        
-                        // Activity detection
-                        stats.active = (max - min) > 10 && Math.abs(stats.amp) > 5;
-                        if (stats.active) State.activeCount++;
-                        
-                        stats.lastUpdate = Date.now();
-                    }
-
-                    // Frequency Calculation
-                    calculateFrequency(data) {
-                        if (data.length < 100) return 0;
-                        
-                        // Detrend data
-                        const mean = data.reduce((a, b) => a + b, 0) / data.length;
-                        const detrended = data.map(v => v - mean);
-                        
-                        // Find zero crossings
-                        const crossings = [];
-                        let lastSign = Math.sign(detrended[0]);
-                        
-                        for (let i = 1; i < detrended.length; i++) {
-                            const currentSign = Math.sign(detrended[i]);
-                            
-                            if (lastSign <= 0 && currentSign > 0) {
-                                // Linear interpolation for better accuracy
-                                const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
-                                crossings.push(i - 1 + t);
-                            }
-                            lastSign = currentSign;
-                        }
-                        
-                        if (crossings.length < 2) return 0;
-                        
-                        // Calculate average period
-                        const periods = [];
-                        for (let i = 1; i < crossings.length; i++) {
-                            periods.push(crossings[i] - crossings[i-1]);
-                        }
-                        
-                        const avgPeriod = periods.reduce((a, b) => a + b, 0) / periods.length;
-                        const frequency = CONFIG.EFFECTIVE_RATE / avgPeriod;
-                        
-                        return frequency > 0.1 ? frequency : 0;
-                    }
-
-                    // Update Channel Display
-                    updateChannelDisplay(channel) {
-                        const stats = State.channelStats[channel];
-                        
-                        // Update table cells
-                        document.getElementById(`val${channel}`).textContent = 
-                            stats.current.toFixed(0);
-                        document.getElementById(`min${channel}`).textContent = 
-                            stats.min.toFixed(0);
-                        document.getElementById(`max${channel}`).textContent = 
-                            stats.max.toFixed(0);
-                        document.getElementById(`freq${channel}`).textContent = 
-                            stats.freq > 0 ? stats.freq.toFixed(2) + ' Hz' : '—';
-                        document.getElementById(`amp${channel}`).textContent = 
-                            stats.amp > 0 ? stats.amp.toFixed(1) : '—';
-                        
-                        // Update status dot
-                        const dot = document.getElementById(`dot${channel}`);
-                        if (dot) {
-                            if (stats.active) {
-                                dot.className = 'channel-dot active';
-                                dot.title = 'Active signal';
-                            } else if (stats.lastUpdate > Date.now() - 5000) {
-                                dot.className = 'channel-dot inactive';
-                                dot.title = 'Flat signal';
-                            } else {
-                                dot.className = 'channel-dot';
-                                dot.title = 'No data';
-                            }
-                        }
-                        
-                        // Update row selection
-                        const row = document.querySelector(`tr[data-channel="${channel}"]`);
-                        if (row) {
-                            row.classList.toggle('selected', State.selectedChannels.has(channel));
-                        }
-                    }
-
-                    // Drawing Functions
-                    draw() {
-                        if (!State.ctx || State.canvas.width === 0) return;
-                        
-                        const ctx = State.ctx;
-                        const width = State.canvas.width;
-                        const height = State.canvas.height;
-                        
-                        // Clear canvas
-                        ctx.clearRect(0, 0, width, height);
-                        
-                        // Draw grid if enabled
-                        if (document.getElementById('gridCheck').checked) {
-                            this.drawGrid(width, height);
-                        }
-                        
-                        // Draw signals
-                        if (State.selectedChannels.size > 0) {
-                            this.drawSignals(width, height);
-                        } else {
-                            this.drawNoSignalMessage(width, height);
-                        }
-                        
-                        // Draw axes
-                        this.drawAxes(width, height);
-                    }
-
-                    drawGrid(width, height) {
-                        const ctx = State.ctx;
-                        ctx.strokeStyle = 'rgba(128, 128, 128, 0.15)';
-                        ctx.lineWidth = 1;
-                        
-                        // Vertical lines
-                        for (let x = 0; x < width; x += width / 20) {
-                            ctx.beginPath();
-                            ctx.moveTo(x, 0);
-                            ctx.lineTo(x, height);
-                            ctx.stroke();
-                        }
-                        
-                        // Horizontal lines
-                        for (let y = 0; y < height; y += height / 10) {
-                            ctx.beginPath();
-                            ctx.moveTo(0, y);
-                            ctx.lineTo(width, y);
-                            ctx.stroke();
-                        }
-                    }
-
-                    drawAxes(width, height) {
-                        const ctx = State.ctx;
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                        ctx.lineWidth = 2;
-                        
-                        // X-axis
-                        ctx.beginPath();
-                        ctx.moveTo(50, height / 2);
-                        ctx.lineTo(width - 20, height / 2);
-                        ctx.stroke();
-                        
-                        // Y-axis
-                        ctx.beginPath();
-                        ctx.moveTo(50, 20);
-                        ctx.lineTo(50, height - 20);
-                        ctx.stroke();
-                    }
-
-                    drawSignals(width, height) {
-                        const ctx = State.ctx;
-                        const samplesToShow = parseInt(document.getElementById('samplesSelect').value);
-                        const autoY = document.getElementById('autoYCheck').checked;
-                        
-                        // Calculate Y range
-                        let yMin = State.yRange.min;
-                        let yMax = State.yRange.max;
-                        
-                        if (autoY) {
-                            yMin = Infinity;
-                            yMax = -Infinity;
-                            
-                            for (const ch of State.selectedChannels) {
-                                const buffer = State.buffers[ch]?.slice(-samplesToShow) || [];
-                                for (const val of buffer) {
-                                    if (val < yMin) yMin = val;
-                                    if (val > yMax) yMax = val;
-                                }
-                            }
-                            
-                            // Add padding
-                            const range = Math.max(yMax - yMin, 1);
-                            yMin -= range * 0.1;
-                            yMax += range * 0.1;
-                        }
-                        
-                        const yRange = yMax - yMin || 1;
-                        
-                        // Draw each selected channel
-                        let colorIndex = 0;
-                        for (const ch of State.selectedChannels) {
-                            const buffer = State.buffers[ch]?.slice(-samplesToShow) || [];
-                            if (buffer.length === 0) continue;
-                            
-                            ctx.strokeStyle = CONFIG.COLORS[colorIndex % CONFIG.COLORS.length];
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            
-                            for (let i = 0; i < buffer.length; i++) {
-                                const x = 50 + (i / buffer.length) * (width - 70);
-                                const y = 20 + ((yMax - buffer[i]) / yRange) * (height - 40);
-                                
-                                if (i === 0 || isNaN(buffer[i]) || isNaN(buffer[i-1])) {
-                                    ctx.moveTo(x, y);
-                                } else {
-                                    ctx.lineTo(x, y);
-                                }
-                            }
-                            
-                            ctx.stroke();
-                            colorIndex++;
-                        }
-                        
-                        // Draw legend if enabled
-                        if (document.getElementById('legendCheck').checked && State.selectedChannels.size > 0) {
-                            this.drawLegend();
-                        }
-                    }
-
-                    drawLegend() {
-                        const ctx = State.ctx;
-                        const legendX = State.canvas.width - 150;
-                        let legendY = 30;
-                        
-                        ctx.font = '12px monospace';
-                        ctx.textAlign = 'left';
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                        
-                        let index = 0;
-                        for (const ch of State.selectedChannels) {
-                            const stats = State.channelStats[ch];
-                            const color = CONFIG.COLORS[index % CONFIG.COLORS.length];
-                            
-                            // Color box
-                            ctx.fillStyle = color;
-                            ctx.fillRect(legendX, legendY - 8, 12, 12);
-                            
-                            // Text
-                            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                            ctx.fillText(`CH${ch}: ${stats.current} (${stats.freq.toFixed(1)}Hz)`, 
-                                        legendX + 18, legendY);
-                            
-                            legendY += 20;
-                            index++;
-                        }
-                    }
-
-                    drawNoSignalMessage(width, height) {
-                        const ctx = State.ctx;
-                        ctx.font = '16px Arial';
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('Select channels to display', width / 2, height / 2);
-                    }
-
-                    // UI Updates
-                    updateSelectionDisplay() {
-                        const channels = Array.from(State.selectedChannels).sort((a, b) => a - b);
-                        DOM.chTitle().textContent = channels.length ? `CH ${channels.join(', ')}` : '—';
-                    }
-
-                    updateStatsDisplay() {
-                        DOM.statFrames().textContent = State.frameCount;
-                        DOM.statRate().textContent = State.dataRate.toFixed(1) + ' Hz';
-                        DOM.statActive().textContent = `${State.activeCount}/${CONFIG.CHANNELS}`;
-                        DOM.statBuffer().textContent = State.buffers[0]?.length || 0;
-                    }
-
-                    updatePlotInfo() {
-                        const samples = parseInt(document.getElementById('samplesSelect').value);
-                        const channels = State.selectedChannels.size;
-                        
-                        if (channels > 0) {
-                            DOM.plotStatus().textContent = 
-                                `Displaying ${channels} channel${channels > 1 ? 's' : ''}`;
-                            DOM.plotStats().textContent = 
-                                `${samples} samples | ${State.dataRate.toFixed(1)} Hz | ${State.activeCount} active`;
-                        }
-                    }
-
-                    updateStatus(text, type) {
-                        DOM.statusIcon().textContent = text.substring(0, 2);
-                        DOM.statusText().textContent = text.substring(3);
-                        DOM.connectionStatus().className = `scope-status ${type}`;
-                    }
-
-                    // Event Listeners
-                    setupEventListeners() {
-                        // Pause button
-                        document.getElementById('pauseBtn').addEventListener('click', () => {
-                            State.paused = !State.paused;
-                            const btn = document.getElementById('pauseBtn');
-                            btn.textContent = State.paused ? '▶ Resume' : '⏸ Pause';
-                            btn.classList.toggle('paused', State.paused);
-                        });
-                        
-                        // Clear button
-                        document.getElementById('clearBtn').addEventListener('click', () => {
-                            State.buffers = Array(CONFIG.CHANNELS).fill().map(() => []);
-                            State.frameCount = 0;
-                            State.dataRate = 0;
-                            State.activeCount = 0;
-                            this.updateStatsDisplay();
-                        });
-                        
-                        // Y-axis apply
-                        document.getElementById('applyY').addEventListener('click', () => {
-                            const yMin = parseInt(document.getElementById('yMin').value);
-                            const yMax = parseInt(document.getElementById('yMax').value);
-                            
-                            if (!isNaN(yMin) && !isNaN(yMax) && yMin < yMax) {
-                                State.yRange.min = yMin;
-                                State.yRange.max = yMax;
-                                this.draw();
-                            }
-                        });
-                        
-                        // Sample count change
-                        document.getElementById('samplesSelect').addEventListener('change', () => {
-                            this.draw();
-                        });
-                        
-                        // Display controls
-                        ['autoYCheck', 'gridCheck', 'legendCheck'].forEach(id => {
-                            document.getElementById(id).addEventListener('change', () => {
-                                this.draw();
-                            });
-                        });
-                        
-                        // Deselect all channels
-                        document.addEventListener('keydown', (e) => {
-                            if (e.key === 'Escape') {
-                                State.selectedChannels.clear();
-                                this.updateSelectionDisplay();
-                                this.draw();
-                            }
-                        });
-                    }
-
-                    // Animation Loop
-                    startAnimation() {
-                        const animate = () => {
-                            if (!State.paused) {
-                                this.draw();
-                            }
-                            State.rafId = requestAnimationFrame(animate);
-                        };
-                        State.rafId = requestAnimationFrame(animate);
-                    }
-
-                    // Cleanup
-                    cleanup() {
-                        if (State.ws) State.ws.close();
-                        if (State.rafId) cancelAnimationFrame(State.rafId);
-                    }
+    // Build channel table
+    function buildChannelTable() {
+        const tbody = document.querySelector('#chTable tbody');
+        tbody.innerHTML = '';
+        
+        for (let i = 0; i < 16; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>CH${i}</strong></td>
+                <td id="v${i}">—</td>
+                <td id="n${i}">—</td>
+                <td id="x${i}">—</td>
+                <td id="f${i}">—</td>
+                <td id="a${i}">—</td>
+                <td><span class="scope-dot scope-dot-gray" id="d${i}"></span></td>
+            `;
+            tr.onclick = (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    selected.has(i) ? selected.delete(i) : selected.add(i);
+                } else {
+                    selected = new Set([i]);
                 }
+                updateSelection();
+                plot();
+            };
+            tbody.appendChild(tr);
+        }
+    }
 
-                // Initialize when DOM is ready
-                let app;
-                document.addEventListener('DOMContentLoaded', () => {
-                    app = new ScopeApp();
-                });
-                
-                window.addEventListener('beforeunload', () => {
-                    if (app) app.cleanup();
-                });
-            </script>
+    // WebSocket connection
+    function connectDataWebSocket() {
+        if (dataWebSocket && dataWebSocket.readyState === WebSocket.OPEN) {
+            return;
+        }
+
+        try {
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            dataWebSocket = new WebSocket(wsProtocol + '//' + location.host + '/ws');
+            dataWebSocket.binaryType = 'arraybuffer';
+
+            dataWebSocket.onopen = () => {
+                updateStatus('🟢 Connected', 'scope-connected');
+            };
+
+            dataWebSocket.onmessage = handleDataMessage;
+            
+            dataWebSocket.onclose = () => {
+                updateStatus('🔴 Disconnected - Reconnecting...', 'scope-disconnected');
+                setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+            };
+
+            dataWebSocket.onerror = (error) => {
+                updateStatus('⚠️ Connection error', 'scope-disconnected');
+            };
+        } catch (error) {
+            updateStatus('⚠️ Connection failed', 'scope-disconnected');
+            setTimeout(connectDataWebSocket, CONFIG.RECONNECT_DELAY);
+        }
+    }
+
+    // Message handler
+    function handleDataMessage(event) {
+        if (paused) return;
+
+        if (event.data instanceof ArrayBuffer) {
+            processBinaryData(event.data);
+        }
+    }
+
+    // Binary data processing
+    function processBinaryData(buffer) {
+        const now = performance.now();
+        if (lastTime > 0) {
+            dataRate = 1000 / (now - lastTime);
+        }
+        lastTime = now;
+        frameCount++;
+
+        try {
+            const result = parseBinaryPacket(buffer);
+            
+            if (!result || !result.blocks || result.blocks.length === 0) {
+                return;
+            }
+
+            for (let ch = 0; ch < result.blocks.length && ch < 16; ch++) {
+                if (result.blocks[ch] && result.blocks[ch].length > 0) {
+                    updateChannelBuffer(ch, result.blocks[ch], now);
+                    updateChannelDisplay(ch);
+                }
+            }
+
+            plot();
+            updateInfoDisplay();
+
+        } catch (err) {
+            console.error('Error processing data:', err);
+        }
+    }
+
+    // Packet parser - fixed for 16 channels, 2500 samples per channel, 2 bytes per sample (int16)
+    function parseBinaryPacket(buf) {
+        const view = new DataView(buf);
+        const numChannels = 16;
+        const samplesPerChannel = 2500;
+        const blocks = [];
+
+        let offset = 0;
+        for (let ch = 0; ch < numChannels; ch++) {
+            const channelData = new Int16Array(samplesPerChannel);
+            for (let i = 0; i < samplesPerChannel; i++) {
+                channelData[i] = view.getInt16(offset, true); // little-endian
+                offset += 2;
+            }
+            blocks.push(channelData);
+        }
+
+        return { blocks };
+    }
+
+    // Buffer update
+    function updateChannelBuffer(channel, block, timestamp) {
+        if (channel < 0 || channel >= 16 || !block || block.length === 0) return;
+        
+        const buf = buffers[channel];
+        
+        // Check for duplicate block
+        let isDuplicate = false;
+        if (buf.data.length >= CONFIG.BLOCK_SIZE && block.length === CONFIG.BLOCK_SIZE) {
+            const lastBlock = buf.data.slice(-CONFIG.BLOCK_SIZE);
+            isDuplicate = true;
+            for (let i = 0; i < CONFIG.BLOCK_SIZE; i++) {
+                if (lastBlock[i] !== block[i]) {
+                    isDuplicate = false;
+                    break;
+                }
+            }
+        }
+        
+        if (isDuplicate) {
+            buf.lastUpdate = timestamp;
+            return;
+        }
+        
+        // Fix first sample if it's an outlier
+        const fixedBlock = Array.from(block);
+        if (fixedBlock.length >= 2) {
+            // Check if first sample is outlier (jump > 1000 from second sample)
+            if (Math.abs(fixedBlock[0] - fixedBlock[1]) > 1000) {
+                fixedBlock[0] = fixedBlock[1];
+            }
+        }
+        
+        // Check if all zeros or flat signal
+        let allZeros = true;
+        let allSame = true;
+        const firstVal = fixedBlock[0];
+        for (let i = 0; i < fixedBlock.length; i++) {
+            if (fixedBlock[i] !== 0) allZeros = false;
+            if (fixedBlock[i] !== firstVal) allSame = false;
+            if (!allZeros && !allSame) break;
+        }
+        
+        if (allZeros || allSame) {
+            buf.data = fixedBlock;
+            buf.valid = true;
+            buf.lastUpdate = timestamp;
+            buf.hasNonZero = false;
+            buf.statistics = { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 };
+            return;
+        }
+        
+        // Detect discontinuity
+        let insertGap = false;
+        if (buf.data.length > 0) {
+            const lastVal = buf.data[buf.data.length - 1];
+            const firstVal = fixedBlock[0];
+            const delta = Math.abs(lastVal - firstVal);
+            
+            let maxIncomingDelta = 0;
+            for (let i = 1; i < fixedBlock.length; i++) {
+                const d = Math.abs(fixedBlock[i] - fixedBlock[i - 1]);
+                if (d > maxIncomingDelta) maxIncomingDelta = d;
+            }
+            
+            if (maxIncomingDelta > 0 && delta > 5 * maxIncomingDelta) {
+                insertGap = true;
+            }
+        }
+        
+        const newData = fixedBlock;
+        
+        if (insertGap) {
+            buf.data.push(NaN);
+        }
+        
+        buf.data = [...buf.data, ...newData].slice(-CONFIG.MAX_SAMPLES);
+        buf.valid = true;
+        buf.lastUpdate = timestamp;
+
+        updateChannelStatistics(buf, fixedBlock);
+    }
+
+    // Improved frequency calculation
+    function estimateFrequencyAndAmplitude(data) {
+        if (data.length < 500) return { frequency: 0, amplitude: 0 };
+        
+        // Filter out NaN values
+        const validData = data.filter(v => !isNaN(v));
+        if (validData.length < 500) return { frequency: 0, amplitude: 0 };
+        
+        // Calculate amplitude (peak-to-peak / 2)
+        let min = Infinity, max = -Infinity;
+        for (let i = 0; i < validData.length; i++) {
+            if (validData[i] < min) min = validData[i];
+            if (validData[i] > max) max = validData[i];
+        }
+        const amplitude = (max - min) / 2;
+        
+        // Check if signal is too flat to measure frequency
+        if (amplitude < 10) return { frequency: 0, amplitude };
+        
+        // Detrend the data (remove DC offset)
+        const mean = validData.reduce((a, b) => a + b, 0) / validData.length;
+        const detrended = validData.map(v => v - mean);
+        
+        // Find zero crossings with improved detection
+        const crossings = [];
+        let lastSign = Math.sign(detrended[0]);
+        
+        for (let i = 1; i < detrended.length; i++) {
+            const currentSign = Math.sign(detrended[i]);
+            
+            // Detect zero crossing (positive-going)
+            if (lastSign <= 0 && currentSign > 0) {
+                // Linear interpolation for more accurate crossing point
+                const t = -detrended[i-1] / (detrended[i] - detrended[i-1]);
+                const crossingIndex = (i - 1) + t;
+                crossings.push(crossingIndex);
+            }
+            lastSign = currentSign;
+        }
+        
+        if (crossings.length < 2) return { frequency: 0, amplitude };
+        
+        // Calculate periods between crossings
+        const periods = [];
+        for (let i = 1; i < crossings.length; i++) {
+            periods.push(crossings[i] - crossings[i-1]);
+        }
+        
+        // Remove outliers (periods that deviate by more than 50% from median)
+        const medianPeriod = periods.sort((a, b) => a - b)[Math.floor(periods.length / 2)];
+        const filteredPeriods = periods.filter(p => 
+            p > medianPeriod * 0.5 && p < medianPeriod * 1.5
+        );
+        
+        if (filteredPeriods.length === 0) return { frequency: 0, amplitude };
+        
+        // Calculate average period
+        const avgPeriodSamples = filteredPeriods.reduce((a, b) => a + b, 0) / filteredPeriods.length;
+        
+        // Calculate frequency: f = sample_rate / period_in_samples
+        const frequency = CONFIG.EFFECTIVE_SAMPLE_RATE / avgPeriodSamples;
+        
+        return { 
+            frequency: Math.min(frequency, CONFIG.EFFECTIVE_SAMPLE_RATE / 2), // Nyquist limit
+            amplitude 
+        };
+    }
+
+    // Statistics calculation
+    function updateChannelStatistics(buf, block) {
+        if (!block || block.length === 0) return;
+        
+        let min = Infinity, max = -Infinity, sum = 0, sumSq = 0;
+        let validSamples = 0;
+        
+        for (let i = 0; i < block.length; i++) {
+            const val = block[i];
+            if (val >= -32768 && val <= 32767 && val !== -32768) {
+                if (val < min) min = val;
+                if (val > max) max = val;
+                sum += val;
+                sumSq += val * val;
+                validSamples++;
+            }
+        }
+        
+        if (validSamples === 0) {
+            buf.statistics = { min: 0, max: 0, mean: 0, rms: 0, variance: 0, frequency: 0, amplitude: 0 };
+            buf.hasNonZero = false;
+            return;
+        }
+        
+        const mean = sum / validSamples;
+        const variance = (sumSq / validSamples) - (mean * mean);
+        
+        // Estimate frequency and amplitude from all available data
+        const recentData = buf.data.slice(-5000); // Use 5 seconds of data for better accuracy
+        const { frequency, amplitude } = estimateFrequencyAndAmplitude(recentData);
+        
+        buf.statistics = {
+            min: min,
+            max: max,
+            mean: mean,
+            rms: Math.sqrt(sumSq / validSamples),
+            variance: variance,
+            frequency: frequency,
+            amplitude: amplitude
+        };
+        
+        buf.hasNonZero = variance > CONFIG.SIGNAL_VARIANCE_THRESHOLD;
+    }
+
+    // Channel display update
+    function updateChannelDisplay(channel) {
+        if (channel < 0 || channel >= 16) return;
+        
+        const buf = buffers[channel];
+        const stats = buf.statistics;
+        
+        if (!buf.valid || buf.data.length === 0) return;
+        
+        const lastValue = buf.data[buf.data.length - 1];
+        
+        const vEl = document.getElementById(`v${channel}`);
+        const nEl = document.getElementById(`n${channel}`);
+        const xEl = document.getElementById(`x${channel}`);
+        const fEl = document.getElementById(`f${channel}`);
+        const aEl = document.getElementById(`a${channel}`);
+        
+        if (vEl) vEl.textContent = isNaN(lastValue) ? '—' : lastValue.toFixed(0);
+        if (nEl) nEl.textContent = stats.min.toFixed(0);
+        if (xEl) xEl.textContent = stats.max.toFixed(0);
+        if (fEl) fEl.textContent = stats.frequency > 0.1 ? stats.frequency.toFixed(2) + ' Hz' : '—';
+        if (aEl) aEl.textContent = stats.amplitude > 0 ? stats.amplitude.toFixed(1) : '—';
+
+        const dot = document.getElementById(`d${channel}`);
+        if (dot) {
+            if (!buf.valid) {
+                dot.className = 'scope-dot scope-dot-gray';
+                dot.title = 'No data';
+            } else if (buf.hasNonZero) {
+                dot.className = 'scope-dot scope-dot-green';
+                dot.title = `Active signal`;
+            } else {
+                dot.className = 'scope-dot scope-dot-orange';
+                dot.title = `Flat signal`;
+            }
+        }
+    }
+
+    // Get samples for display
+    function getSamples(ch, n) {
+        if (ch < 0 || ch >= 16) return [];
+        
+        const buf = buffers[ch];
+        if (!buf.valid || buf.data.length === 0) return [];
+        
+        return buf.data.slice(-n);
+    }
+
+    // Plot function
+    function plot() {
+        if (!selected.size) {
+            Plotly.react('scopePlot', [], { 
+                title: 'Select channels to display',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: getComputedStyle(document.getElementById('scopeBody')).getPropertyValue('--text') }
+            });
+            return;
+        }
+
+        const requestedSamples = parseInt(document.getElementById('samples').value);
+        const traces = [];
+        let traceIndex = 0;
+        let maxAvailableSamples = 0;
+
+        // Determine actual samples to display
+        for (const ch of selected) {
+            const availableSamples = buffers[ch].data.length;
+            if (availableSamples > maxAvailableSamples) {
+                maxAvailableSamples = availableSamples;
+            }
+        }
+
+        const samplesToDisplay = Math.min(requestedSamples, maxAvailableSamples);
+        lastDisplayedSamples = samplesToDisplay;
+
+        for (const ch of selected) {
+            const y = getSamples(ch, samplesToDisplay);
+            if (!y.length) continue;
+            
+            const hasRealData = buffers[ch].hasNonZero;
+
+            traces.push({
+                x: Array.from({length: y.length}, (_, i) => i),
+                y: y,
+                name: `CH ${ch}${hasRealData ? '' : ' (flat)'}`,
+                mode: 'lines',
+                line: { 
+                    color: CONFIG.COLORS[traceIndex % CONFIG.COLORS.length], 
+                    width: 2.5
+                },
+                connectgaps: false
+            });
+            traceIndex++;
+        }
+
+        const autoY = document.getElementById('autoY').checked;
+        
+        const title = `${traces.length} channel${traces.length > 1 ? 's' : ''} • ${dataRate.toFixed(1)} Hz • ${samplesToDisplay} samples`;
+
+        const yaxisConfig = {
+            title: 'ADC Value', 
+            showgrid: document.getElementById('grid').checked,
+            gridcolor: 'rgba(128,128,128,0.2)'
+        };
+
+        if (!autoY) {
+            yaxisConfig.range = [yRange.min, yRange.max];
+            yaxisConfig.autorange = false;
+        }
+
+        const layout = {
+            title: title,
+            xaxis: { 
+                title: 'Sample', 
+                showgrid: document.getElementById('grid').checked,
+                gridcolor: 'rgba(128,128,128,0.2)'
+            },
+            yaxis: yaxisConfig,
+            showlegend: document.getElementById('legend').checked,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: getComputedStyle(document.getElementById('scopeBody')).getPropertyValue('--text') },
+            margin: { l: 60, r: 30, t: 50, b: 50 }
+        };
+
+        Plotly.react('scopePlot', traces, layout, {responsive: true});
+    }
+
+    // UI update functions
+    function updateSelection() {
+        document.querySelectorAll('#chTable tbody tr').forEach((r, i) => {
+            r.classList.toggle('scope-selected', selected.has(i));
+        });
+        
+        const list = Array.from(selected).sort((a, b) => a - b);
+        document.getElementById('chTitle').textContent = list.length ? 
+            `CH ${list.join(', ')}` : '—';
+    }
+
+    function updateInfoDisplay() {
+        const active = buffers.filter(b => b.valid && b.hasNonZero).length;
+        
+        const infoText = `Frames: ${frameCount} • Rate: ${dataRate.toFixed(1)} Hz • Active: ${active}/16 • Displaying: ${lastDisplayedSamples} samples`;
+        document.getElementById('info').textContent = infoText;
+
+        document.getElementById('statFrames').textContent = frameCount;
+        document.getElementById('statRate').textContent = dataRate.toFixed(1) + ' Hz';
+        document.getElementById('statActive').textContent = `${active}/16`;
+        document.getElementById('statRead').textContent = '0.0 ms'; // Update if API provides
+    }
+
+    function updateStatus(message, type) {
+        const status = document.getElementById('status');
+        if (status) {
+            status.innerHTML = `<span>${message.split(' ')[0]}</span><span>${message.substring(message.indexOf(' ') + 1)}</span>`;
+            status.className = `scope-status ${type}`;
+        }
+    }
+
+    // System statistics update (if API exists)
+    async function updateSystemStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+            
+            document.getElementById('statFrames').textContent = stats.frames || 0;
+            document.getElementById('statRate').textContent = (stats.frame_rate || 0).toFixed(1) + ' Hz';
+            document.getElementById('statActive').textContent = `${stats.active || 0}/16`;
+            document.getElementById('statRead').textContent = (stats.read_time_ms || 0).toFixed(1) + ' ms';
+            
+        } catch (error) {
+            // Stats not available
+        }
+    }
+
+    // Control event handlers
+    document.getElementById('samples').onchange = plot;
+    document.getElementById('autoY').onchange = plot;
+    document.getElementById('grid').onchange = plot;
+    document.getElementById('legend').onchange = plot;
+
+    document.getElementById('applyY').onclick = () => {
+        const minVal = parseInt(document.getElementById('yMin').value);
+        const maxVal = parseInt(document.getElementById('yMax').value);
+        
+        if (isNaN(minVal) || isNaN(maxVal)) {
+            alert('Please enter valid numbers for Y-axis range');
+            return;
+        }
+        
+        if (minVal >= maxVal) {
+            alert('Y-Min must be less than Y-Max');
+            return;
+        }
+        
+        yRange.min = minVal;
+        yRange.max = maxVal;
+        plot();
+    };
+
+    document.getElementById('clear').onclick = () => {
+        buffers.forEach(buf => {
+            buf.data = [];
+            buf.valid = false;
+            buf.hasNonZero = false;
+        });
+        frameCount = 0;
+        dataRate = 0;
+        plot();
+        updateInfoDisplay();
+    };
+
+    document.getElementById('pause').onclick = function() { 
+        paused = !paused; 
+        this.textContent = paused ? '▶️ Resume' : '⏸ Pause'; 
+        this.style.background = paused ? 'var(--orange)' : '';
+        this.style.color = paused ? 'white' : '';
+    };
+
+    document.getElementById('deselect').onclick = () => { 
+        selected.clear(); 
+        updateSelection(); 
+        plot(); 
+    };
+
+    document.getElementById('refreshBtn').onclick = () => {
+        location.reload();
+    };
+
+    // Initialize
+    function init() {
+        buildChannelTable();
+        connectDataWebSocket();
+        setInterval(updateSystemStats, 2000);
+        plot();
+
+        // Observe theme changes
+        const observer = new MutationObserver(() => {
+            plot();
+        });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+</script>
         </div>
     </section>
 </div>
