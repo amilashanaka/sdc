@@ -10,11 +10,23 @@
 set -euo pipefail
 
 # ============================================================================
-# CONFIGURATION PARAMETERS
+# CONFIGURATION PARAMETERS - EDIT THESE FOR YOUR NETWORK
 # ============================================================================
 PYNQ_USER="xilinx"
 PYNQ_PASS="xilinx"
-KEEP_JUPYTER="false"  # Set to "true" to keep Jupyter Notebook running on port 9090
+KEEP_JUPYTER="false"
+
+# Windows Network Share Configuration
+WIN_SERVER="192.168.1.100"           # Replace with your Windows PC IP
+WIN_SHARE="Software"                  # Share name (Y: drive root)
+WIN_SUBDIR="sdc_dev"                  # Subdirectory within share
+WIN_USER="yourusername"               # Windows username (leave empty for guest)
+WIN_PASS="yourpassword"               # Windows password (leave empty for guest)
+DOMAIN="WORKGROUP"                    # Windows domain/workgroup
+
+# Local mount point (will be created)
+MOUNT_POINT="/mnt/windows_share"
+LOCAL_SOURCE_PATH="${MOUNT_POINT}/${WIN_SUBDIR}"
 
 # ============================================================================
 # SYSTEM CONFIGURATION
@@ -26,7 +38,6 @@ WWW_GROUP="root"
 DB_PASS="daq"
 DB_NAME="daq"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
-REPO_URL="https://github.com/amilashanaka/sdc.git"
 VENV_PATH="/usr/local/share/pynq-venv"
 SSL_CERT="/etc/ssl/certs/apache-selfsigned.crt"
 SSL_KEY="/etc/ssl/private/apache-selfsigned.key"
@@ -52,9 +63,66 @@ fi
 
 echo "============================================================================"
 echo "  Spicer DAQ Installation for PYNQ Z1"
+echo "  Source: Windows Network Share (//${WIN_SERVER}/${WIN_SHARE}/${WIN_SUBDIR})"
 echo "  Jupyter Notebook: $([ "$KEEP_JUPYTER" = "true" ] && echo "KEEP" || echo "DISABLE")"
 echo "============================================================================"
 echo ""
+
+# ============================================================================
+# Function to mount Windows share
+# ============================================================================
+mount_windows_share() {
+    log "Mounting Windows network share..."
+    
+    # Install cifs-utils if not present
+    if ! dpkg -l | grep -q cifs-utils; then
+        apt install -y cifs-utils >>$LOG_FILE 2>&1
+    fi
+    
+    # Create mount point
+    mkdir -p "${MOUNT_POINT}"
+    
+    # Unmount if already mounted
+    umount -l "${MOUNT_POINT}" 2>/dev/null || true
+    
+    # Prepare credentials if provided
+    if [ -n "$WIN_USER" ] && [ -n "$WIN_PASS" ]; then
+        # Create credentials file
+        cat > /tmp/smb.cred << EOF
+username=${WIN_USER}
+password=${WIN_PASS}
+domain=${DOMAIN}
+EOF
+        chmod 600 /tmp/smb.cred
+        MOUNT_OPTS="credentials=/tmp/smb.sec,uid=0,gid=0,iocharset=utf8"
+    else
+        MOUNT_OPTS="guest,uid=0,gid=0,iocharset=utf8"
+    fi
+    
+    # Mount the share
+    if mount -t cifs "//${WIN_SERVER}/${WIN_SHARE}" "${MOUNT_POINT}" -o "${MOUNT_OPTS}"; then
+        ok "Windows share mounted at ${MOUNT_POINT}"
+        return 0
+    else
+        err "Failed to mount Windows share"
+        echo "Check the following:"
+        echo "1. Windows PC IP address: ${WIN_SERVER}"
+        echo "2. Share name: ${WIN_SHARE}"
+        echo "3. Network connectivity"
+        echo "4. Windows sharing permissions"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Function to unmount Windows share
+# ============================================================================
+unmount_windows_share() {
+    log "Unmounting Windows share..."
+    umount -l "${MOUNT_POINT}" 2>/dev/null || true
+    rm -f /tmp/smb.cred 2>/dev/null
+    ok "Windows share unmounted"
+}
 
 # ============================================================================
 # OPTIMIZE: Parallel apt update in background
@@ -110,6 +178,21 @@ fi
 wait $APT_PID 2>/dev/null || true
 
 # ============================================================================
+# Mount Windows share
+# ============================================================================
+if ! mount_windows_share; then
+    exit 1
+fi
+
+# Validate source path
+if [ ! -d "$LOCAL_SOURCE_PATH" ]; then
+    err "Source directory not found: $LOCAL_SOURCE_PATH"
+    echo "Expected path: //${WIN_SERVER}/${WIN_SHARE}/${WIN_SUBDIR}"
+    unmount_windows_share
+    exit 1
+fi
+
+# ============================================================================
 # OPTIMIZE: Install packages with minimal interaction
 # ============================================================================
 log "Installing system packages..."
@@ -117,7 +200,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt install -y --no-install-recommends \
     apache2 apache2-utils \
     php libapache2-mod-php php-mysql php-cli \
-    git mariadb-server mariadb-client \
+    mariadb-server mariadb-client \
     openssl >>$LOG_FILE 2>&1 &
 INSTALL_PID=$!
 
@@ -154,7 +237,7 @@ systemctl enable apache2 >/dev/null 2>&1 || true
 ok "Apache configured"
 
 # ============================================================================
-# OPTIMIZE: Backup + Clone in parallel
+# OPTIMIZE: Backup + Copy from Windows share in parallel
 # ============================================================================
 if [ "$(ls -A ${APP_DIR} 2>/dev/null)" ]; then
     BACKUP_DIR="/tmp/html_backup_$(date +%Y%m%d_%H%M%S)"
@@ -173,13 +256,27 @@ rm -rf ${APP_DIR}/.[!.]* 2>/dev/null || true
 # Wait for backup if running
 [ -n "$BACKUP_PID" ] && wait $BACKUP_PID 2>/dev/null || true
 
-log "Cloning repository..."
-if git clone --depth 1 "${REPO_URL}" "${APP_DIR}" >>$LOG_FILE 2>&1; then
-    ok "Repository cloned"
+log "Copying source code from Windows share..."
+# Copy all files including hidden ones
+shopt -s dotglob
+if cp -r "$LOCAL_SOURCE_PATH"/* "$APP_DIR"/ 2>/dev/null; then
+    shopt -u dotglob
+    # Check if files were copied
+    if [ "$(ls -A ${APP_DIR} 2>/dev/null)" ]; then
+        ok "Source code copied from Windows share"
+    else
+        err "No files found in source directory"
+        unmount_windows_share
+        exit 1
+    fi
 else
-    err "Failed to clone repository"
+    err "Failed to copy files from Windows share"
+    unmount_windows_share
     exit 1
 fi
+
+# Unmount Windows share after copying
+unmount_windows_share
 
 chown -R ${WWW_USER}:${WWW_GROUP} ${APP_DIR}
 chmod -R 775 ${APP_DIR}
@@ -402,6 +499,7 @@ if [ "$KEEP_JUPYTER" = "false" ]; then
 fi
 
 echo ""
+echo "📂 Source: Windows Network Share (//${WIN_SERVER}/${WIN_SHARE}/${WIN_SUBDIR})"
 echo "✅ Auto-starts on boot (15s delay for FPGA initialization)"
 echo "✅ HTTPS enabled with self-signed certificate"
 echo "✅ Runs as root for FPGA hardware access"
