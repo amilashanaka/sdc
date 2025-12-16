@@ -1,10 +1,12 @@
 <?php
 $infobox = [
+    ['caption'=>'Scope','items'=>$user->get_count(),'icon'=>'fas fa-wave-square','bg'=>'bg-secondary','url'=>'scope'],
   ['caption'=>'Modules','items'=>$signal->get_count(),'icon'=>'fas fa-cubes','bg'=>'bg-info','url'=>'module_list'],
   ['caption'=>'Logs','items'=>$blog->get_count(),'icon'=>'fas fa-book','bg'=>'bg-danger','url'=>'blog_list'],
   ['caption'=>'Admins','items'=>$admin->get_count(),'icon'=>'fas fa-user-tie','bg'=>'bg-success','url'=>'admin_list'],
   ['caption'=>'Helath','items'=>$user->get_count(),'icon'=>'fas fa-heart','bg'=>'bg-warning','url'=>'health_list'],
   ['caption'=>'Settings','items'=>$user->get_count(),'icon'=>'fas fa-cog','bg'=>'bg-primary','url'=>'settings'],
+
 ];
 ?>
 <div class="container">
