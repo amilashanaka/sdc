@@ -105,7 +105,7 @@ include_once './sidebar.php';
                     BLOCK_SIZE: 2500,
                     BASE_SAMPLE_RATE: 10000,
                     DECIMATION_FACTOR: 20,
-                    EFFECTIVE_SAMPLE_RATE: 500,
+                    EFFECTIVE_SAMPLE_RATE: 5000,
                     COLORS: ['#1976d2','#e91e63','#4caf50','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a','#ff5722','#607d8b','#795548','#cddc39','#009688','#ffc107','#673ab7','#03a9f4'],
                     RECONNECT_DELAY: 3000,
                     SIGNAL_VARIANCE_THRESHOLD: 10
