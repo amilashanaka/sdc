@@ -26,7 +26,21 @@ include_once './sidebar.php';
                             Spicer 16-Ch DAQ
                         </h1>
 
-         
+                                 <div class="scope-section">Control</div>
+                        <div class="scope-controls">
+                            <button class="scope-btn" id="pause">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button class="scope-btn scope-btn-secondary" id="clear">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                            <button class="scope-btn scope-btn-secondary" id="deselect">
+                                <i class="fas fa-times"></i> Deselect
+                            </button>
+                            <button class="scope-btn scope-btn-secondary" id="refreshBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
 
                         <div class="scope-section">Channel Monitor</div>
                         <table class="scope-table" id="chTable">
@@ -100,21 +114,7 @@ include_once './sidebar.php';
                             </label>
                         </div>
 
-                        <div class="scope-section">Control</div>
-                        <div class="scope-controls">
-                            <button class="scope-btn" id="pause">
-                                <i class="fas fa-pause"></i> Pause
-                            </button>
-                            <button class="scope-btn scope-btn-secondary" id="clear">
-                                <i class="fas fa-eraser"></i> Clear
-                            </button>
-                            <button class="scope-btn scope-btn-secondary" id="deselect">
-                                <i class="fas fa-times"></i> Deselect
-                            </button>
-                            <button class="scope-btn scope-btn-secondary" id="refreshBtn">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
+
 
                         <div class="scope-status scope-disconnected" id="status">
                             <i class="fas fa-plug"></i>
