@@ -26,7 +26,25 @@ include_once './sidebar.php';
                             Spicer 16-Ch DAQ
                         </h1>
 
-                        <div class="scope-section">System Statistics</div>
+         
+
+                        <div class="scope-section">Channel Monitor</div>
+                        <table class="scope-table" id="chTable">
+                            <thead>
+                                <tr>
+                                    <th>Ch</th>
+                                    <th>Value</th>
+                                    <th>Min</th>
+                                    <th>Max</th>
+                                    <th>Freq</th>
+                                    <th>Amp</th>
+                                    <th>●</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+
+                                       <div class="scope-section">System Statistics</div>
                         <div class="scope-stats">
                             <div class="scope-stat">
                                 <span class="scope-stat-label">Frames</span>
@@ -98,22 +116,6 @@ include_once './sidebar.php';
                             </button>
                         </div>
 
-                        <div class="scope-section">Channel Monitor</div>
-                        <table class="scope-table" id="chTable">
-                            <thead>
-                                <tr>
-                                    <th>Ch</th>
-                                    <th>Value</th>
-                                    <th>Min</th>
-                                    <th>Max</th>
-                                    <th>Freq</th>
-                                    <th>Amp</th>
-                                    <th>●</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-
                         <div class="scope-status scope-disconnected" id="status">
                             <i class="fas fa-plug"></i>
                             <span>Connecting...</span>
@@ -130,6 +132,8 @@ include_once './sidebar.php';
                         <div class="scope-info" id="info">
                             <i class="fas fa-info-circle"></i> Waiting for data...
                         </div>
+
+                        
                     </div>
                 </div>
             </div>
