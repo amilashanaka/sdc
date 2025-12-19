@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Tue Dec  2 11:52:30 2025" VIVADOVERSION="2024.1.2">
+<EDKSYSTEM EDWVERSION="1.2" TIMESTAMP="Fri Dec 19 13:41:42 2025" VIVADOVERSION="2024.1.2">
 
   <SYSTEMINFO ARCH="zynq" BOARD="www.digilentinc.com:pynq-z1:part0:1.0" DEVICE="7z020" NAME="bram" PACKAGE="clg400" SPEEDGRADE="-1"/>
 
@@ -15421,119 +15421,119 @@
           <CONNECTIONS>
             <CONNECTION INSTANCE="processing_system7_0" PORT="M_AXI_GP0_ACLK"/>
             <CONNECTION INSTANCE="rst_ps7_0_100M" PORT="slowest_sync_clk"/>
-            <CONNECTION INSTANCE="adc_0_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_0_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_0_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_0_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_0_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_0_anchor_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_0_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="axi_smc" PORT="aclk"/>
-            <CONNECTION INSTANCE="adc_1_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_1_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_1_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_1_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_1_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_1_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_2_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_1_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_2_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_2_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_2_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_2_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_2_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_3_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_2_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_3_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_3_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_3_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_3_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_3_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_4_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_3_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_4_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_4_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_4_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_4_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_4_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_5_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_4_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_5_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_5_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_5_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_5_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_5_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_6_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_5_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_6_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_6_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_6_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_6_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_6_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_7_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_6_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_7_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_7_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_7_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_7_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_7_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_8_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_7_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_8_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_8_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_8_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_8_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_8_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_9_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_8_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_9_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_9_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_9_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_9_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_9_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_10_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_9_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_10_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_10_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_10_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_10_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_10_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_11_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_10_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_11_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_11_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_11_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_11_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_11_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_12_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_11_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_12_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_12_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_12_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_12_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_12_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_13_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_12_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_13_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_13_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_13_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_13_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_13_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_14_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_13_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_14_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_14_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_14_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_14_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_14_anchor_0" PORT="s_axi_aclk"/>
-            <CONNECTION INSTANCE="adc_15_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_14_filter_ctrl_0" PORT="s_axi_aclk"/>
             <CONNECTION INSTANCE="adc_15_Decim2_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_15_Decim4_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_15_Decim5_0" PORT="clk"/>
             <CONNECTION INSTANCE="adc_15_Decim5_1" PORT="clk"/>
             <CONNECTION INSTANCE="adc_15_anchor_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="adc_15_filter_ctrl_0" PORT="s_axi_aclk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_0" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_1" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_2" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_3" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_12" PORT="clk"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_13" PORT="clk"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_14" PORT="clk"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_15" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_12" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_11" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_10" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_9" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_8" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_6" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_5" PORT="clk"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_4" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_3" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_2" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_1" PORT="clk"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_0" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_5" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_6" PORT="clk"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_7" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_8" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_9" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_10" PORT="clk"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_11" PORT="clk"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" NAME="FCLK_RESET0_N" POLARITY="ACTIVE_LOW" SIGIS="rst" SIGNAME="processing_system7_0_FCLK_RESET0_N">
@@ -15988,119 +15988,119 @@
         <PORT DIR="O" NAME="mb_reset" POLARITY="ACTIVE_HIGH" SIGIS="rst"/>
         <PORT DIR="O" LEFT="0" NAME="peripheral_aresetn" POLARITY="ACTIVE_LOW" RIGHT="0" SIGIS="rst" SIGNAME="rst_ps7_0_100M_peripheral_aresetn">
           <CONNECTIONS>
-            <CONNECTION INSTANCE="adc_0_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_0_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_0_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_0_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_0_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_0_anchor_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_0_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="axi_smc" PORT="aresetn"/>
-            <CONNECTION INSTANCE="adc_1_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_1_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_1_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_1_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_1_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_1_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_2_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_1_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_2_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_2_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_2_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_2_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_2_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_3_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_2_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_3_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_3_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_3_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_3_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_3_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_4_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_3_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_4_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_4_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_4_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_4_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_4_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_5_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_4_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_5_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_5_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_5_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_5_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_5_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_6_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_5_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_6_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_6_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_6_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_6_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_6_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_7_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_6_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_7_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_7_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_7_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_7_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_7_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_8_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_7_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_8_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_8_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_8_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_8_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_8_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_9_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_8_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_9_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_9_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_9_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_9_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_9_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_10_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_9_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_10_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_10_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_10_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_10_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_10_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_11_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_10_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_11_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_11_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_11_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_11_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_11_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_12_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_11_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_12_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_12_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_12_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_12_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_12_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_13_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_12_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_13_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_13_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_13_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_13_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_13_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_14_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_13_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_14_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_14_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_14_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_14_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_14_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="adc_15_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="adc_14_filter_ctrl_0" PORT="s_axi_aresetn"/>
             <CONNECTION INSTANCE="adc_15_Decim2_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_15_Decim4_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_15_Decim5_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_15_Decim5_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="adc_15_anchor_0" PORT="s_axi_aresetn"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_15" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_14" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_13" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_12" PORT="reset_n"/>
+            <CONNECTION INSTANCE="adc_15_filter_ctrl_0" PORT="s_axi_aresetn"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_0" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_1" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_2" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_3" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_12" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_13" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_14" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_15" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_4" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_10" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_11" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_5" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_6" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_7" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_8" PORT="reset_n"/>
             <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_9" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_0" PORT="reset_n"/>
-            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_7" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_10" PORT="reset_n"/>
+            <CONNECTION INSTANCE="ADAQ4001_ADAQ4001_11" PORT="reset_n"/>
           </CONNECTIONS>
         </PORT>
         <PORT DIR="O" LEFT="0" NAME="peripheral_reset" POLARITY="ACTIVE_HIGH" RIGHT="0" SIGIS="rst"/>
