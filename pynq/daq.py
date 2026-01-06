@@ -3,8 +3,8 @@
 # ============================================================================
 """
 Name:    daq.py
-Version: 1.3
-Date:    05-01-2026
+Version: 1.2
+Date:    06-01-2026
 By:      Don Gunasinha, Spicer Consulting 
 Note:    PYNQ-based DAQ class with simplified FSM for data acquisition.
          Compatible with anchor.v v1.2
