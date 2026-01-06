@@ -1,13 +1,13 @@
 # ============================================================================
-# FIXED daq.py - WORKS WITH HALT-PROTECTED HARDWARE
+# FIXED daq.py - COMPATIBLE WITH anchor.v v1.2 (NO OVERRUN COUNTER)
 # ============================================================================
 """
 Name:    daq.py (Hardware Halt Protection)
-Version: 1.15
-Date:    01-12-2025
+Version: 1.16
+Date:    06-01-2026
 By:      Don Gunasinha, Spicer Consulting
-Fix:     Parallel channel reading to reduce read time and prevent buffer overruns
-         Requires anchor.v v3.2 with halt protection
+Fix:     Removed OVERRUN_COUNT functionality to match anchor.v v1.2
+         Parallel channel reading to reduce read time and prevent buffer overruns
 """
 
 from enum import Enum, auto
@@ -40,12 +40,11 @@ class Daq:
     
     VALID_DECIMATION = [1, 2, 4, 5, 10, 20, 25, 50, 100]
 
-    # Register offsets
+    # Register offsets (compatible with anchor.v v1.2)
     BUFFER_SELECT_ADDR = 0x00
     BUFFER_0_READY_ADDR = 0x04
     BUFFER_1_READY_ADDR = 0x08
     DATA_START_ADDR = 0x0C
-    OVERRUN_COUNT_ADDR = 0x10
 
     def __init__(self, bitstream="bram.bit", force_reboot=False, num_channels=MAX_CHANNELS, 
                  total_samples=TOTAL_SAMPLES, decim_factors=DECIM_FACTOR, vref=VREF, 
@@ -111,9 +110,8 @@ class Daq:
         self._background_thread = None
         self._running = False
 
-        # Diagnostics
+        # Diagnostics (removed overrun_count - not available in hardware)
         self.frame_count = 0
-        self.overrun_count = 0
         self.stall_count = 0
         self.error_count = 0
         self.last_frame_time = time.time()
@@ -177,7 +175,6 @@ class Daq:
                     a.write(self.BUFFER_SELECT_ADDR, 0)
                     a.write(self.BUFFER_0_READY_ADDR, 0)
                     a.write(self.BUFFER_1_READY_ADDR, 0)
-                    a.write(self.OVERRUN_COUNT_ADDR, 0)
                 except Exception:
                     pass
         
@@ -281,23 +278,6 @@ class Daq:
         
         return channels_read
 
-    def _check_overruns(self):
-        """Check for buffer overruns"""
-        total_overruns = 0
-        for ch in range(self.NUM_CHANNELS):
-            if self.anchors[ch] is not None:
-                try:
-                    count = self.anchors[ch].read(self.OVERRUN_COUNT_ADDR)
-                    if count > 0:
-                        total_overruns += count
-                        # Reset counter
-                        self.anchors[ch].write(self.OVERRUN_COUNT_ADDR, 0)
-                except:
-                    pass
-        
-        self.overrun_count += total_overruns
-        return total_overruns
-
     def _step(self):
         """State machine - read all channels quickly"""
         try:
@@ -323,9 +303,6 @@ class Daq:
             if s == DaqState.READ_ALL_CHANNELS:
                 # Read ALL channels in parallel
                 channels_read = self._read_all_channels_parallel()
-                
-                # Check for overruns
-                overruns = self._check_overruns()
                 
                 if channels_read > 0:
                     self._state = DaqState.PROCESS
@@ -467,7 +444,6 @@ class Daq:
         
         return {
             'frames': self.frame_count,
-            'overruns': self.overrun_count,
             'stalls': self.stall_count,
             'errors': self.error_count,
             'frame_rate': self.frame_rate,
@@ -488,4 +464,4 @@ class Daq:
         self.close()
 
     def get_version(self):
-        return "1.15", "0", "0"
+        return "1.16", "0", "0"
