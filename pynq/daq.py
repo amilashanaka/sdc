@@ -33,7 +33,7 @@ class DaqState(Enum):
 
 class Daq:
     MAX_CHANNELS = 16
-    TOTAL_SAMPLES = 2500
+    TOTAL_SAMPLES = 1250
     VREF = 1.5
     ADC_RESOLUTION = 1.0
     DECIM_FACTOR = 20
