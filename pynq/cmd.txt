@@ -2,9 +2,9 @@
 
 
 sudo su
-sed -i 's/\r$//' install.sh
-chmod +x install.sh
-sudo ./install.sh
+sed -i 's/\r$//' install_git.sh
+chmod +x install_git.sh
+sudo ./install_git.sh
 
 
 sudo lsof -i :8000

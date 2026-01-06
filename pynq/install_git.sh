@@ -14,7 +14,7 @@ set -euo pipefail
 # ============================================================================
 PYNQ_USER="xilinx"
 PYNQ_PASS="xilinx"
-KEEP_JUPYTER="false"  # Set to "true" to keep Jupyter Notebook running on port 9090
+KEEP_JUPYTER="true"  # Set to "true" to keep Jupyter Notebook running on port 9090
 
 # ============================================================================
 # SYSTEM CONFIGURATION
@@ -82,6 +82,8 @@ if [ "$KEEP_JUPYTER" = "false" ]; then
         systemctl disable jupyter 2>/dev/null || true
         pkill -f jupyter 2>/dev/null || true
         ok "Jupyter Notebook stopped and disabled"
+    else
+        ok "Jupyter Notebook already not running"
     fi
 else
     ok "Keeping Jupyter Notebook enabled"
@@ -91,19 +93,31 @@ fi
 # Check Port 80
 # ============================================================================
 log "Checking port 80..."
-PORT_80_PID=$(ss -tulpn | grep ':80 ' | grep -v apache2 | awk '{print $7}' | grep -oP 'pid=\K[0-9]+' | head -1)
+PORT_80_PID=$(ss -tulpn | grep ':80 ' | awk '{print $7}' | grep -oP 'pid=\K[0-9]+' | head -1)
 if [ -n "$PORT_80_PID" ]; then
-    PORT_80_CMD=$(ps -p $PORT_80_PID -o comm=)
+    PORT_80_CMD=$(ps -p $PORT_80_PID -o comm= 2>/dev/null || echo "unknown")
     
-    if [[ "$PORT_80_CMD" == *"jupyter"* ]] || [[ "$PORT_80_CMD" == *"pynq"* ]]; then
-        err "Port 80 is used by PYNQ service - ABORTING"
-        exit 1
+    # If it's apache2, we'll handle it later
+    if [[ "$PORT_80_CMD" == "apache2" ]] || [[ "$PORT_80_CMD" == "httpd" ]]; then
+        ok "Apache is running on port 80 (expected)"
+    # If it's jupyter and we're not keeping it, kill it
+    elif [[ "$PORT_80_CMD" == *"jupyter"* ]] || [[ "$PORT_80_CMD" == *"python"* ]] && [ "$KEEP_JUPYTER" = "false" ]; then
+        log "Stopping service on port 80 (PID: $PORT_80_PID) to free for Apache..."
+        kill $PORT_80_PID 2>/dev/null || true
+        sleep 1
+        ok "Port 80 freed"
+    # If it's jupyter and we ARE keeping it, we can't use port 80
+    elif [[ "$PORT_80_CMD" == *"jupyter"* ]] && [ "$KEEP_JUPYTER" = "true" ]; then
+        warn "Jupyter is using port 80 and KEEP_JUPYTER=true"
+        warn "Apache will not be able to use port 80"
+    else
+        log "Stopping other service on port 80 (PID: $PORT_80_PID, CMD: $PORT_80_CMD)..."
+        kill $PORT_80_PID 2>/dev/null || true
+        sleep 1
+        ok "Port 80 freed"
     fi
-    
-    log "Freeing port 80 (PID: $PORT_80_PID)..."
-    kill $PORT_80_PID 2>/dev/null || true
-    sleep 1
-    ok "Port 80 freed"
+else
+    ok "Port 80 is available"
 fi
 
 # Wait for apt update to complete
