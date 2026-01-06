@@ -137,7 +137,7 @@ spicer.local:user:Decim5:1.0\
 spicer.local:user:filter_ctrl:1.0\
 spicer.local:user:Decim2:1.0\
 spicer.local:user:Decim4:1.0\
-spicer.local:user:anchor:1.0\
+spicer.local:user:anchor:1.5\
 spicer.local:user:ADAQ4001:1.0\
 "
 
@@ -341,8 +341,8 @@ proc create_hier_cell_ADAQ4001 { parentCell nameHier } {
   connect_bd_net -net ADAQ4001_8_data_ready [get_bd_pins ADAQ4001_8/data_ready] [get_bd_pins data_ready1]
   connect_bd_net -net ADAQ4001_9_data_out [get_bd_pins ADAQ4001_9/data_out] [get_bd_pins data_out2]
   connect_bd_net -net ADAQ4001_9_data_ready [get_bd_pins ADAQ4001_9/data_ready] [get_bd_pins data_ready2]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins clk] [get_bd_pins ADAQ4001_0/clk] [get_bd_pins ADAQ4001_1/clk] [get_bd_pins ADAQ4001_2/clk] [get_bd_pins ADAQ4001_3/clk] [get_bd_pins ADAQ4001_12/clk] [get_bd_pins ADAQ4001_13/clk] [get_bd_pins ADAQ4001_14/clk] [get_bd_pins ADAQ4001_15/clk] [get_bd_pins ADAQ4001_4/clk] [get_bd_pins ADAQ4001_5/clk] [get_bd_pins ADAQ4001_6/clk] [get_bd_pins ADAQ4001_7/clk] [get_bd_pins ADAQ4001_8/clk] [get_bd_pins ADAQ4001_9/clk] [get_bd_pins ADAQ4001_10/clk] [get_bd_pins ADAQ4001_11/clk]
-  connect_bd_net -net rst_ps7_0_100M_peripheral_aresetn [get_bd_pins reset_n] [get_bd_pins ADAQ4001_0/reset_n] [get_bd_pins ADAQ4001_1/reset_n] [get_bd_pins ADAQ4001_2/reset_n] [get_bd_pins ADAQ4001_3/reset_n] [get_bd_pins ADAQ4001_12/reset_n] [get_bd_pins ADAQ4001_13/reset_n] [get_bd_pins ADAQ4001_14/reset_n] [get_bd_pins ADAQ4001_15/reset_n] [get_bd_pins ADAQ4001_4/reset_n] [get_bd_pins ADAQ4001_5/reset_n] [get_bd_pins ADAQ4001_6/reset_n] [get_bd_pins ADAQ4001_7/reset_n] [get_bd_pins ADAQ4001_8/reset_n] [get_bd_pins ADAQ4001_9/reset_n] [get_bd_pins ADAQ4001_10/reset_n] [get_bd_pins ADAQ4001_11/reset_n]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins clk] [get_bd_pins ADAQ4001_13/clk] [get_bd_pins ADAQ4001_14/clk] [get_bd_pins ADAQ4001_15/clk] [get_bd_pins ADAQ4001_12/clk] [get_bd_pins ADAQ4001_11/clk] [get_bd_pins ADAQ4001_10/clk] [get_bd_pins ADAQ4001_9/clk] [get_bd_pins ADAQ4001_8/clk] [get_bd_pins ADAQ4001_6/clk] [get_bd_pins ADAQ4001_5/clk] [get_bd_pins ADAQ4001_4/clk] [get_bd_pins ADAQ4001_3/clk] [get_bd_pins ADAQ4001_2/clk] [get_bd_pins ADAQ4001_1/clk] [get_bd_pins ADAQ4001_0/clk] [get_bd_pins ADAQ4001_7/clk]
+  connect_bd_net -net rst_ps7_0_100M_peripheral_aresetn [get_bd_pins reset_n] [get_bd_pins ADAQ4001_15/reset_n] [get_bd_pins ADAQ4001_14/reset_n] [get_bd_pins ADAQ4001_13/reset_n] [get_bd_pins ADAQ4001_12/reset_n] [get_bd_pins ADAQ4001_1/reset_n] [get_bd_pins ADAQ4001_2/reset_n] [get_bd_pins ADAQ4001_3/reset_n] [get_bd_pins ADAQ4001_4/reset_n] [get_bd_pins ADAQ4001_10/reset_n] [get_bd_pins ADAQ4001_11/reset_n] [get_bd_pins ADAQ4001_5/reset_n] [get_bd_pins ADAQ4001_6/reset_n] [get_bd_pins ADAQ4001_8/reset_n] [get_bd_pins ADAQ4001_9/reset_n] [get_bd_pins ADAQ4001_0/reset_n] [get_bd_pins ADAQ4001_7/reset_n]
   connect_bd_net -net sdo_0_1 [get_bd_pins sdo_0] [get_bd_pins ADAQ4001_0/sdo]
   connect_bd_net -net sdo_10_1 [get_bd_pins sdo_10] [get_bd_pins ADAQ4001_15/sdo]
   connect_bd_net -net sdo_11_1 [get_bd_pins sdo_11] [get_bd_pins ADAQ4001_5/sdo]
@@ -428,11 +428,8 @@ proc create_hier_cell_adc_15 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -454,8 +451,8 @@ proc create_hier_cell_adc_15 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -525,11 +522,8 @@ proc create_hier_cell_adc_14 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -551,8 +545,8 @@ proc create_hier_cell_adc_14 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -622,11 +616,8 @@ proc create_hier_cell_adc_13 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -648,8 +639,8 @@ proc create_hier_cell_adc_13 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -719,11 +710,8 @@ proc create_hier_cell_adc_12 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -745,8 +733,8 @@ proc create_hier_cell_adc_12 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -816,11 +804,8 @@ proc create_hier_cell_adc_11 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -842,8 +827,8 @@ proc create_hier_cell_adc_11 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -913,11 +898,8 @@ proc create_hier_cell_adc_10 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -939,8 +921,8 @@ proc create_hier_cell_adc_10 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1010,11 +992,8 @@ proc create_hier_cell_adc_9 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1036,8 +1015,8 @@ proc create_hier_cell_adc_9 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1107,11 +1086,8 @@ proc create_hier_cell_adc_8 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1133,8 +1109,8 @@ proc create_hier_cell_adc_8 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1204,11 +1180,8 @@ proc create_hier_cell_adc_7 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1230,8 +1203,8 @@ proc create_hier_cell_adc_7 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1301,11 +1274,8 @@ proc create_hier_cell_adc_6 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1327,8 +1297,8 @@ proc create_hier_cell_adc_6 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1398,11 +1368,8 @@ proc create_hier_cell_adc_5 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1424,8 +1391,8 @@ proc create_hier_cell_adc_5 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1495,11 +1462,8 @@ proc create_hier_cell_adc_4 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1521,8 +1485,8 @@ proc create_hier_cell_adc_4 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1592,11 +1556,8 @@ proc create_hier_cell_adc_3 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1618,8 +1579,8 @@ proc create_hier_cell_adc_3 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1689,11 +1650,8 @@ proc create_hier_cell_adc_2 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1715,8 +1673,8 @@ proc create_hier_cell_adc_2 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1786,11 +1744,8 @@ proc create_hier_cell_adc_1 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1812,8 +1767,8 @@ proc create_hier_cell_adc_1 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net s_axi_aresetn_1 [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1883,11 +1838,8 @@ proc create_hier_cell_adc_0 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1909,8 +1861,8 @@ proc create_hier_cell_adc_0 { parentCell nameHier } {
   connect_bd_net -net filter_ctrl_0_f2 [get_bd_pins filter_ctrl_0/f2] [get_bd_pins Decim4_0/en]
   connect_bd_net -net filter_ctrl_0_f3 [get_bd_pins filter_ctrl_0/f3] [get_bd_pins Decim5_0/en]
   connect_bd_net -net filter_ctrl_0_f4 [get_bd_pins filter_ctrl_0/f4] [get_bd_pins Decim5_1/en]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk]
-  connect_bd_net -net rst_ps7_0_100M_peripheral_aresetn [get_bd_pins s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins s_axi_aclk] [get_bd_pins filter_ctrl_0/s_axi_aclk] [get_bd_pins Decim2_0/clk] [get_bd_pins Decim4_0/clk] [get_bd_pins Decim5_0/clk] [get_bd_pins Decim5_1/clk] [get_bd_pins anchor_0/s_axi_aclk]
+  connect_bd_net -net rst_ps7_0_100M_peripheral_aresetn [get_bd_pins s_axi_aresetn] [get_bd_pins filter_ctrl_0/s_axi_aresetn] [get_bd_pins Decim2_0/reset_n] [get_bd_pins Decim4_0/reset_n] [get_bd_pins Decim5_0/reset_n] [get_bd_pins Decim5_1/reset_n] [get_bd_pins anchor_0/s_axi_aresetn]
 
   # Restore current instance
   current_bd_instance $oldCurInst

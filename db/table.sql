@@ -91,4 +91,20 @@ CREATE TABLE logs (
 
 
 
+drop TABLE if EXISTS daq_settings;
+CREATE TABLE daq_settings (
+    id int NOT NULL AUTO_INCREMENT,
+    f1 int DEFAULT 0, -- DEBUG mode
+    f2 int DEFAULT 8, -- Number of channels
+    f3 int DEFAULT 1025, -- Number of samples per Bank (1024 + 1 for trigger)
+    created_by int DEFAULT NULL,
+    created_date datetime DEFAULT CURRENT_TIMESTAMP,
+    updated_by int DEFAULT NULL,
+    updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status int DEFAULT 1,
+    PRIMARY KEY (id) USING BTREE
+);
+
+
+
 
