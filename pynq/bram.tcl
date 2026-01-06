@@ -137,7 +137,7 @@ spicer.local:user:Decim5:1.0\
 spicer.local:user:filter_ctrl:1.0\
 spicer.local:user:Decim2:1.0\
 spicer.local:user:Decim4:1.0\
-spicer.local:user:anchor:1.0\
+spicer.local:user:anchor:1.5\
 spicer.local:user:ADAQ4001:1.0\
 "
 
@@ -428,11 +428,8 @@ proc create_hier_cell_adc_15 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -525,11 +522,8 @@ proc create_hier_cell_adc_14 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -622,11 +616,8 @@ proc create_hier_cell_adc_13 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -719,11 +710,8 @@ proc create_hier_cell_adc_12 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -816,11 +804,8 @@ proc create_hier_cell_adc_11 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -913,11 +898,8 @@ proc create_hier_cell_adc_10 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1010,11 +992,8 @@ proc create_hier_cell_adc_9 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1107,11 +1086,8 @@ proc create_hier_cell_adc_8 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1204,11 +1180,8 @@ proc create_hier_cell_adc_7 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1301,11 +1274,8 @@ proc create_hier_cell_adc_6 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1398,11 +1368,8 @@ proc create_hier_cell_adc_5 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1495,11 +1462,8 @@ proc create_hier_cell_adc_4 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1592,11 +1556,8 @@ proc create_hier_cell_adc_3 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1689,11 +1650,8 @@ proc create_hier_cell_adc_2 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1786,11 +1744,8 @@ proc create_hier_cell_adc_1 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
@@ -1883,11 +1838,8 @@ proc create_hier_cell_adc_0 { parentCell nameHier } {
   set Decim5_1 [ create_bd_cell -type ip -vlnv spicer.local:user:Decim5:1.0 Decim5_1 ]
 
   # Create instance: anchor_0, and set properties
-  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.0 anchor_0 ]
-  set_property -dict [list \
-    CONFIG.C_S_AXI_ADDR_WIDTH {16} \
-    CONFIG.TOTAL_SAMPLES {2500} \
-  ] $anchor_0
+  set anchor_0 [ create_bd_cell -type ip -vlnv spicer.local:user:anchor:1.5 anchor_0 ]
+  set_property CONFIG.C_S_AXI_ADDR_WIDTH {16} $anchor_0
 
 
   # Create interface connections
