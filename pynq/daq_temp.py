@@ -41,7 +41,7 @@ class Daq:
         self.dma_recv2 = dma2.recvchannel
 
         # Define constants
-        data_size = 2500  # Total samples per DMA buffer
+        data_size = 1250  # Total samples per DMA buffer
         adc_resolution = 4095  # Max ADC value for 12-bit data
 
         # Allocate buffers for DMA data

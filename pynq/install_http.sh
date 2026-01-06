@@ -233,7 +233,7 @@ if not daq_initialized:
             while self.running:
                 self.data_buffer = bytearray()
                 for ch in range(16):
-                    for sample in range(2500):
+                    for sample in range(1250):  
                         # Generate simulated data
                         value = int(1000 * (ch + 1) * 
                                   (0.3 * random.random() + 
