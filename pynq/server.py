@@ -66,15 +66,15 @@ except Exception as e:
             while self.running:
                 buffer = bytearray()
                 
-                # Generate 2500 samples per channel (16 channels)
+                # Generate 1250 samples per channel (16 channels)
                 for ch in range(16):
                     # Create realistic waveform: sine + noise
-                    t = np.arange(2500) + self.sample_counter
+                    t = np.arange(1250) + self.sample_counter
                     frequency = 0.01 * (ch + 1)  # Different freq per channel
                     
                     # Sine wave + random noise
                     sine_wave = np.sin(2 * np.pi * frequency * t)
-                    noise = 0.1 * np.random.randn(2500)
+                    noise = 0.1 * np.random.randn(1250)
                     signal = sine_wave + noise
                     
                     # Scale to 16-bit integer range
@@ -87,7 +87,7 @@ except Exception as e:
                 with self.lock:
                     self.data_buffer = buffer
                 
-                self.sample_counter += 2500
+                self.sample_counter += 1250
                 time.sleep(0.1)  # 10 Hz update rate
         
         def read_streaming(self):

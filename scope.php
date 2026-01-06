@@ -99,7 +99,7 @@ include_once './sidebar.php';
                                 <span>Samples</span>
                                 <span class="scope-slider-value" id="samplesValue">10000</span>
                             </div>
-                            <input type="range" class="scope-slider" id="samplesSlider" min="2500" max="20000" value="10000" step="2500">
+                            <input type="range" class="scope-slider" id="samplesSlider" min="1250" max="20000" value="10000" step="1250">
                         </div>
 
                         <div class="scope-section">Display Options</div>
@@ -143,7 +143,7 @@ include_once './sidebar.php';
                 // ===== Configuration =====
                 const CONFIG = {
                     MAX_SAMPLES: 20000,
-                    BLOCK_SIZE: 2500,
+                    BLOCK_SIZE: 1250,
                     EFFECTIVE_SAMPLE_RATE: 5000,
                     COLORS: ['#007bff','#dc3545','#28a745','#ffc107','#17a2b8','#6610f2','#e83e8c','#fd7e14','#20c997','#6c757d','#343a40','#f8f9fa','#495057','#adb5bd','#ced4da','#dee2e6'],
                     RECONNECT_DELAY: 3000,
@@ -266,10 +266,10 @@ include_once './sidebar.php';
                     let offset = 8;
                     
                     for (let ch = 0; ch < 16; ch++) {
-                        if (offset + 5000 > headerOffset) break;
+                        if (offset + 1250 > headerOffset) break;
                         
-                        const arr = new Int16Array(2500);
-                        for (let i = 0; i < 2500; i++) {
+                        const arr = new Int16Array(1250);
+                        for (let i = 0; i < 1250; i++) {
                             const val = view.getInt16(offset, true);
                             arr[i] = (i === 0 && ch === 0) ? fixFirstSample(val, view.getInt16(offset + 2, true)) : val;
                             offset += 2;
