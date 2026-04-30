@@ -12,10 +12,15 @@ import error_codes
 DEBUG_ON = True
 ERROR_ON = True
 COMMS_TIMEOUT = 20 # seconds of no communications before TCP hang up and retry
+WEB_DEBUG_TIMEOUT = 30 # seconds since last web access before TCP can resume
 # Global variables
 tcp_connected = False
+daq_connected = False
+web_debug_mode = False
+web_debug_until = 0
 time_now = time.time()
 mydaq = None
+mytcp = None
 
 #Firmware Version
 FIRMWARE_VERSION = "2.21"
@@ -251,7 +256,11 @@ def comms(mytcp, mydaq):
 def ipc_callback(ipc, message, remote_address):
     """To be called when an IPC message comes in"""
     global tcp_connected
+    global daq_connected
+    global web_debug_mode
+    global web_debug_until
     global mydaq
+    global mytcp
     # UDP process wants to know if TCP is connected to PC
     if message == "Open?":
         if tcp_connected:
@@ -272,11 +281,46 @@ def ipc_callback(ipc, message, remote_address):
         ipc.send(reply, remote_address)
         if DEBUG_ON:
             print("Callback reply to GUI:", reply)
+    # Web interface accessed over HTTPS. Release TCP/DAQ so the web server
+    # can run DAQ in debug/streaming mode without fighting the PC protocol.
+    elif message == "DebugOn":
+        web_debug_mode = True
+        web_debug_until = time.time() + WEB_DEBUG_TIMEOUT
+        if tcp_connected and mytcp is not None:
+            try:
+                mytcp.close()
+            except Exception:
+                pass
+            tcp_connected = False
+        if daq_connected and mydaq is not None:
+            try:
+                mydaq.stop()
+                mydaq.close()
+            except Exception:
+                pass
+            mydaq = None
+            daq_connected = False
+        ipc.send("1", remote_address)
+        if DEBUG_ON:
+            print("Web debug mode enabled")
+    elif message == "DebugOff":
+        web_debug_mode = False
+        web_debug_until = 0
+        ipc.send("1", remote_address)
+        if DEBUG_ON:
+            print("Web debug mode disabled")
+    elif message == "Debug?":
+        reply = "1" if web_debug_mode else "0"
+        ipc.send(reply, remote_address)
 
 def main():
     """Main program of SC28 firmware"""
     global tcp_connected
+    global daq_connected
+    global web_debug_mode
+    global web_debug_until
     global mydaq
+    global mytcp
     print("\nMain program starting")
     # Initialise as not connected and no environment spec
     tcp_connected = False
@@ -291,6 +335,13 @@ def main():
 
     # Loop forever
     while True:
+        if web_debug_mode:
+            if time.time() < web_debug_until:
+                time.sleep(0.1)
+                continue
+            web_debug_mode = False
+            if DEBUG_ON:
+                print("Web debug mode timed out; TCP communication can resume")
         # If already connected to PC and SC11/SI
         if tcp_connected and daq_connected:
             # Perform communications
@@ -308,10 +359,19 @@ def main():
                 if ERROR_ON:
                     print(err.message)
             else:
+                if web_debug_mode:
+                    try:
+                        mytcp.close()
+                    except Exception:
+                        pass
+                    tcp_connected = False
+                    continue
                 # Connected - Turn on LED
                 tcp_connected = True
                 # ports.led_on()
         # If not connected to SC11/SI
+        if web_debug_mode:
+            continue
         if not daq_connected:
             # Initialise SC11/SI
             try:
