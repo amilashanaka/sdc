@@ -63,6 +63,13 @@ include_once './sidebar.php';
                                     <option value="V">V</option>
                                 </select>
                             </div>
+                            <div class="dc-calibration">
+                                <div class="scope-slider-label">
+                                    <span>Calibration</span>
+                                    <span class="scope-slider-value" id="calibrationValue">100%</span>
+                                </div>
+                                <input type="range" class="scope-slider" id="calibrationSlider" min="50" max="200" value="100" step="1">
+                            </div>
                         </div>
 
                         <div class="scope-section">Channel Monitor</div>
@@ -191,7 +198,8 @@ include_once './sidebar.php';
                     yRange: { min: -5000, max: 5000 },
                     samples: 10000,
                     dcUnit: 'mV',
-                    magneticOutput: false
+                    magneticOutput: false,
+                    calibrationScale: 1
                 };
 
                 // ===== WebSocket Management =====
@@ -471,7 +479,7 @@ include_once './sidebar.php';
                     }
 
                     const avgPeakToPeak = peakToPeakValues.reduce((sum, v) => sum + v, 0) / peakToPeakValues.length;
-                    valueEl.textContent = formatPeakToPeakValue(avgPeakToPeak);
+                    valueEl.textContent = formatPeakToPeakValue(avgPeakToPeak * state.calibrationScale);
                     updateDCMeterCount(peakToPeakValues.length);
                 }
 
@@ -488,18 +496,18 @@ include_once './sidebar.php';
                     const absValue = Math.abs(value);
 
                     if (unit === 'G') {
-                        return `${(absValue / 1000).toFixed(3)} G p-p`;
+                        return `${(absValue / 1000).toFixed(3)} G `;
                     }
 
                     if (unit === 'mg') {
-                        return `${absValue.toFixed(1)} mg p-p`;
+                        return `${absValue.toFixed(1)} mg `;
                     }
 
                     if (unit === 'V' || absValue >= 1000) {
-                        return `${(absValue / 1000).toFixed(3)} V p-p`;
+                        return `${(absValue / 1000).toFixed(3)} V `;
                     }
 
-                    return `${absValue.toFixed(1)} mV p-p`;
+                    return `${absValue.toFixed(1)} mV `;
                 }
 
                 function setDCUnitOptions() {
@@ -650,6 +658,7 @@ include_once './sidebar.php';
                     const yMinSlider = document.getElementById('yMinSlider');
                     const yMaxSlider = document.getElementById('yMaxSlider');
                     const samplesSlider = document.getElementById('samplesSlider');
+                    const calibrationSlider = document.getElementById('calibrationSlider');
                     
                     yMinSlider.oninput = e => {
                         state.yRange.min = parseInt(e.target.value);
@@ -667,6 +676,12 @@ include_once './sidebar.php';
                         state.samples = parseInt(e.target.value);
                         document.getElementById('samplesValue').textContent = state.samples;
                         plot();
+                    };
+
+                    calibrationSlider.oninput = e => {
+                        state.calibrationScale = parseInt(e.target.value) / 100;
+                        document.getElementById('calibrationValue').textContent = `${e.target.value}%`;
+                        updateDCLevel();
                     };
                     
                     // Checkboxes
