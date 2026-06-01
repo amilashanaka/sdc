@@ -68,7 +68,10 @@ include_once './sidebar.php';
                                     <span>Calibration</span>
                                     <span class="scope-slider-value" id="calibrationValue">100%</span>
                                 </div>
-                                <input type="range" class="scope-slider" id="calibrationSlider" min="50" max="200" value="100" step="1">
+                                <div class="dc-calibration-control">
+                                    <input type="range" class="scope-slider" id="calibrationSlider" min="25" max="500" value="100" step="1">
+                                    <input type="number" class="scope-input dc-calibration-input" id="calibrationInput" min="25" max="500" value="100" step="1">
+                                </div>
                             </div>
                         </div>
 
@@ -659,6 +662,7 @@ include_once './sidebar.php';
                     const yMaxSlider = document.getElementById('yMaxSlider');
                     const samplesSlider = document.getElementById('samplesSlider');
                     const calibrationSlider = document.getElementById('calibrationSlider');
+                    const calibrationInput = document.getElementById('calibrationInput');
                     
                     yMinSlider.oninput = e => {
                         state.yRange.min = parseInt(e.target.value);
@@ -678,11 +682,17 @@ include_once './sidebar.php';
                         plot();
                     };
 
-                    calibrationSlider.oninput = e => {
-                        state.calibrationScale = parseInt(e.target.value) / 100;
-                        document.getElementById('calibrationValue').textContent = `${e.target.value}%`;
+                    const setCalibration = value => {
+                        const percent = Math.min(500, Math.max(25, parseFloat(value) || 100));
+                        state.calibrationScale = percent / 100;
+                        calibrationSlider.value = percent;
+                        calibrationInput.value = percent;
+                        document.getElementById('calibrationValue').textContent = `${percent.toFixed(0)}%`;
                         updateDCLevel();
                     };
+
+                    calibrationSlider.oninput = e => setCalibration(e.target.value);
+                    calibrationInput.onchange = e => setCalibration(e.target.value);
                     
                     // Checkboxes
                     document.getElementById('autoY').onchange = plot;

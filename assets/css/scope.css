@@ -127,6 +127,15 @@ body.dark-mode {
     cursor: pointer;
 }
 
+.scope-input {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-size: 13px;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
 .dc-level-section {
     margin: 15px 0;
     padding: 12px;
@@ -236,6 +245,12 @@ body.dark-mode .dc-level-section {
     color: #eef8f2;
 }
 
+.dc-level-section .scope-input {
+    background: #16232b;
+    border-color: #2b3f4a;
+    color: #eef8f2;
+}
+
 .dc-level-section .scope-checkbox-label {
     color: #c6d4da;
 }
@@ -248,6 +263,18 @@ body.dark-mode .dc-level-section {
 
 .dc-calibration .scope-slider-label {
     color: #c6d4da;
+}
+
+.dc-calibration-control {
+    display: grid;
+    grid-template-columns: 1fr 74px;
+    align-items: center;
+    gap: 10px;
+}
+
+.dc-calibration-input {
+    width: 74px;
+    text-align: right;
 }
 
 .dc-unit-select {
