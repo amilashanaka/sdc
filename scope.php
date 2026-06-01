@@ -46,7 +46,7 @@ include_once './sidebar.php';
                         <div class="dc-level-section">
                             <div class="dc-meter">
                                 <div class="dc-meter-header">
-                                    <span class="dc-level-label" id="dcLevelLabel">Selected Channel Average</span>
+                                    <span class="dc-level-label" id="dcLevelLabel">Selected Channel DC Level</span>
                                     <span class="dc-meter-badge" id="dcMeterCount">0 CH</span>
                                 </div>
                                 <div class="dc-meter-screen">
@@ -105,15 +105,15 @@ include_once './sidebar.php';
                         <div class="scope-slider-group">
                             <div class="scope-slider-label">
                                 <span>Minimum</span>
-                                <span class="scope-slider-value" id="yMinValue">-2000</span>
+                                <span class="scope-slider-value" id="yMinValue">-5000</span>
                             </div>
-                            <input type="range" class="scope-slider" id="yMinSlider" min="-5000" max="0" value="-2000" step="100">
+                            <input type="range" class="scope-slider" id="yMinSlider" min="-5000" max="0" value="-5000" step="100">
                             
                             <div class="scope-slider-label" style="margin-top: 15px;">
                                 <span>Maximum</span>
-                                <span class="scope-slider-value" id="yMaxValue">2000</span>
+                                <span class="scope-slider-value" id="yMaxValue">5000</span>
                             </div>
-                            <input type="range" class="scope-slider" id="yMaxSlider" min="0" max="5000" value="2000" step="100">
+                            <input type="range" class="scope-slider" id="yMaxSlider" min="0" max="5000" value="5000" step="100">
                         </div>
 
                         <div class="scope-section">Time Base</div>
@@ -188,7 +188,7 @@ include_once './sidebar.php';
                     lastTime: 0,
                     dataRate: 0,
                     ws: null,
-                    yRange: { min: -2000, max: 2000 },
+                    yRange: { min: -5000, max: 5000 },
                     samples: 10000,
                     dcUnit: 'mV',
                     magneticOutput: false
@@ -451,27 +451,28 @@ include_once './sidebar.php';
                     const labelEl = document.getElementById('dcLevelLabel');
                     if (!valueEl || !labelEl) return;
 
-                    const channels = state.selected.size
-                        ? Array.from(state.selected)
-                        : state.buffers.map((_, i) => i).filter(i => state.buffers[i].valid);
-                    const means = channels
+                    const channels = Array.from(state.selected);
+                    const peakToPeakValues = channels
                         .filter(ch => state.buffers[ch].valid)
-                        .map(ch => state.buffers[ch].stats.mean)
+                        .map(ch => {
+                            const stats = state.buffers[ch].stats;
+                            return stats.max - stats.min;
+                        })
                         .filter(v => Number.isFinite(v));
 
                     labelEl.textContent = state.selected.size
-                        ? `Selected Channel Average (${channels.length})`
-                        : 'Selected Channel Average';
+                        ? `Selected Channel DC Level (${channels.length})`
+                        : 'Selected Channel DC Level';
 
-                    if (!means.length) {
+                    if (!peakToPeakValues.length) {
                         valueEl.textContent = '--';
                         updateDCMeterCount(0);
                         return;
                     }
 
-                    const avg = means.reduce((sum, v) => sum + v, 0) / means.length;
-                    valueEl.textContent = formatDCValue(avg);
-                    updateDCMeterCount(means.length);
+                    const avgPeakToPeak = peakToPeakValues.reduce((sum, v) => sum + v, 0) / peakToPeakValues.length;
+                    valueEl.textContent = formatPeakToPeakValue(avgPeakToPeak);
+                    updateDCMeterCount(peakToPeakValues.length);
                 }
 
                 function updateDCMeterCount(count) {
@@ -482,12 +483,23 @@ include_once './sidebar.php';
                     countEl.classList.toggle('dc-meter-badge-live', count > 0);
                 }
 
-                function formatDCValue(value) {
+                function formatPeakToPeakValue(value) {
                     const unit = state.dcUnit;
-                    const scaled = (unit === 'V' || unit === 'G') ? value / 1000 : value;
-                    const decimals = (unit === 'V' || unit === 'G') ? 3 : 1;
-                    const polarity = scaled > 0 ? '+' : scaled < 0 ? '-' : '';
-                    return `${polarity}${Math.abs(scaled).toFixed(decimals)} ${unit}`;
+                    const absValue = Math.abs(value);
+
+                    if (unit === 'G') {
+                        return `${(absValue / 1000).toFixed(3)} G p-p`;
+                    }
+
+                    if (unit === 'mg') {
+                        return `${absValue.toFixed(1)} mg p-p`;
+                    }
+
+                    if (unit === 'V' || absValue >= 1000) {
+                        return `${(absValue / 1000).toFixed(3)} V p-p`;
+                    }
+
+                    return `${absValue.toFixed(1)} mV p-p`;
                 }
 
                 function setDCUnitOptions() {
