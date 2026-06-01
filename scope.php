@@ -506,7 +506,7 @@ include_once './sidebar.php';
                         return `${absValue.toFixed(1)} mg `;
                     }
 
-                    if (unit === 'V' || absValue >= 1000) {
+                    if (unit === 'V') {
                         return `${(absValue / 1000).toFixed(3)} V `;
                     }
 
