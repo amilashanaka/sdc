@@ -44,9 +44,14 @@ include_once './sidebar.php';
 
                         <div class="scope-section">DC Level</div>
                         <div class="dc-level-section">
-                            <div class="dc-level-main">
-                                <span class="dc-level-label" id="dcLevelLabel">Selected Average</span>
-                                <span class="dc-level-value" id="dcLevelValue">--</span>
+                            <div class="dc-meter">
+                                <div class="dc-meter-header">
+                                    <span class="dc-level-label" id="dcLevelLabel">Selected Channel Average</span>
+                                    <span class="dc-meter-badge" id="dcMeterCount">0 CH</span>
+                                </div>
+                                <div class="dc-meter-screen">
+                                    <span class="dc-level-value" id="dcLevelValue">--</span>
+                                </div>
                             </div>
                             <div class="dc-level-controls">
                                 <label class="scope-checkbox-label">
@@ -455,16 +460,26 @@ include_once './sidebar.php';
                         .filter(v => Number.isFinite(v));
 
                     labelEl.textContent = state.selected.size
-                        ? `Selected Average (${channels.length})`
-                        : 'All Channel Average';
+                        ? `Selected Channel Average (${channels.length})`
+                        : 'Selected Channel Average';
 
                     if (!means.length) {
                         valueEl.textContent = '--';
+                        updateDCMeterCount(0);
                         return;
                     }
 
                     const avg = means.reduce((sum, v) => sum + v, 0) / means.length;
                     valueEl.textContent = formatDCValue(avg);
+                    updateDCMeterCount(means.length);
+                }
+
+                function updateDCMeterCount(count) {
+                    const countEl = document.getElementById('dcMeterCount');
+                    if (!countEl) return;
+
+                    countEl.textContent = `${count} CH`;
+                    countEl.classList.toggle('dc-meter-badge-live', count > 0);
                 }
 
                 function formatDCValue(value) {
