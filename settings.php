@@ -6,10 +6,10 @@ $form_config = [
     'form_action' => 'data/register_settings.php',
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
-        'f1' => ['label' => 'App Name', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f2' => ['label' => 'App Full Name', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f1' => ['label' => 'Serial Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true],
         'f3' => ['label' => 'Phone Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f4' => ['label' => 'Email', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f4' => ['label' => 'owner', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
         'f5' => ['label' => 'Address', 'type' => 'textarea', 'class' => 'form-control summernote', 'div_class' => 'col-lg-12 col-md-12 form-group'],       
         'img1' => ['label' => 'favicon', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
         'img2' => ['label' => 'header logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],

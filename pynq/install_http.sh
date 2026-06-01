@@ -9,6 +9,8 @@ DB_PASS="daq"
 DB_NAME="daq"
 PROCESS_NAME="server.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
+TLS_CERT="/etc/ssl/certs/spicer-daq.crt"
+TLS_KEY="/etc/ssl/private/spicer-daq.key"
 REPO_URL="https://github.com/amilashanaka/sdc.git"
 VENV_PATH="/usr/local/share/pynq-venv"
 
@@ -152,149 +154,10 @@ if [ -f "$SERVER_PY_PATH" ]; then
     
     # Backup original
     sudo cp "$SERVER_PY_PATH" "${SERVER_PY_PATH}.backup"
-    
-    # Write the exact server.py from your working system
-    sudo tee "$SERVER_PY_PATH" > /dev/null << 'EOF'
-#!/usr/bin/env python3
-from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import uvicorn
-import asyncio
-import os
-import sys
-import traceback
-
-# Set PYNQ environment variables
-os.environ['XILINX_XRT'] = '/usr'
-os.environ['LD_LIBRARY_PATH'] = '/usr/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
-
-app = FastAPI()
-
-# Mount static website
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Try to import and initialize DAQ with error handling
-daq = None
-daq_initialized = False
-
-print("=== Starting Spicer DAQ Server ===", file=sys.stderr)
-print(f"Python: {sys.executable}", file=sys.stderr)
-
-try:
-    # First, try to import pynq to check if it's available
-    import pynq
-    print("✓ PYNQ module imported", file=sys.stderr)
-    
-    # Now try to import daq module
-    from daq import Daq
-    print("✓ DAQ module imported", file=sys.stderr)
-    
-    # Try to initialize DAQ - this is where it might fail
-    try:
-        print("Initializing FPGA DAQ...", file=sys.stderr)
-        daq = Daq()
-        daq.start_background()
-        daq_initialized = True
-        print("✓ FPGA DAQ initialized successfully", file=sys.stderr)
-    except Exception as e:
-        print(f"⚠ FPGA DAQ initialization failed: {e}", file=sys.stderr)
-        print("Will run in simulation mode", file=sys.stderr)
-        # Create a simulated DAQ
-        daq = None
-        
-except ImportError as e:
-    print(f"✗ Module import failed: {e}", file=sys.stderr)
-    print("Will run in simulation mode", file=sys.stderr)
-    daq = None
-
-# If DAQ initialization failed, create a simulated one
-if not daq_initialized:
-    print("Creating simulated DAQ...", file=sys.stderr)
-    import random
-    import struct
-    import time
-    from threading import Thread
-    
-    class SimulatedDAQ:
-        def __init__(self):
-            self.running = False
-            self.thread = None
-            self.data_buffer = bytearray()
-            
-        def start_background(self):
-            self.running = True
-            self.thread = Thread(target=self._background_task, daemon=True)
-            self.thread.start()
-            print("✓ Simulated DAQ background started", file=sys.stderr)
-        
-        def _background_task(self):
-            counter = 0
-            while self.running:
-                self.data_buffer = bytearray()
-                for ch in range(16):
-                    for sample in range(1250):  
-                        # Generate simulated data
-                        value = int(1000 * (ch + 1) * 
-                                  (0.3 * random.random() + 
-                                   0.7 * (sample % 100) / 100))
-                        self.data_buffer.extend(struct.pack('h', value))
-                counter += 1
-                time.sleep(0.1)
-        
-        def read_streaming(self):
-            if self.data_buffer:
-                data = bytes(self.data_buffer)
-                self.data_buffer = bytearray()
-                return data
-            return None
-    
-    daq = SimulatedDAQ()
-    daq.start_background()
-
-@app.get("/")
-async def serve_index():
-    return FileResponse("static/index.php", media_type="text/html")
-
-@app.get("/scope")
-async def serve_scope():
-    return FileResponse("static/scope.php", media_type="text/html")
-
-@app.get("/dash")
-async def serve_dash():
-    return FileResponse("static/dash.php", media_type="text/html")
-
-@app.websocket("/ws")
-async def websocket_data(websocket: WebSocket):
-    await websocket.accept()
-    print(f"WebSocket connection established", file=sys.stderr)
-    
-    try:
-        while True:
-            if daq:
-                data = daq.read_streaming()
-            else:
-                data = None
-            
-            if data:
-                await websocket.send_bytes(data)
-            else:
-                await websocket.send_json({"type": "heartbeat"})
-            
-            await asyncio.sleep(0.01)
-    except Exception as e:
-        print(f"WebSocket error: {e}", file=sys.stderr)
-        print(traceback.format_exc(), file=sys.stderr)
-    finally:
-        print("WebSocket connection closed", file=sys.stderr)
-
-if __name__ == "__main__":
-    print("Starting uvicorn server on 127.0.0.1:8000", file=sys.stderr)
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
-EOF
+    # Use the server.py from the repository; it contains the HTTPS debug-mode handoff.
     
     sudo chmod +x "$SERVER_PY_PATH"
-    ok "server.py configured"
+    ok "server.py configured from repository"
 else
     err "server.py NOT found at ${APP_DIR}/pynq/server.py"
     exit 1
@@ -367,11 +230,33 @@ else
 fi
 
 log "Configuring Apache..."
-# Create Apache virtual host configuration (exact match to your working system)
+log "Creating self-signed TLS certificate for https://${SERVER_IP}/..."
+if [ ! -f "$TLS_CERT" ] || [ ! -f "$TLS_KEY" ]; then
+    sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout "$TLS_KEY" \
+        -out "$TLS_CERT" \
+        -subj "/CN=${SERVER_IP}" \
+        -addext "subjectAltName=IP:${SERVER_IP}" >>$LOG_FILE 2>&1
+    sudo chmod 600 "$TLS_KEY"
+    ok "TLS certificate created"
+else
+    ok "Existing TLS certificate found"
+fi
+
+# Create Apache virtual host configuration
 sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
 <VirtualHost *:80>
     ServerName ${SERVER_IP}
+    Redirect permanent / https://${SERVER_IP}/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName ${SERVER_IP}
     DocumentRoot ${APP_DIR}
+
+    SSLEngine on
+    SSLCertificateFile ${TLS_CERT}
+    SSLCertificateKeyFile ${TLS_KEY}
 
     <Directory ${APP_DIR}>
         AllowOverride All
@@ -394,7 +279,7 @@ sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
 EOF
 
 # Enable required Apache modules
-sudo a2enmod proxy proxy_http proxy_wstunnel rewrite headers >>$LOG_FILE 2>&1
+sudo a2enmod ssl proxy proxy_http proxy_wstunnel rewrite headers >>$LOG_FILE 2>&1
 
 sudo a2dissite 000-default default-ssl >/dev/null 2>&1 || true
 sudo a2ensite spicer.conf >/dev/null
@@ -461,17 +346,17 @@ else
     warn "WebSocket connection test failed (might be OK if no clients connected)"
 fi
 
-# Test Apache serving static files
-log "3. Testing Apache static file serving..."
-if curl -s -f "http://${SERVER_IP}/" >/dev/null 2>&1; then
-    ok "Apache serving static files on port 80"
+# Test Apache serving static files over HTTPS
+log "3. Testing Apache HTTPS static file serving..."
+if curl -k -s -f "https://${SERVER_IP}/" >/dev/null 2>&1; then
+    ok "Apache serving static files on port 443"
 else
-    warn "Apache not responding on port 80"
+    warn "Apache not responding on port 443"
 fi
 
 # Test Apache proxy to FastAPI
-log "4. Testing Apache proxy to FastAPI..."
-if curl -s -f "http://${SERVER_IP}/api/" >/dev/null 2>&1; then
+log "4. Testing Apache HTTPS proxy to FastAPI..."
+if curl -k -s -f "https://${SERVER_IP}/api/" >/dev/null 2>&1; then
     ok "Apache proxy to FastAPI working"
 else
     warn "Apache proxy to FastAPI not working (endpoint might not exist)"
@@ -481,10 +366,10 @@ ok "Installation complete!"
 echo ""
 echo "=========================================="
 echo "🎯 Access Points:"
-echo "  Static Files:     http://${SERVER_IP}/"
+echo "  Static Files:     https://${SERVER_IP}/"
 echo "  FastAPI Server:   http://127.0.0.1:8000/"
-echo "  FastAPI via Proxy: http://${SERVER_IP}/api/"
-echo "  WebSocket (WS):   ws://127.0.0.1:8000/ws"
+echo "  FastAPI via Proxy: https://${SERVER_IP}/api/"
+echo "  WebSocket (WSS):  wss://${SERVER_IP}/ws"
 echo "  PYNQ Jupyter:     http://${SERVER_IP}:9090/tree"
 echo ""
 echo "📊 Database:"
@@ -509,7 +394,7 @@ echo ""
 echo "🔧 Quick Tests:"
 echo "  Test FastAPI: curl http://127.0.0.1:8000/"
 echo "  Test WebSocket: $VENV_PATH/bin/python -m websockets ws://127.0.0.1:8000/ws"
-echo "  Test Apache: curl http://${SERVER_IP}/"
+echo "  Test Apache: curl -k https://${SERVER_IP}/"
 echo "  Check port 8000: sudo ss -tlnp | grep :8000"
 echo ""
 echo "✅ FastAPI server runs via systemd service (spicer-daq)"
@@ -563,7 +448,7 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
             });
         
         // Test Apache
-        fetch('http://' + window.location.hostname + '/')
+        fetch('https://' + window.location.hostname + '/')
             .then(response => {
                 document.getElementById('apache-status').innerHTML = 
                     '<strong>✓ Apache Server (Port 80):</strong> Responding';
@@ -576,7 +461,7 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
             });
         
         // Test WebSocket connection
-        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
+        const ws = new WebSocket('wss://' + window.location.hostname + '/ws');
         
         ws.onopen = function() {
             document.getElementById('websocket-status').innerHTML = 
@@ -596,7 +481,7 @@ sudo tee ${APP_DIR}/test.html > /dev/null <<EOF
 EOF
 
 echo ""
-echo "Test page created: http://${SERVER_IP}/test.html"
+echo "Test page created: https://${SERVER_IP}/test.html"
 echo "Installation log: ${LOG_FILE}"
 echo "Server logs: sudo journalctl -u spicer-daq.service -f"
 echo ""

@@ -127,6 +127,52 @@ body.dark-mode {
     cursor: pointer;
 }
 
+.dc-level-section {
+    margin: 15px 0;
+    padding: 15px;
+    background: var(--light);
+    border-left: 3px solid var(--success);
+    border-radius: 0 3px 3px 0;
+}
+
+body.dark-mode .dc-level-section {
+    background: var(--dark);
+}
+
+.dc-level-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.dc-level-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.dc-level-value {
+    color: var(--text-primary);
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.dc-level-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.dc-unit-select {
+    min-width: 76px;
+}
+
 .scope-status {
     padding: 12px;
     border-radius: 3px;

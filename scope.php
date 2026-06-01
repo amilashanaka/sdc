@@ -42,6 +42,24 @@ include_once './sidebar.php';
                             </button>
                         </div>
 
+                        <div class="scope-section">DC Level</div>
+                        <div class="dc-level-section">
+                            <div class="dc-level-main">
+                                <span class="dc-level-label" id="dcLevelLabel">Selected Average</span>
+                                <span class="dc-level-value" id="dcLevelValue">--</span>
+                            </div>
+                            <div class="dc-level-controls">
+                                <label class="scope-checkbox-label">
+                                    <input type="checkbox" id="magneticOutput">
+                                    Magnetic sensor
+                                </label>
+                                <select class="scope-select dc-unit-select" id="dcUnit">
+                                    <option value="mV">mV</option>
+                                    <option value="V">V</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="scope-section">Channel Monitor</div>
                         <table class="scope-table" id="chTable">
                             <thead>
@@ -166,7 +184,9 @@ include_once './sidebar.php';
                     dataRate: 0,
                     ws: null,
                     yRange: { min: -2000, max: 2000 },
-                    samples: 10000
+                    samples: 10000,
+                    dcUnit: 'mV',
+                    magneticOutput: false
                 };
 
                 // ===== WebSocket Management =====
@@ -310,6 +330,7 @@ include_once './sidebar.php';
                         buf.lastUpdate = timestamp;
                         buf.hasNonZero = false;
                         buf.stats = { min: 0, max: 0, mean: 0, variance: 0, frequency: 0, amplitude: 0 };
+                        updateDCLevel();
                         return;
                     }
                     
@@ -322,6 +343,7 @@ include_once './sidebar.php';
                     buf.valid = true;
                     buf.lastUpdate = timestamp;
                     calcStats(buf);
+                    updateDCLevel();
                 }
 
                 function isDuplicate(existing, block) {
@@ -419,6 +441,51 @@ include_once './sidebar.php';
                     }
                 }
 
+                function updateDCLevel() {
+                    const valueEl = document.getElementById('dcLevelValue');
+                    const labelEl = document.getElementById('dcLevelLabel');
+                    if (!valueEl || !labelEl) return;
+
+                    const channels = state.selected.size
+                        ? Array.from(state.selected)
+                        : state.buffers.map((_, i) => i).filter(i => state.buffers[i].valid);
+                    const means = channels
+                        .filter(ch => state.buffers[ch].valid)
+                        .map(ch => state.buffers[ch].stats.mean)
+                        .filter(v => Number.isFinite(v));
+
+                    labelEl.textContent = state.selected.size
+                        ? `Selected Average (${channels.length})`
+                        : 'All Channel Average';
+
+                    if (!means.length) {
+                        valueEl.textContent = '--';
+                        return;
+                    }
+
+                    const avg = means.reduce((sum, v) => sum + v, 0) / means.length;
+                    valueEl.textContent = formatDCValue(avg);
+                }
+
+                function formatDCValue(value) {
+                    const unit = state.dcUnit;
+                    const scaled = (unit === 'V' || unit === 'G') ? value / 1000 : value;
+                    const decimals = (unit === 'V' || unit === 'G') ? 3 : 1;
+                    const polarity = scaled > 0 ? '+' : scaled < 0 ? '-' : '';
+                    return `${polarity}${Math.abs(scaled).toFixed(decimals)} ${unit}`;
+                }
+
+                function setDCUnitOptions() {
+                    const unitSelect = document.getElementById('dcUnit');
+                    if (!unitSelect) return;
+
+                    const units = state.magneticOutput ? ['mg', 'G'] : ['mV', 'V'];
+                    unitSelect.innerHTML = units.map(unit => `<option value="${unit}">${unit}</option>`).join('');
+                    state.dcUnit = units[0];
+                    unitSelect.value = state.dcUnit;
+                    updateDCLevel();
+                }
+
                 function plot() {
                     const container = document.getElementById('scopePlot');
                     
@@ -514,6 +581,7 @@ include_once './sidebar.php';
                     document.querySelectorAll('#chTable tbody tr').forEach((r, i) => {
                         r.classList.toggle('scope-selected', state.selected.has(i));
                     });
+                    updateDCLevel();
                     
                     const list = Array.from(state.selected).sort((a, b) => a - b);
                     document.getElementById('chTitle').textContent = list.length ? 
@@ -577,6 +645,14 @@ include_once './sidebar.php';
                     // Checkboxes
                     document.getElementById('autoY').onchange = plot;
                     document.getElementById('grid').onchange = plot;
+                    document.getElementById('magneticOutput').onchange = e => {
+                        state.magneticOutput = e.target.checked;
+                        setDCUnitOptions();
+                    };
+                    document.getElementById('dcUnit').onchange = e => {
+                        state.dcUnit = e.target.value;
+                        updateDCLevel();
+                    };
                     
                     // Buttons
                     document.getElementById('pause').onclick = function() {
@@ -595,6 +671,7 @@ include_once './sidebar.php';
                         state.dataRate = 0;
                         plot();
                         updateInfo();
+                        updateDCLevel();
                     };
                     
                     document.getElementById('deselect').onclick = () => {
@@ -609,8 +686,10 @@ include_once './sidebar.php';
                 function init() {
                     buildTable();
                     setupControls();
+                    setDCUnitOptions();
                     connectWS();
                     plot();
+                    updateDCLevel();
                     
                     // Theme observer
                     new MutationObserver(plot).observe(document.body, { 
