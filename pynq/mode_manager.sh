@@ -15,6 +15,15 @@ log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
+cleanup() {
+    log_message "Mode manager stopping"
+    stop_debug_mode
+    stop_run_mode
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
 # Initialize mode file to RUN mode by default
 init_mode() {
     if [ ! -f "$MODE_FILE" ]; then
@@ -43,7 +52,8 @@ set_mode() {
 stop_run_mode() {
     log_message "Stopping RUN mode..."
     if [ -f "$RUN_PID_FILE" ]; then
-        local pid=$(cat "$RUN_PID_FILE")
+        local pid
+        pid=$(cat "$RUN_PID_FILE")
         if kill -0 "$pid" 2>/dev/null; then
             kill "$pid" 2>/dev/null
             sleep 2
@@ -57,7 +67,7 @@ stop_run_mode() {
 # Start run mode (TCP/startup)
 start_run_mode() {
     log_message "Starting RUN mode (./startup)..."
-    cd /var/www/html/pynq
+    cd /var/www/html/pynq || return 1
     nohup ./startup > /var/log/spicer-startup.log 2>&1 &
     local pid=$!
     echo "$pid" > "$RUN_PID_FILE"
@@ -69,7 +79,8 @@ start_run_mode() {
 stop_debug_mode() {
     log_message "Stopping DEBUG mode..."
     if [ -f "$DEBUG_PID_FILE" ]; then
-        local pid=$(cat "$DEBUG_PID_FILE")
+        local pid
+        pid=$(cat "$DEBUG_PID_FILE")
         if kill -0 "$pid" 2>/dev/null; then
             kill "$pid" 2>/dev/null
             sleep 2
@@ -83,7 +94,7 @@ stop_debug_mode() {
 # Start debug mode (server.py/websocket)
 start_debug_mode() {
     log_message "Starting DEBUG mode (server.py)..."
-    cd /var/www/html/pynq
+    cd /var/www/html/pynq || return 1
     nohup /usr/bin/python3 server.py > /var/log/spicer-server.log 2>&1 &
     local pid=$!
     echo "$pid" > "$DEBUG_PID_FILE"
@@ -93,13 +104,14 @@ start_debug_mode() {
 
 # Switch from RUN to DEBUG mode
 switch_to_debug() {
-    local current_mode=$(get_mode)
-    
+    local current_mode
+    current_mode=$(get_mode)
+
     if [ "$current_mode" = "DEBUG" ]; then
         log_message "Already in DEBUG mode"
         return 0
     fi
-    
+
     log_message "Switching to DEBUG mode..."
     stop_run_mode
     sleep 1
@@ -109,13 +121,14 @@ switch_to_debug() {
 
 # Switch from DEBUG to RUN mode
 switch_to_run() {
-    local current_mode=$(get_mode)
-    
+    local current_mode
+    current_mode=$(get_mode)
+
     if [ "$current_mode" = "RUN" ]; then
         log_message "Already in RUN mode"
         return 0
     fi
-    
+
     log_message "Switching to RUN mode..."
     stop_debug_mode
     sleep 1
@@ -123,14 +136,63 @@ switch_to_run() {
     log_message "Successfully switched to RUN mode"
 }
 
+monitor_mode() {
+    local current_mode
+    current_mode=$(get_mode)
+
+    while true; do
+        local mode
+        mode=$(get_mode)
+
+        if [ "$mode" != "$current_mode" ]; then
+            if [ "$mode" = "DEBUG" ]; then
+                switch_to_debug
+            else
+                switch_to_run
+            fi
+            current_mode="$mode"
+        fi
+
+        if [ "$current_mode" = "RUN" ]; then
+            if [ -f "$RUN_PID_FILE" ]; then
+                local pid
+                pid=$(cat "$RUN_PID_FILE")
+                if ! kill -0 "$pid" 2>/dev/null; then
+                    log_message "RUN mode process died unexpectedly"
+                    rm -f "$RUN_PID_FILE"
+                    start_run_mode
+                fi
+            else
+                log_message "RUN mode not active, starting RUN mode"
+                start_run_mode
+            fi
+        else
+            if [ -f "$DEBUG_PID_FILE" ]; then
+                local pid
+                pid=$(cat "$DEBUG_PID_FILE")
+                if ! kill -0 "$pid" 2>/dev/null; then
+                    log_message "DEBUG mode process died unexpectedly"
+                    rm -f "$DEBUG_PID_FILE"
+                    start_debug_mode
+                fi
+            else
+                log_message "DEBUG mode not active, starting DEBUG mode"
+                start_debug_mode
+            fi
+        fi
+
+        sleep 5
+    done
+}
+
 # Main startup routine
 startup() {
     init_mode
     log_message "=== Mode Manager Starting ==="
-    
-    # Start in RUN mode by default
-    local mode=$(get_mode)
-    
+
+    local mode
+    mode=$(get_mode)
+
     if [ "$mode" = "DEBUG" ]; then
         log_message "Resuming DEBUG mode"
         start_debug_mode
@@ -138,6 +200,8 @@ startup() {
         log_message "Starting in RUN mode"
         start_run_mode
     fi
+
+    monitor_mode
 }
 
 # Main logic

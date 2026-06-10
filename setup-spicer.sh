@@ -63,10 +63,7 @@ sudo tee /etc/apache2/sites-available/spicer.conf > /dev/null << EOF
         Require all granted
     </Directory>
     
-    # Trigger debug mode on web portal access
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} ^/(scope|dashboard|admin|index\.php)
-    RewriteRule ^(.*)$ /trigger_debug_mode.php?path=\$1 [L,QSA]
     
     # WebSocket proxying
     RewriteCond %{HTTP:Upgrade} websocket [NC]
