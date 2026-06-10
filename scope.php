@@ -5,6 +5,20 @@ $id = 1;
 $row = ($id > 0 && isset($setting)) ? $setting->get_by_id($id)['data'] : null;
 include_once './navbar.php';
 include_once './sidebar.php';
+
+// Check system mode - scope requires DEBUG mode
+$modeFile = '/var/www/html/pynq/.mode';
+$systemMode = 'RUN';
+if (file_exists($modeFile)) {
+    $systemMode = trim(file_get_contents($modeFile));
+}
+
+// If in RUN mode, show error and redirect after user acknowledges
+$runModeError = false;
+if ($systemMode !== 'DEBUG') {
+    $runModeError = true;
+}
+
 ?>
 
 <link rel="stylesheet" href="assets/css/scope.css">
@@ -756,6 +770,64 @@ include_once './sidebar.php';
                     init();
                 }
             </script>
+
+            <?php if ($runModeError): ?>
+            <script>
+                swal({
+                    title: "System in RUN Mode",
+                    text: "The Oscilloscope requires DEBUG mode to stream WebSocket data. The system is currently in RUN mode (TCP protocol).\n\nWould you like to switch to DEBUG mode?",
+                    type: "error",
+                    showCancelButton: true,
+                    confirmButtonText: "Switch to DEBUG",
+                    cancelButtonText: "Go to Dashboard"
+                }, function(isConfirm) {
+                    if (isConfirm) {
+                        // Show loading alert
+                        swal({
+                            title: "Switching to DEBUG Mode",
+                            text: "The system is switching to DEBUG mode. Please wait...",
+                            type: "info",
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            didOpen: function() {
+                                swal.showLoading();
+                            }
+                        });
+
+                        // Perform mode switch
+                        fetch('data/mode_action.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: 'mode=DEBUG'
+                        })
+                        .then(function(response) {
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            if (data.success) {
+                                swal({
+                                    title: "Success",
+                                    text: "System switched to DEBUG mode. Reloading page...",
+                                    type: "success"
+                                }, function() {
+                                    location.reload();
+                                });
+                            } else {
+                                swal("Error", "Failed to switch mode: " + (data.error || "Unknown error"), "error");
+                            }
+                        })
+                        .catch(function(error) {
+                            swal("Error", "Mode switch failed: " + error, "error");
+                        });
+                    } else {
+                        // Redirect to dashboard
+                        window.location.href = 'dashboard';
+                    }
+                });
+            </script>
+            <?php endif; ?>
         </div>
     </section>
 </div>
