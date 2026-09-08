@@ -1,2 +1,22 @@
-python3 main.py &
-python3 udp.py &
+#!/bin/bash
+# Spicer DAQ Startup Script for RUN Mode
+# This runs the legacy TCP server (main.py and udp.py) when not in DEBUG mode
+
+set -e  # Exit on error
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Spicer DAQ in RUN mode..."
+
+# Change to pynq directory
+cd /var/www/html/pynq || exit 1
+
+# Ensure scripts are executable
+chmod +x main.py udp.py 2>/dev/null || true
+
+# Run main.py and udp.py in background (TCP mode - startup)
+/usr/bin/python3 main.py &
+/usr/bin/python3 udp.py &
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Spicer DAQ startup processes started"
+
+# Wait for all background processes
+wait
