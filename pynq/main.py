@@ -1,4 +1,9 @@
 # SC28 Main program
+import utils.net
+import utils.clients
+import utils.http_session
+import utils.transport
+import utils.session
 TH_METER = False
 
 import time

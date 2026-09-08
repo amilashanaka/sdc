@@ -1,2 +1,4 @@
 uploads
 controllers/config.php
+config.bat
+node_modules
