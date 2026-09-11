@@ -193,7 +193,7 @@ if [ ! -d "$LOCAL_SOURCE_PATH" ]; then
 fi
 
 # ============================================================================
-# OPTIMIZE: Install packages with minimal interaction
+# Install packages before using Apache/OpenSSL
 # ============================================================================
 log "Installing system packages..."
 export DEBIAN_FRONTEND=noninteractive
@@ -201,11 +201,11 @@ apt install -y --no-install-recommends \
     apache2 apache2-utils \
     php libapache2-mod-php php-mysql php-cli \
     mariadb-server mariadb-client \
-    openssl >>$LOG_FILE 2>&1 &
-INSTALL_PID=$!
+    openssl >>$LOG_FILE 2>&1
+ok "System packages installed"
 
 # ============================================================================
-# OPTIMIZE: Generate SSL cert while packages install
+# Generate the certificate after OpenSSL is installed
 # ============================================================================
 log "Generating SSL certificate..."
 mkdir -p /etc/ssl/private
@@ -213,20 +213,19 @@ if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout "$SSL_KEY" \
         -out "$SSL_CERT" \
-        -subj "/C=US/ST=State/L=City/O=Org/CN=${SERVER_IP}" >>$LOG_FILE 2>&1 &
-    SSL_PID=$!
+        -subj "/C=US/ST=State/L=City/O=Org/CN=${SERVER_IP}" >>$LOG_FILE 2>&1
+    chmod 600 "$SSL_KEY"
+    ok "SSL certificate created"
 else
     ok "Using existing SSL certificate"
-    SSL_PID=""
 fi
 
-# Wait for package installation
-wait $INSTALL_PID 2>/dev/null || true
-ok "System packages installed"
-
-# Wait for SSL generation if running
-[ -n "$SSL_PID" ] && wait $SSL_PID 2>/dev/null || true
-[ ! -f "$SSL_CERT" ] || ok "SSL certificate ready"
+if [ ! -s "$SSL_CERT" ] || [ ! -s "$SSL_KEY" ]; then
+    err "SSL certificate generation failed"
+    err "Expected certificate: $SSL_CERT"
+    err "Expected private key: $SSL_KEY"
+    exit 1
+fi
 
 # ============================================================================
 # Configure Apache modules
@@ -451,6 +450,13 @@ if apache2ctl configtest 2>&1 | grep -q "Syntax OK"; then
 else
     err "Apache config error"
     apache2ctl configtest
+    exit 1
+fi
+
+if ! systemctl is-active --quiet apache2; then
+    err "Apache is not active after restart"
+    systemctl status apache2 --no-pager -l || true
+    journalctl -u apache2.service --no-pager -n 30 || true
     exit 1
 fi
 

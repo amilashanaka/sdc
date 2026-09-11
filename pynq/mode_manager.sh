@@ -117,6 +117,11 @@ switch_to_debug() {
     sleep 1
     start_debug_mode
     log_message "Successfully switched to DEBUG mode"
+    
+    # Reboot the system after switching to DEBUG mode
+    log_message "Rebooting system after DEBUG mode switch..."
+    sleep 2
+    reboot
 }
 
 # Switch from DEBUG to RUN mode
