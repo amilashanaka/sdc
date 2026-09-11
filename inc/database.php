@@ -7,9 +7,14 @@
  * information from the website's database.
  */
 
-include_once '../controllers/config.php';  // Make sure this path is correct
-include_once '../../phpmailer/PHPMailerAutoload.php';
-include_once '../inc/functions.php';
+include_once __DIR__ . '/../controllers/config.php';
+
+$phpMailerAutoload = __DIR__ . '/../../phpmailer/PHPMailerAutoload.php';
+if (file_exists($phpMailerAutoload)) {
+    include_once $phpMailerAutoload;
+}
+
+include_once __DIR__ . '/functions.php';
 
 class MySQLDB {
 
@@ -21,8 +26,7 @@ class MySQLDB {
     /* Class constructor */
     public function __construct() {
         // Make connection to database
-        $this->connection = mysqli_connect(DB_NAME, DB_USER, DB_PASS);
-        mysqli_select_db($this->connection, DB_NAME);
+        $this->connection = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
     }
 
     function query($query) {

@@ -10,7 +10,7 @@ User=xilinx
 Group=xilinx
 WorkingDirectory=/var/www/html/pynq
 ExecStartPre=/bin/sleep 30
-ExecStart=/var/www/html/pynq/mode_manager.sh startup
+ExecStart=/usr/bin/python3 /var/www/html/pynq/mode_manager.py startup
 Restart=always
 RestartSec=10
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"

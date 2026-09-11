@@ -105,6 +105,25 @@ CREATE TABLE daq_settings (
     PRIMARY KEY (id) USING BTREE
 );
 
+DROP Table if EXISTS run_mode;
+
+CREATE TABLE run_mode (
+    id int NOT NULL AUTO_INCREMENT,
+    f1 int DEFAULT 0, -- DEBUG mode: 0=RUN, 1=DEBUG
+    created_by int DEFAULT NULL,
+    created_date datetime DEFAULT CURRENT_TIMESTAMP,
+    updated_by int DEFAULT NULL,
+    updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status int DEFAULT 1,
+    PRIMARY KEY (id) USING BTREE
+);
+
+INSERT INTO run_mode (f1, status) VALUES (0, 1); -- Default to RUN mode
+ 
+
+
+ 
+
 
 
 

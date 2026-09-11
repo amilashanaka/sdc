@@ -269,7 +269,7 @@ fi
 log "Creating systemd service..."
 tee /etc/systemd/system/spicer-daq.service > /dev/null << 'EOF'
 [Unit]
-Description=Spicer DAQ WebSocket Server
+Description=Spicer DAQ Mode Manager (RUN or DEBUG mode)
 After=network-online.target systemd-modules-load.service
 Wants=network-online.target
 StartLimitIntervalSec=300
@@ -281,13 +281,11 @@ User=root
 Group=root
 WorkingDirectory=/var/www/html/pynq
 
-ExecStartPre=/bin/sleep 15
-ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp 2>/dev/null || true'
-ExecStartPre=/bin/sleep 2
-ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/mode_manager.py startup
 
-Restart=on-failure
-RestartSec=30
+Restart=always
+RestartSec=10
 TimeoutStartSec=60
 TimeoutStopSec=30
 

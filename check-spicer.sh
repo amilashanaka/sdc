@@ -60,6 +60,6 @@ sudo journalctl -u spicer-daq.service -n 3 --no-pager 2>/dev/null || echo "   No
 
 echo ""
 echo "Mode Manager Commands:"
-echo "  sudo /var/www/html/pynq/mode_manager.sh debug    - Switch to DEBUG mode"
-echo "  sudo /var/www/html/pynq/mode_manager.sh run      - Switch to RUN mode"
-echo "  sudo /var/www/html/pynq/mode_manager.sh status   - Show detailed status"
+echo "  sudo python3 /var/www/html/pynq/mode_manager.py debug    - Switch to DEBUG mode"
+echo "  sudo python3 /var/www/html/pynq/mode_manager.py run      - Switch to RUN mode"
+echo "  sudo python3 /var/www/html/pynq/mode_manager.py status   - Show detailed status"

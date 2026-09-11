@@ -22,10 +22,28 @@
             <?php include_once './infobox.php'; ?>
 
             <?php
+            // Get current system mode from database first, then file
             $modeFile = '/var/www/html/pynq/.mode';
             $systemMode = 'RUN';
-            if (file_exists($modeFile)) {
-                $systemMode = trim(file_get_contents($modeFile));
+            try {
+                include_once './inc/database.php';
+                if (isset($database) && $database->connection) {
+                    $result = $database->query("SELECT f1 FROM run_mode WHERE id=1 LIMIT 1");
+                    if ($result && $database->num_rows($result) > 0) {
+                        $row = $database->fetch_set($result);
+                        $systemMode = ($row['f1'] == 1) ? 'DEBUG' : 'RUN';
+                    }
+                }
+            } catch (Exception $e) {
+                // Fallback to file
+            }
+            
+            // Fallback to file if database not available
+            if ($systemMode === 'RUN' && file_exists($modeFile)) {
+                $fileMode = trim(file_get_contents($modeFile));
+                if ($fileMode === 'DEBUG') {
+                    $systemMode = 'DEBUG';
+                }
             }
             $targetMode = ($systemMode === 'DEBUG') ? 'RUN' : 'DEBUG';
             $buttonText = ($systemMode === 'DEBUG') ? 'Switch to RUN mode' : 'Switch to DEBUG mode';

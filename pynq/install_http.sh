@@ -7,7 +7,7 @@ WWW_USER="root"
 WWW_GROUP="root"
 DB_PASS="daq"
 DB_NAME="daq"
-PROCESS_NAME="server.py"
+PROCESS_NAME="mode_manager.py"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 TLS_CERT="/etc/ssl/certs/spicer-daq.crt"
 TLS_KEY="/etc/ssl/private/spicer-daq.key"
@@ -167,7 +167,7 @@ fi
 log "Creating systemd service file..."
 sudo tee /etc/systemd/system/spicer-daq.service > /dev/null << EOF
 [Unit]
-Description=Spicer DAQ Server
+Description=Spicer DAQ Mode Manager (RUN or DEBUG mode)
 After=network.target
 # Start after all services are up, including FPGA
 After=multi-user.target
@@ -178,12 +178,8 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/var/www/html/pynq
-# Use the PYNQ virtual environment's Python
-ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/server.py
-# If port is in use, kill the existing process on port 8000 before starting
-ExecStartPre=/bin/sh -c '/bin/fuser -k 8000/tcp || true'
-# Wait a bit for the port to be released
-ExecStartPre=/bin/sleep 2
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/local/share/pynq-venv/bin/python /var/www/html/pynq/mode_manager.py startup
 Restart=always
 RestartSec=10
 
@@ -193,6 +189,7 @@ EOF
 
 # Stop any existing server processes
 log "Stopping any existing server processes..."
+sudo pkill -f "mode_manager.py" 2>/dev/null || true
 sudo pkill -f "server.py" 2>/dev/null || true
 sudo pkill -f "uvicorn" 2>/dev/null || true
 sleep 2

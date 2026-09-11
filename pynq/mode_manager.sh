@@ -24,12 +24,18 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-# Initialize mode file to RUN mode by default
+# Initialize mode file and database to RUN mode by default
 init_mode() {
     if [ ! -f "$MODE_FILE" ]; then
         echo "RUN" > "$MODE_FILE"
         log_message "Initialized mode file to RUN"
     fi
+    
+    # Initialize database run_mode table if not exists
+    mysql -u root -pdaq daq -e "CREATE TABLE IF NOT EXISTS run_mode (id INT NOT NULL AUTO_INCREMENT, f1 INT DEFAULT 0, created_by INT DEFAULT NULL, created_date datetime DEFAULT CURRENT_TIMESTAMP, updated_by INT DEFAULT NULL, updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, status INT DEFAULT 1, PRIMARY KEY (id) USING BTREE);" 2>/dev/null || true
+    
+    # Insert default row if not exists
+    mysql -u root -pdaq daq -e "INSERT IGNORE INTO run_mode (id, f1, status) VALUES (1, 0, 1);" 2>/dev/null || true
 }
 
 # Get current mode
@@ -41,11 +47,21 @@ get_mode() {
     fi
 }
 
-# Set mode
+# Set mode (file + database)
 set_mode() {
     local mode=$1
     echo "$mode" > "$MODE_FILE"
-    log_message "Mode changed to: $mode"
+    
+    # Update database run_mode table (f1: 0=RUN, 1=DEBUG)
+    local db_flag=0
+    if [ "$mode" = "DEBUG" ]; then
+        db_flag=1
+    fi
+    
+    # Update the run_mode table - set f1 to the flag value
+    mysql -u root -pdaq daq -e "UPDATE run_mode SET f1=$db_flag WHERE id=1; INSERT INTO run_mode (f1) VALUES($db_flag) ON DUPLICATE KEY UPDATE f1=$db_flag;" 2>/dev/null || true
+    
+    log_message "Mode changed to: $mode (db flag: $db_flag)"
 }
 
 # Stop run mode (TCP/startup)
