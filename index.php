@@ -22,30 +22,6 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['csrf_token'];
-
-// Get current system mode (check database first, then file)
-$modeFile = '/var/www/html/pynq/.mode';
-$currentMode = 'RUN';
-try {
-    include_once './inc/database.php';
-    if (isset($database) && $database->connection) {
-        $result = $database->query("SELECT f1 FROM run_mode WHERE id=1 LIMIT 1");
-        if ($result && $database->num_rows($result) > 0) {
-            $row = $database->fetch_set($result);
-            $currentMode = ($row['f1'] == 1) ? 'DEBUG' : 'RUN';
-        }
-    }
-} catch (Exception $e) {
-    // Fallback to file
-}
-
-// Fallback to file if database not available
-if ($currentMode === 'RUN' && file_exists($modeFile)) {
-    $fileMode = trim(file_get_contents($modeFile));
-    if ($fileMode === 'DEBUG') {
-        $currentMode = 'DEBUG';
-    }
-}
 ?>
 
 <!doctype html>
@@ -96,110 +72,79 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
                     </ul>
 
                     <div class="mt-auto small-muted">IP: <strong>192.168.0.1</strong> • Provisioned on: <strong>2025-12-05</strong></div>
-
-                    <!-- System Mode Indicator -->
-                    <div class="mt-3 p-2 rounded" style="background: rgba(0,0,0,0.2);">
-                        <div class="small-muted mb-1">System Mode</div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="led-pulse" style="width: 10px; height: 10px; background-color: <?= $currentMode === 'DEBUG' ? '#ff3b30' : '#39ff14' ?>; border-radius: 50%;"></span>
-                            <strong class="fw-bold" style="font-size: 1.1rem; color: <?= $currentMode === 'DEBUG' ? '#ff6b6b' : '#39ff14' ?>"><?= $currentMode ?></strong>
-                        </div>
-                    </div>
-                    
-                    <?php if ($currentMode === 'RUN'): ?>
-                    <button type="button" class="btn btn-router-action mt-3 w-100" id="debugSwitchBtn">
-                        <span class="led-pulse"></span>Switch to Debug
-                    </button>
-                    <?php else: ?>
-                    <button type="button" class="btn btn-outline-secondary mt-3 w-100" id="runSwitchBtn">
-                        <span class="led-pulse"></span>Switch to Run Mode
-                    </button>
-                    <?php endif; ?>
                 </div>
 
-                <!-- RIGHT SIDE -->
+                <!-- RIGHT SIDE LOGIN FORM -->
                 <div class="col-lg-7 p-4 p-lg-5">
-                    <!-- RUN MODE PROMPT (shown when system is in RUN mode and hide it in debug mode ) -->
-                    <div id="runModePrompt" class="d-flex flex-column justify-content-center align-items-center text-center" style="min-height: 400px;">
-                        <div class="mb-4">
-                            <i class="bi bi-pc-display" style="font-size: 4rem; color: #6c757d;"></i>
-                        </div>
-                        <h3 class="mb-2 fw-bold">System in RUN Mode</h3>
-                        <p class="text-muted mb-4">The device is currently running in normal operational mode.<br>Use the button on the left panel to switch to DEBUG mode.</p>
-                    </div>
-
-                    <!-- LOGIN FORM (shown when system is in DEBUG mode, or after clicking switch button  left hand swithing run mode , once authorise it need to cnhe flag in db ) -->
-                    <div id="loginForm" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-start mb-4">
-                            <div>
-                                <h3 class="mb-1 fw-bold">Admin Login</h3>
-                                <div class="small-muted">Enter your administrator credentials to continue.</div>
-                            </div>
-
-                            <div class="text-end">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="themeToggle">
-                                    <label class="form-check-label small-muted" for="themeToggle">Dark Mode</label>
-                                </div>
-                            </div>
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <h3 class="mb-1 fw-bold">Admin Login</h3>
+                            <div class="small-muted">Enter your administrator credentials to continue.</div>
                         </div>
 
-                        <!-- ERROR MESSAGE -->
-                        <?php if ($errorMessage): ?>
-                            <div class="alert alert-danger text-center">
-                                <?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8') ?>
+                        <div class="text-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="themeToggle">
+                                <label class="form-check-label small-muted" for="themeToggle">Dark Mode</label>
                             </div>
-                        <?php endif; ?>
-
-                        <!-- LOGIN FORM -->
-                        <form method="POST" action="data/data_login.php" class="needs-validation" novalidate autocomplete="off" id="loginFormElement">
-
-                            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
-
-                            <div class="mb-3">
-                                <label class="form-label fw-medium">Username</label>
-                                <input type="text" class="form-control" placeholder="Username" name="a_username" required>
-                                <div class="invalid-feedback">Please enter your username.</div>
-                            </div>
-
-                            <div class="mb-3 position-relative">
-                                <label class="form-label fw-medium">Password</label>
-                                <div class="input-group">
-                                    <input type="password" id="password" placeholder="Password" name="a_password" class="form-control" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="invalid-feedback">Please enter your password.</div>
-                                <div id="pwHelp" class="form-text help-text">Password is case-sensitive.</div>
-                            </div>
-
-                            <div class="row align-items-center mb-4">
-                                <div class="col-auto">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="remember">
-                                        <label class="form-check-label" for="remember">Remember this browser</label>
-                                    </div>
-                                </div>
-                                <div class="col text-end small-muted">
-                                    <a href="#" class="text-decoration-none">Forgot password?</a>
-                                </div>
-                            </div>
-
-                            <div class="d-grid mb-4">
-                                <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
-                            </div>
-
-                            <div class="border-top pt-3 d-flex justify-content-between small-muted">
-                                <div>Last login: <strong>—</strong></div>
-                                <div>Build: <strong>2025-12-05</strong></div>
-                            </div>
-                        </form>
-
-                        <footer class="mt-4 small-muted text-center">
-                            Need help? Visit <a href="#">support.spicerconsulting.com</a>
-                        </footer>
+                        </div>
                     </div>
+
+                    <!-- ERROR MESSAGE -->
+                    <?php if ($errorMessage): ?>
+                        <div class="alert alert-danger text-center">
+                            <?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- LOGIN FORM -->
+                    <form method="POST" action="data/data_login.php" class="needs-validation" novalidate autocomplete="off">
+
+                        <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Username</label>
+                            <input type="text" class="form-control" placeholder="Username" name="a_username" required>
+                            <div class="invalid-feedback">Please enter your username.</div>
+                        </div>
+
+                        <div class="mb-3 position-relative">
+                            <label class="form-label fw-medium">Password</label>
+                            <div class="input-group">
+                                <input type="password" id="password" placeholder="Password" name="a_password" class="form-control" required>
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">Please enter your password.</div>
+                            <div id="pwHelp" class="form-text help-text">Password is case-sensitive.</div>
+                        </div>
+
+                        <div class="row align-items-center mb-4">
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remember">
+                                    <label class="form-check-label" for="remember">Remember this browser</label>
+                                </div>
+                            </div>
+                            <div class="col text-end small-muted">
+                                <a href="#" class="text-decoration-none">Forgot password?</a>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                        </div>
+
+                        <div class="border-top pt-3 d-flex justify-content-between small-muted">
+                            <div>Last login: <strong>—</strong></div>
+                            <div>Build: <strong>2025-12-05</strong></div>
+                        </div>
+                    </form>
+
+                    <footer class="mt-4 small-muted text-center">
+                        Need help? Visit <a href="#">support.spicerconsulting.com</a>
+                    </footer>
                 </div>
             </div>
         </div>
@@ -211,28 +156,6 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
     <!-- CLEANED JAVASCRIPT -->
     <script>
     document.addEventListener("DOMContentLoaded", () => {
-
-        var currentMode = '<?= $currentMode ?>';
-        var runModePrompt = document.getElementById('runModePrompt');
-        var loginForm = document.getElementById('loginForm');
-
-        // Show/hide sections based on current mode
-        function updateView() {
-            if (currentMode === 'RUN') {
-                if (runModePrompt) runModePrompt.style.setProperty('display', 'flex', 'important');
-                if (loginForm) loginForm.style.setProperty('display', 'none', 'important');
-            } else {
-                if (runModePrompt) runModePrompt.style.setProperty('display', 'none', 'important');
-                if (loginForm) loginForm.style.setProperty('display', 'block', 'important');
-            }
-        }
-
-        function showLoginForm() {
-            if (runModePrompt) runModePrompt.style.setProperty('display', 'none', 'important');
-            if (loginForm) loginForm.style.setProperty('display', 'block', 'important');
-        }
-
-        updateView();
 
         /* PASSWORD TOGGLE */
         const togglePw = document.getElementById('togglePassword');
@@ -255,63 +178,6 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
             );
         });
 
-        /* DEBUG MODE SWITCH BUTTON (left side) - In RUN mode, show login form */
-        const debugSwitchBtnLeft = document.getElementById('debugSwitchBtn');
-        if (debugSwitchBtnLeft) {
-            debugSwitchBtnLeft.addEventListener('click', () => {
-                if (currentMode === 'RUN') {
-                    showLoginForm();
-                } else {
-                    switchMode('DEBUG');
-                }
-            });
-        }
-
-        /* RUN MODE SWITCH BUTTON (left side) */
-        const runSwitchBtnLeft = document.getElementById('runSwitchBtn');
-        if (runSwitchBtnLeft) {
-            runSwitchBtnLeft.addEventListener('click', () => switchMode('RUN'));
-        }
-
-        /* SWITCH MODE VIA AJAX (used for RUN mode switch only) */
-        function switchMode(targetMode) {
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
-            if (!csrfToken) return;
-
-            fetch('data/data_switch_mode.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ csrf_token: csrfToken, mode: targetMode })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    currentMode = data.mode;
-                    updateView();
-                    updateModeIndicator(data.mode);
-                } else {
-                    alert('Failed to switch mode: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(() => alert('Network error'));
-        }
-
-        function updateModeIndicator(mode) {
-            const led = document.querySelector('.led-pulse[style*="background-color"]');
-            const modeText = document.querySelector('.fw-bold[style*="font-size: 1.1rem"]');
-            if (led && modeText) {
-                const isDebug = mode === 'DEBUG';
-                led.style.backgroundColor = isDebug ? '#ff3b30' : '#39ff14';
-                modeText.style.color = isDebug ? '#ff6b6b' : '#39ff14';
-                modeText.textContent = mode;
-            }
-            const debugBtnLeft = document.getElementById('debugSwitchBtn');
-            const runBtnLeft = document.getElementById('runSwitchBtn');
-            
-            const isRun = mode === 'RUN';
-            if (debugBtnLeft) debugBtnLeft.style.display = isRun ? '' : 'none';
-            if (runBtnLeft) runBtnLeft.style.display = isRun ? 'none' : '';
-        }
     });
     </script>
 
