@@ -180,6 +180,7 @@ class DbController
             if ($stmt->execute($params)) {
                 $result['status'] = $stmt->rowCount();
                 $result['inserted_id'] = $this->conn->lastInsertId($id_field);
+                $result['data'] = ['inserted_id' => $result['inserted_id']];
                 $result['message'] = "Record successfully inserted";
                 $result['code'] = 200;
                 $result['error'] = null;

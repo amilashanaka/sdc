@@ -119,6 +119,23 @@ CREATE TABLE run_mode (
 );
 
 INSERT INTO run_mode (f1, status) VALUES (0, 1); -- Default to RUN mode
+
+DROP TABLE if EXISTS modules;
+
+CREATE TABLE modules (
+    id int NOT NULL AUTO_INCREMENT,
+    f1 varchar(50) DEFAULT NULL, -- Module name
+    f2 varchar(50) DEFAULT NULL, -- Module description
+    f3 int DEFAULT 0, -- number of channels
+    created_by int DEFAULT NULL,
+    created_date datetime DEFAULT CURRENT_TIMESTAMP,
+    updated_by int DEFAULT NULL,
+    updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status int DEFAULT 1,
+    PRIMARY KEY (id) USING BTREE
+);
+
+INSERT INTO modules (f1, f2, f3) VALUES ('ADC', 'ADC Modules', 16);
  
 
 

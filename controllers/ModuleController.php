@@ -1,16 +1,14 @@
 <?php
 
-class SignalController extends TableController
+class ModuleController extends TableController
 {
-
- 
-
-
     public function __construct(Database $database)
     {
         $this->conn = $database->get_connection();
-        $this->table = "signals";
+        $this->table = "modules";
 
         parent::__construct($database, $this->table);
     }
+
+  
 }

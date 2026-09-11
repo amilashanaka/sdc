@@ -1,16 +1,13 @@
 <?php
 
-class CourseController extends TableController
+class LogController extends TableController
 {
-
- 
-
-
     public function __construct(Database $database)
     {
         $this->conn = $database->get_connection();
-        $this->table = "stripes";
+        $this->table = "logs";
 
         parent::__construct($database, $this->table);
     }
+ 
 }
