@@ -47,51 +47,20 @@ function toggle(source) {
 
 
 function logout() {
-	swal({
-		title: "Are You Sure ",
-		text: "Loging Out",
-		icon: "warning",
-		buttons: ['No Cancel It', 'I am Sure'],
-		dangerMode: true
+	showConfirm("Are you sure? Logging Out", {
+		icon: '<i class="fas fa-sign-out-alt text-warning"></i>',
+		confirmClass: 'btn-warning',
+		confirmText: 'Yes, Logout!',
+		title: 'Logout'
 	}).then(function(isConfirm) {
 		if(isConfirm) {
-			swal({
-				title: 'Log Out',
-				text: 'Thank You',
-				icon: 'success'
-			}).then(function() {
-				window.location = 'data/logout.php';
-			});
-		} else {
-			swal('Cancelled', 'User Not Login Out', 'error');
+			window.location = 'data/logout.php';
 		}
 	});
 }
 
 
-function changeAdmin(a_id,type) {
-      
-	swal({
-		title: "Are You Sure ",
-		text: "Change The Admin User",
-		icon: "warning",
-		buttons: ['No Cancel It', 'I am Sure'],
-		dangerMode: true
-	}).then(function(isConfirm) {
-		if(isConfirm) {
-			swal({
-				title: 'Change Admin User',
-				text: 'Thank You',
-				icon: 'success'
-			}).then(function() {
-                               
-				window.location = 'data/action_change_admin.php?a_id='+a_id+'&type='+type;
-			});
-		} else {
-			swal('Cancelled', 'User Not Login Out', 'error');
-		}
-	});
-}
+
 
 
  
