@@ -110,25 +110,25 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
                     <button type="button" class="btn btn-router-action mt-3 w-100" id="debugSwitchBtn">
                         <span class="led-pulse"></span>Switch to Debug
                     </button>
+                    <?php else: ?>
+                    <button type="button" class="btn btn-outline-secondary mt-3 w-100" id="runSwitchBtn">
+                        <span class="led-pulse"></span>Switch to Run Mode
+                    </button>
                     <?php endif; ?>
                 </div>
 
                 <!-- RIGHT SIDE -->
                 <div class="col-lg-7 p-4 p-lg-5">
-                    <!-- RUN MODE PROMPT (shown when system is in RUN mode) -->
+                    <!-- RUN MODE PROMPT (shown when system is in RUN mode and hide it in debug mode ) -->
                     <div id="runModePrompt" class="d-flex flex-column justify-content-center align-items-center text-center" style="min-height: 400px;">
                         <div class="mb-4">
                             <i class="bi bi-pc-display" style="font-size: 4rem; color: #6c757d;"></i>
                         </div>
                         <h3 class="mb-2 fw-bold">System in RUN Mode</h3>
-                        <p class="text-muted mb-4">The device is currently running in normal operational mode.<br>Switch to DEBUG mode to access the administrator dashboard.</p>
-                        <button type="button" class="btn btn-router-action btn-lg" id="debugSwitchBtnRight">
-                            <span class="led-pulse"></span>Switch to Debug Mode
-                        </button>
-                        <p class="small text-muted mt-4">or use the button on the left panel</p>
+                        <p class="text-muted mb-4">The device is currently running in normal operational mode.<br>Use the button on the left panel to switch to DEBUG mode.</p>
                     </div>
 
-                    <!-- LOGIN FORM (shown when system is in DEBUG mode, or after clicking switch button in RUN mode) -->
+                    <!-- LOGIN FORM (shown when system is in DEBUG mode, or after clicking switch button  left hand swithing run mode , once authorise it need to cnhe flag in db ) -->
                     <div id="loginForm" style="display: none;">
                         <div class="d-flex justify-content-between align-items-start mb-4">
                             <div>
@@ -219,12 +219,17 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
         // Show/hide sections based on current mode
         function updateView() {
             if (currentMode === 'RUN') {
-                if (runModePrompt) runModePrompt.style.display = '';
-                if (loginForm) loginForm.style.display = 'none';
+                if (runModePrompt) runModePrompt.style.setProperty('display', 'flex', 'important');
+                if (loginForm) loginForm.style.setProperty('display', 'none', 'important');
             } else {
-                if (runModePrompt) runModePrompt.style.display = 'none';
-                if (loginForm) loginForm.style.display = '';
+                if (runModePrompt) runModePrompt.style.setProperty('display', 'none', 'important');
+                if (loginForm) loginForm.style.setProperty('display', 'block', 'important');
             }
+        }
+
+        function showLoginForm() {
+            if (runModePrompt) runModePrompt.style.setProperty('display', 'none', 'important');
+            if (loginForm) loginForm.style.setProperty('display', 'block', 'important');
         }
 
         updateView();
@@ -250,24 +255,62 @@ if ($currentMode === 'RUN' && file_exists($modeFile)) {
             );
         });
 
-        /* DEBUG MODE SWITCH BUTTON (right side) */
-        const debugSwitchBtnRight = document.getElementById('debugSwitchBtnRight');
-        if (debugSwitchBtnRight) {
-            debugSwitchBtnRight.addEventListener('click', () => {
-                // Hide RUN mode prompt and show login form
-                if (runModePrompt) runModePrompt.style.display = 'none';
-                if (loginForm) loginForm.style.display = '';
-            });
-        }
-
-        /* DEBUG MODE SWITCH BUTTON (left side) */
+        /* DEBUG MODE SWITCH BUTTON (left side) - In RUN mode, show login form */
         const debugSwitchBtnLeft = document.getElementById('debugSwitchBtn');
         if (debugSwitchBtnLeft) {
             debugSwitchBtnLeft.addEventListener('click', () => {
-                // Hide RUN mode prompt and show login form
-                if (runModePrompt) runModePrompt.style.display = 'none';
-                if (loginForm) loginForm.style.display = '';
+                if (currentMode === 'RUN') {
+                    showLoginForm();
+                } else {
+                    switchMode('DEBUG');
+                }
             });
+        }
+
+        /* RUN MODE SWITCH BUTTON (left side) */
+        const runSwitchBtnLeft = document.getElementById('runSwitchBtn');
+        if (runSwitchBtnLeft) {
+            runSwitchBtnLeft.addEventListener('click', () => switchMode('RUN'));
+        }
+
+        /* SWITCH MODE VIA AJAX (used for RUN mode switch only) */
+        function switchMode(targetMode) {
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+            if (!csrfToken) return;
+
+            fetch('data/data_switch_mode.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ csrf_token: csrfToken, mode: targetMode })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentMode = data.mode;
+                    updateView();
+                    updateModeIndicator(data.mode);
+                } else {
+                    alert('Failed to switch mode: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(() => alert('Network error'));
+        }
+
+        function updateModeIndicator(mode) {
+            const led = document.querySelector('.led-pulse[style*="background-color"]');
+            const modeText = document.querySelector('.fw-bold[style*="font-size: 1.1rem"]');
+            if (led && modeText) {
+                const isDebug = mode === 'DEBUG';
+                led.style.backgroundColor = isDebug ? '#ff3b30' : '#39ff14';
+                modeText.style.color = isDebug ? '#ff6b6b' : '#39ff14';
+                modeText.textContent = mode;
+            }
+            const debugBtnLeft = document.getElementById('debugSwitchBtn');
+            const runBtnLeft = document.getElementById('runSwitchBtn');
+            
+            const isRun = mode === 'RUN';
+            if (debugBtnLeft) debugBtnLeft.style.display = isRun ? '' : 'none';
+            if (runBtnLeft) runBtnLeft.style.display = isRun ? 'none' : '';
         }
     });
     </script>

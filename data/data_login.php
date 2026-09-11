@@ -11,6 +11,7 @@
 require_once  '../session.php';
 require_once  '../controllers/index.php';
 require_once  '../inc/functions.php';
+require_once  '../inc/database.php';
 
 // --- Security Checks ---
 
@@ -67,6 +68,24 @@ if ($result['error'] === null && isset($result['data'])) {
     
     // Generate the session key required by the application
     generateSessionKey($username);
+
+    // Switch to DEBUG mode (update database and file)
+    try {
+        $dbValue = 1; // DEBUG mode
+        
+        if (isset($database) && $database->connection) {
+            $result = $database->query("UPDATE run_mode SET f1 = $dbValue WHERE id = 1");
+            if ($result) {
+                $modeFile = '/var/www/html/pynq/.mode';
+                @file_put_contents($modeFile, 'DEBUG');
+            }
+        } else {
+            $modeFile = '/var/www/html/pynq/.mode';
+            @file_put_contents($modeFile, 'DEBUG');
+        }
+    } catch (Exception $e) {
+        // Silently fail mode switch, don't block login
+    }
 
     // Redirect to the dashboard
     header('Location: ../dashboard');

@@ -1,5 +1,6 @@
 <?php
 include_once '../session.php';
+require_once '../inc/database.php';
 
 header('Content-Type: application/json');
 
@@ -14,21 +15,30 @@ if ($mode !== 'RUN' && $mode !== 'DEBUG') {
     exit;
 }
 
-$allowedModes = ['RUN' => 'run', 'DEBUG' => 'debug'];
-$command = escapeshellcmd("sudo /var/www/html/pynq/mode_manager.sh " . $allowedModes[$mode]);
-$output = [];
-$return_var = 0;
-exec($command . ' 2>&1', $output, $return_var);
-
-if ($return_var !== 0) {
-    echo json_encode([
-        'success' => false,
-        'error' => 'Mode switch failed',
-        'details' => implode("\n", $output),
-    ]);
-    exit;
+try {
+    $dbValue = ($mode === 'DEBUG') ? 1 : 0;
+    
+    if (isset($database) && $database->connection) {
+        $result = $database->query("UPDATE run_mode SET f1 = $dbValue WHERE id = 1");
+        if ($result) {
+            $modeFile = '/var/www/html/pynq/.mode';
+            @file_put_contents($modeFile, $mode);
+            
+            echo json_encode(['success' => true, 'message' => 'System switched to ' . $mode . ' mode.']);
+            exit();
+        }
+    }
+    
+    $modeFile = '/var/www/html/pynq/.mode';
+    if (@file_put_contents($modeFile, $mode) !== false) {
+        echo json_encode(['success' => true, 'message' => 'System switched to ' . $mode . ' mode.']);
+        exit();
+    }
+    
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Failed to update mode']);
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Server error']);
 }
-
-$message = ($mode === 'DEBUG') ? 'System is switching to DEBUG mode.' : 'System is switching to RUN mode.';
-
-echo json_encode(['success' => true, 'message' => $message]);

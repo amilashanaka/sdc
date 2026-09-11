@@ -10,6 +10,7 @@
 require_once '../session.php';
 require_once '../controllers/index.php';
 require_once '../inc/functions.php';
+require_once '../inc/database.php';
 
 header('Content-Type: application/json');
 
@@ -57,35 +58,43 @@ if ($result['error'] === null && isset($result['data'])) {
     // Generate session key
     generateSessionKey($username);
 
-    // 5. Switch to DEBUG mode
-    $modeFile = '/var/www/html/pynq/.mode';
-    $currentMode = 'RUN';
-    if (file_exists($modeFile)) {
-        $currentMode = trim(file_get_contents($modeFile));
-    }
-
-    if ($currentMode !== 'DEBUG') {
-        $command = escapeshellcmd("sudo /var/www/html/pynq/mode_manager.sh debug");
-        $output = [];
-        $return_var = 0;
-        exec($command . ' 2>&1', $output, $return_var);
-
-        if ($return_var !== 0) {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Mode switch failed',
-                'details' => implode("\n", $output),
-            ]);
-            exit;
+    // 5. Switch to DEBUG mode (update database and file)
+    try {
+        $dbValue = 1; // DEBUG mode
+        
+        if (isset($database) && $database->connection) {
+            $result = $database->query("UPDATE run_mode SET f1 = $dbValue WHERE id = 1");
+            if ($result) {
+                $modeFile = '/var/www/html/pynq/.mode';
+                @file_put_contents($modeFile, 'DEBUG');
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Authenticated. System switched to DEBUG mode.',
+                    'redirect' => 'dashboard'
+                ]);
+                exit();
+            }
         }
+        
+        // Fallback to file if database not available
+        $modeFile = '/var/www/html/pynq/.mode';
+        if (@file_put_contents($modeFile, 'DEBUG') !== false) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Authenticated. System switched to DEBUG mode.',
+                'redirect' => 'dashboard'
+            ]);
+            exit();
+        }
+        
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to update mode']);
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Server error']);
     }
-
-    echo json_encode([
-        'success' => true,
-        'message' => 'Authenticated. System is switching to DEBUG mode.',
-        'redirect' => 'dashboard'
-    ]);
-    exit;
 
 } else {
     // --- Login Failure ---
