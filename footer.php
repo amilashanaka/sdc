@@ -32,9 +32,6 @@
 <script src="assets/js/validation.js" type="text/javascript"></script>
 
 
-<!-- Toastr -->
-<script src="assets/plugins/toastr/toastr.min.js"></script>
-
 <!-- custom -->
 
 <script src="assets/js/recordaction.js" type="text/javascript"></script>
@@ -91,49 +88,6 @@
 <script src="assets/plugins/summernote/summernote-bs4.min.js"></script>
 
 <script src="assets/plugins//country-code/js/intlTelInput-jquery.min.js"></script>
-
-<script type="text/javascript">
-  function showConfirm(message, options) {
-    options = options || {};
-    var icon = options.icon || '';
-    var confirmClass = options.confirmClass || 'btn-danger';
-    var confirmText = options.confirmText || 'Yes, I am sure!';
-    var title = options.title || 'Confirm';
-
-    return new Promise(function(resolve) {
-      $('#confirmModalLabel').text(title);
-      $('#confirmModalBody').text(message);
-      $('#confirmModalIcon').html(icon);
-      var okBtn = $('#confirmModalOk');
-      okBtn.removeClass('btn-danger btn-warning btn-success btn-info');
-      okBtn.addClass(confirmClass);
-      okBtn.text(confirmText);
-
-      var confirmed = false;
-      $('#confirmModal').modal('show');
-      okBtn.off('click').on('click', function() {
-        confirmed = true;
-        $('#confirmModal').modal('hide');
-        resolve(true);
-      });
-      $('#confirmModal').on('hidden.bs.modal', function() {
-        if (!confirmed) {
-          resolve(false);
-        }
-      });
-    });
-  }
-</script>
-
-<script type="text/javascript">
-  $(function() {
-    $.ajaxSetup({
-      headers: {
-        'X-CSRF-TOKEN': '<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>'
-      }
-    });
-  });
-</script>
 
 <script type="text/javascript">
   $(document).ready(function() {
@@ -296,46 +250,5 @@ function previewImage(formConfig) {
 }
 
 
-</script>
-
-<script>
-  <?php if (isset($_SESSION['message'])): ?>
-    <?php
-      $message_raw = $_SESSION['message']['text'];
-      if (is_array($message_raw)) {
-        $parts = [];
-        foreach ($message_raw as $field => $msg) {
-          $parts[] = $field . ' ' . $msg;
-        }
-        $message = implode('. ', $parts);
-      } else {
-        $message = $message_raw;
-      }
-      $title = $_SESSION['message']['title'] ?? '';
-      $icon = $_SESSION['message']['icon'] ?? 'info';
-      $message_js = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
-      $title_js = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-      $toastr_method = 'info';
-      if ($icon === 'success') {
-        $toastr_method = 'success';
-      } elseif ($icon === 'error') {
-        $toastr_method = 'error';
-      } elseif ($icon === 'warning') {
-        $toastr_method = 'warning';
-      }
-      unset($_SESSION['message']);
-    ?>
-    toastr.<?= $toastr_method ?>("<?= $message_js ?>", "<?= $title_js ?>");
-  <?php endif; ?>
-
-  <?php if (isset($_SESSION['error']) && $_SESSION['error'] != 'No data found'): ?>
-    <?php $error_js = htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['error']); ?>
-    toastr.error("<?= $error_js ?>", "Error");
-  <?php endif; ?>
-
-  <?php if (isset($_SESSION['custom'])): ?>
-    <?php $custom_js = htmlspecialchars($_SESSION['custom'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['custom']); ?>
-    toastr.error("<?= $custom_js ?>", "Error");
-  <?php endif; ?>
 </script>
 

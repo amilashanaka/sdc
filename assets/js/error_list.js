@@ -26,64 +26,63 @@ function error_by_code(id, $message = null, $topic = null, $type = 0) {
           break;
       }
 
-       toastr[$m_type]($message, $topic);
+       swal($message, $topic, $m_type);
        break;
     case 1:
-      toastr.success($message || 'Successfully updated', $topic || 'Update');
+      swal("Successfully updated", "click ok to exit", "success");
 
       break;
     case 2:
-      toastr.warning("Password Miss Match", "Please check");
+      swal("Password Miss Match", "Please check", "warning");
 
       break;
     case 3:
-      toastr.error("Something Went Wrong", "Please check");
+      swal("Something Went Wrong", "Please check", "error");
 
       break;
     case 4:
-      toastr.success("Successfully Added", "Please check");
+      swal("Successfully Added", "Please check", "success");
       break;
 
     case 5:
-      toastr.warning("User Name Already Taken", "Please check");
+      swal("User Name Already Taken", "Please check", "warning");
 
       break;
 
     case 6:
-      toastr.success("Bank Details Updated", "Please check");
+      swal("Bank Details Updated", "Please check", "success");
       break;
 
     case 7:
-      toastr.success("Password Updated", "Please check");
+      swal("Password Updated", "Please check", "success");
       break;
     case 8:
-      toastr.error("Currency Name Already Exist ", "Please check");
+      swal("Currency Name Already Exist ", "Please check", "error");
       break;
 
     case 9:
-      toastr.success("Successfully Transfer", "Sucess");
+      swal("Successfully Transfer", "Sucess", "success");
       break;
     case 10:
-      toastr.error("Lotto Draw Number Exist", "Please check");
+      swal("Lotto Draw Number Exist", "Please check", "error");
       break;
     case 11:
-      toastr.warning("insufficient Balance", "please Request Credit");
+      swal("insufficient Balance", "please Request Credit", "warning");
       break;
     case 12:
-      toastr.success("Successfully Transfer", "Please View Statements");
+      swal("Successfully Transfer", "Please View Statements", "success");
       break;
 
     case 13:
-      toastr.success("Successfully Send", "Please View Statements");
+      swal("Successfully Send", "Please View Statements", "success");
       break;
 
     case 14:
-      toastr.warning("insufficient Balance", "please Enter Less Amount");
+      swal("insufficient Balance", "please Enter Less Amount", "warning");
       break;
 
     case 15:
-      toastr.warning("Limit Exceeded", "please Enter Less Amount");
-      break;
+      swal("Limit Exceeded", "please Enter Less Amount", "warning");
   }
 }
 
@@ -92,5 +91,20 @@ function error_custome(id, $message, $topic) {
 }
 
 function update_message(body_txt) {
-  toastr.success(body_txt, 'Successfully updated');
+  swal("Successfully updated", body_txt, "success");
+
+  $(function () {
+    var Toast = Swal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 100,
+    });
+
+    $(document).Toasts("create", {
+      class: "bg-success",
+      title: "Update Notification",
+      body: body_txt,
+    });
+  });
 }
