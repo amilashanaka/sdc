@@ -96,3 +96,20 @@ CREATE TABLE run_mode (
 );
 
 INSERT INTO run_mode (f1, status) VALUES (0, 1); -- Default to RUN mode
+
+
+DROP TABLE IF EXISTS  companies;
+
+CREATE TABLE companies(
+  id int NOT NULL AUTO_INCREMENT,
+  f1 varchar(255), -- Company Name
+  f2  text DEFAULT NULL  ,  -- Company website
+  f3  text DEFAULT NULL  ,  -- Company description
+  img1  varchar(255)  , -- company logo
+  created_by  int NULL DEFAULT NULL,
+  created_date  datetime(0) NULL DEFAULT current_timestamp(0),
+  updated_by  int NULL DEFAULT NULL,
+  updated_date  datetime(0) NULL DEFAULT current_timestamp(0) ON UPDATE CURRENT_TIMESTAMP(0),
+  status  int NULL DEFAULT 0,
+  PRIMARY KEY ( id ) USING BTREE
+);

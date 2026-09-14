@@ -126,14 +126,14 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                         <!-- Action Column with tooltips -->
                                         <td class="text-center action-column" style="<?= htmlspecialchars($table_config['action_style'] ?? '') ?>">
                                             <?php if (!empty($buttons['view'])): ?>
-                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>/<?= htmlspecialchars($row->id ?? '') ?>"
+                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>?id=<?= base64_encode((string) ($row->id ?? '')) ?>"
                                                class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php endif; ?>
 
                                             <?php if (!empty($buttons['edit'])): ?>
-                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>/<?= htmlspecialchars($row->id ?? '') ?>/edit"
+                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>?id=<?= base64_encode((string) ($row->id ?? '')) ?>"
                                                class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
