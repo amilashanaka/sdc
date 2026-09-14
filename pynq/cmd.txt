@@ -1,0 +1,23 @@
+# Convert line endings and run
+
+
+sudo su
+sed -i 's/\r$//' install_git.sh
+chmod +x install_git.sh
+sudo ./install_git.sh
+
+
+sudo lsof -i :8000
+
+
+
+sed -i 's/\r$//' install_http.sh
+chmod +x install_http.sh
+sudo ./install_http.sh
+
+# Edit the file
+nano install.sh
+# Find line 11 and replace with your repo URL
+
+# Or run with the URL as a parameter
+sudo bash -c "REPO_URL='https://github.com/yourusername/yourrepo.git' bash install.sh"

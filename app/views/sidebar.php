@@ -9,7 +9,6 @@ array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes nav-ic
 
 array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'payment_list'))));
 array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'))));
-array_push($side_menu, array('name' => 'Log Out', 'icon' => 'fas fa-sign-out-alt nav-icon', 'url' => 'javascript:logout()', 'active' => '', 'menu' => '', 'submenu' => ''));
 
 $current_url = $_GET['url'] ?? '';
 
@@ -59,5 +58,12 @@ $current_url = $_GET['url'] ?? '';
                 </li>
             <?php endif; ?>
         <?php endforeach; ?>
+
+            <li>
+        <a href="#" onclick="loadContent('Logout'); return false;">
+            <a href="<?php echo BASE_URL; ?>/login/logout"><i class="fas fa-sign-out-alt nav-icon"></i> Log Out</a>
+
+        </a>
+    </li>
     </ul>
 </aside>
