@@ -3,7 +3,6 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /admin_start/
     
     # Skip existing files and directories
     RewriteCond %{REQUEST_FILENAME} !-f
