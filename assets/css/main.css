@@ -132,6 +132,57 @@ body {
     width: var(--sidebar-collapsed-width);
 }
 
+.main-sidebar > .sidebar {
+    position: static;
+    width: auto;
+    height: calc(100vh - 60px);
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.main-sidebar {
+    background-color: #343a40;
+}
+
+.brand-link {
+    min-height: 60px;
+    padding: .8125rem .5rem;
+    color: rgba(255, 255, 255, .8);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-link:hover {
+    color: white;
+}
+
+.brand-image {
+    width: 33px;
+    height: 33px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.img-circle {
+    border-radius: 50%;
+}
+
+.elevation-3 {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.elevation-4 {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+}
+
+.sidebar.collapsed .brand-link .brand-text {
+    display: none;
+}
+
 .sidebar-brand {
     padding: 20px;
     text-align: center;
@@ -229,6 +280,60 @@ body {
     cursor: pointer;
 }
 
+.main-sidebar .nav-sidebar > .nav-item > .nav-link {
+    display: block;
+    padding: .5rem 1rem;
+}
+
+.main-sidebar .nav-sidebar > .nav-item > .nav-link:hover,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: #007bff;
+    border-left: 0;
+    color: #fff;
+    padding-left: 1rem;
+}
+
+.nav-sidebar .nav-link {
+    position: relative;
+}
+
+.nav-sidebar .nav-link p {
+    margin: 0;
+    display: inline;
+}
+
+.nav-sidebar .nav-link > .right,
+.nav-sidebar .nav-link > p > .right {
+    position: absolute;
+    right: 1rem;
+    top: .7rem;
+    width: auto;
+    margin: 0;
+}
+
+.main-sidebar .nav-sidebar .nav-icon {
+    width: 1.6rem;
+    margin-right: .2rem;
+    text-align: center;
+}
+
+.main-sidebar .nav-treeview {
+    background: transparent;
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link {
+    display: block;
+    padding: .5rem 1rem .5rem 2rem;
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active {
+    background-color: rgba(255, 255, 255, .1);
+    border-left: 0;
+    color: #fff;
+    padding-left: 2rem;
+}
+
 .sidebar-menu a:hover,
 .sidebar-menu a.active {
     background: rgba(255, 255, 255, 0.1);
@@ -248,6 +353,10 @@ body {
 }
 
 .sidebar.collapsed .sidebar-menu span:not(.badge) {
+    display: none;
+}
+
+.sidebar.collapsed .nav-sidebar .nav-link p {
     display: none;
 }
 
@@ -294,12 +403,17 @@ body {
     position: relative;
 }
 
-.menu-toggle .right {
-    margin-left: auto;
+.has-treeview {
+    position: relative;
+}
+
+.menu-toggle .right,
+.has-treeview .right {
     transition: transform 0.3s;
 }
 
-.menu-toggle.menu-open .right {
+.menu-toggle.menu-open .right,
+.has-treeview.menu-open .right {
     transform: rotate(-90deg);
 }
 

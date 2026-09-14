@@ -1,0 +1,19 @@
+[Unit]
+Description=Spicer DAQ Mode Manager (RUN or DEBUG mode)
+After=network.target
+# Start after all services are up
+After=multi-user.target
+
+[Service]
+Type=simple
+User=xilinx
+Group=xilinx
+WorkingDirectory=/var/www/html/pynq
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/bin/python3 /var/www/html/pynq/mode_manager.py startup
+Restart=always
+RestartSec=10
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target

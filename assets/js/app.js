@@ -43,6 +43,10 @@
     function toggleSubmenu(element) {
       const parent = element.parentElement;
       const submenu = parent.querySelector('.nav-treeview');
+
+      if (!submenu) {
+        return;
+      }
       
       // Close other submenus (AdminLTE behavior)
       document.querySelectorAll('.nav-treeview').forEach(menu => {
@@ -205,7 +209,7 @@
     document.querySelectorAll('.sidebar-menu a').forEach(link => {
       link.addEventListener('click', (e) => {
         // Don't close sidebar if clicking on menu-toggle (submenu parent)
-        if (link.parentElement.classList.contains('menu-toggle')) {
+        if (link.parentElement.classList.contains('menu-toggle') || link.parentElement.classList.contains('has-treeview')) {
           return; // Let the toggleSubmenu function handle it
         }
         

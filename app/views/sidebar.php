@@ -3,67 +3,77 @@
 // side menu
 $side_menu = array();
 
-array_push($side_menu, array('name' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt nav-icon', 'url' => 'index', 'active' => 'active', 'menu' => 'menu-open', 'submenu' => ''));
-array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'Scope', 'icon' => 'fas fa-bullseye', 'url' => 'scope'))));
-array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'blog_list'))));
+array_push($side_menu, array('name' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'url' => 'dashboard', 'submenu' => ''));
+array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'url' => '#', 'submenu' => array(array('name' => 'Scope', 'icon' => 'fas fa-bullseye', 'url' => 'scope'))));
+array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'blog_list'))));
+array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'payment_list'))));
+array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog', 'url' => '#', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'))));
+array_push($side_menu, array('name' => 'Log Out', 'icon' => 'fas fa-sign-out-alt', 'url' => 'login/logout', 'submenu' => ''));
 
-array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'payment_list'))));
-array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog nav-icon', 'url' => '#', 'active' => '', 'menu' => '', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'))));
-
-$current_url = $_GET['url'] ?? '';
+$current_url = trim($_GET['url'] ?? '', '/');
+$system_name = isset($setting) ? ($setting->getSettings('f1') ?? 'SDC') : 'SDC';
 
 ?>
+
 <!-- Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-<!-- Sidebar -->
-<aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <img src="./assets/img/logo.png" class="brand-logo" alt="Spicer Consulting Logo">
-        <span class="brand-text">SDC</span>
+<!-- Main Sidebar Container -->
+<aside class="main-sidebar sidebar sidebar-dark-primary elevation-4" id="sidebar">
+    <!-- Brand Logo -->
+    <a href="<?= BASE_URL; ?>/dashboard" class="brand-link">
+        <img src="<?= BASE_URL; ?>/assets/img/logo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light"><?= $system_name; ?></span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar sidebar-menu flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <?php foreach ($side_menu as $item): ?>
+                    <?php
+                    $has_submenu = is_array($item['submenu']) && !empty($item['submenu']);
+                    $item_url = trim($item['url'], '/');
+                    $submenu_active = false;
+
+                    if ($has_submenu) {
+                        foreach ($item['submenu'] as $sub_item) {
+                            if ($current_url === trim($sub_item['url'], '/')) {
+                                $submenu_active = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    $item_active = $current_url === $item_url || $submenu_active;
+                    $menu_open = $has_submenu && $submenu_active;
+                    $href = $item['url'] === '#' ? '#' : BASE_URL . '/' . ltrim($item['url'], '/');
+                    ?>
+                    <li class="nav-item <?= $has_submenu ? 'has-treeview' : ''; ?> <?= $menu_open ? 'menu-open' : ''; ?>">
+                        <a href="<?= $href; ?>" class="nav-link <?= $item_active ? 'active' : ''; ?>" <?= $has_submenu ? 'onclick="toggleSubmenu(this); return false;"' : ''; ?>>
+                            <i class="nav-icon <?= $item['icon']; ?>"></i>
+                            <p>
+                                <?= $item['name']; ?>
+                                <?= $has_submenu ? '<i class="right fas fa-angle-left"></i>' : ''; ?>
+                            </p>
+                        </a>
+                        <?php if ($has_submenu): ?>
+                            <ul class="nav nav-treeview <?= $menu_open ? 'show' : ''; ?>">
+                                <?php foreach ($item['submenu'] as $sub_item): ?>
+                                    <?php $sub_active = $current_url === trim($sub_item['url'], '/'); ?>
+                                    <li class="nav-item">
+                                        <a href="<?= BASE_URL; ?>/<?= ltrim($sub_item['url'], '/'); ?>" class="nav-link <?= $sub_active ? 'active' : ''; ?>" style="font-size: 13px;">
+                                            <i class="nav-icon <?= $sub_item['icon']; ?>"></i>
+                                            <p><?= $sub_item['name']; ?></p>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </nav>
     </div>
-
-    <!-- User Panel -->
-
-    <ul class="sidebar-menu">
-        <li class="nav-header">MAIN NAVIGATION</li>
-
-        <?php foreach ($side_menu as $item): ?>
-            <?php if (!empty($item['submenu'])): ?>
-                <li class="menu-toggle <?= $item['menu']; ?>">
-                    <a href="#" onclick="toggleSubmenu(this); return false;" class="<?= $item['active']; ?>">
-                        <i class="<?= $item['icon']; ?>"></i>
-                        <span><?= $item['name']; ?></span>
-                        <i class="fas fa-angle-left right"></i>
-                    </a>
-                    <ul class="nav-treeview">
-                        <?php foreach ($item['submenu'] as $sub): ?>
-                            <li class="nav-item">
-                                <a href="<?= BASE_URL ?>/<?= $sub['url']; ?>"
-                                    class="nav-link <?= ($current_url ?? '') === $sub['url'] ? 'active' : ''; ?>">
-                                    <i class="<?= $sub['icon']; ?>"></i>
-                                    <p><?= $sub['name']; ?></p>
-                                </a>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </li>
-            <?php else: ?>
-                <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/<?= $item['url']; ?>"
-                        class="nav-link <?= ($current_url ?? '') === $item['url'] ? 'active' : ''; ?>">
-                        <i class="<?= $item['icon']; ?>"></i>
-                        <span><?= $item['name']; ?></span>
-                    </a>
-                </li>
-            <?php endif; ?>
-        <?php endforeach; ?>
-
-            <li>
-        <a href="#" onclick="loadContent('Logout'); return false;">
-            <a href="<?php echo BASE_URL; ?>/login/logout"><i class="fas fa-sign-out-alt nav-icon"></i> Log Out</a>
-
-        </a>
-    </li>
-    </ul>
 </aside>
