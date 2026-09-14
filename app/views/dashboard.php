@@ -18,11 +18,11 @@
         <div class="col-lg-3 col-md-6">
           <div class="info-box">
             <div class="info-box-icon bg-primary">
-              <i class="fas fa-shopping-bag"></i>
+              <i class="fas fa-wave-square"></i>
             </div>
             <div class="info-box-content">
-              <h3>150</h3>
-              <p>New Orders</p>
+              <h3>Scope</h3>
+              <p>Debug Adc</p>
             </div>
           </div>
         </div>
