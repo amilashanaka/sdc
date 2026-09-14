@@ -5,7 +5,7 @@ project/
 ├── index.php
 ├── .htaccess
 ├── db/
-|    ├── database.sql
+|    ├── table.sql
 ├── README.md
 │
 ├── app/
