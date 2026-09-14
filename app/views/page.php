@@ -2,6 +2,8 @@
 include_once __DIR__ . '/navbar.php';
 include_once __DIR__ . '/sidebar.php';
 
+$buttons = is_array($form_config['buttons'] ?? null) ? $form_config['buttons'] : [];
+
 // Fetch data based on configuration
 $id_param = $form_config['data_config']['id_param'];
 $data_source = $form_config['data_config']['data_source'];
@@ -22,6 +24,11 @@ $data_model = $$data_source ?? null;
 $row = ($id > 0 && is_object($data_model) && method_exists($data_model, $method_name))
     ? $data_model->$method_name($id)
     : null;
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['csrf_token'];
 
 if ($id > 0) {
     $row = is_object($row) || is_array($row) ? $row : [];
@@ -77,7 +84,7 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
                             <form action="<?= htmlspecialchars($form_config['form_action']) ?>"
                                 method="<?= htmlspecialchars($form_config['method']) ?>"
                                 enctype="<?= htmlspecialchars($form_config['enctype']) ?>">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
 
                                 <div class="<?= htmlspecialchars($form_config['layout']['form_row_class']) ?>">
                                     <?php if (is_object($data_model) && method_exists($data_model, 'renderFormElements')): ?>
@@ -104,10 +111,10 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
                                 ?>
 
                                 <div class="<?= htmlspecialchars($form_config['layout']['button_row_class']) ?> mt-4">
-                                    <?php if (isset($form_config['buttons']['submit'])): ?>
-                                        <div class="<?= htmlspecialchars($form_config['buttons']['submit']['div_class']) ?>">
+                                    <?php if (isset($buttons['submit'])): ?>
+                                        <div class="<?= htmlspecialchars($buttons['submit']['div_class']) ?>">
                                             <?php
-                                            $submit_btn = $form_config['buttons']['submit'];
+                                            $submit_btn = $buttons['submit'];
                                             $btn_text = $id > 0 ? $submit_btn['update_text'] : $submit_btn['create_text'];
                                             $btn_class = $id > 0 ? $submit_btn['update_class'] : $submit_btn['create_class'];
                                             ?>
@@ -117,17 +124,17 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
                                         </div>
                                     <?php endif; ?>
 
-                                    <?php if (isset($form_config['buttons']['reset']) && $form_config['buttons']['reset']['show'] && empty($id)): ?>
-                                        <div class="<?= htmlspecialchars($form_config['buttons']['reset']['div_class']) ?>">
-                                            <button type="reset" class="<?= htmlspecialchars($form_config['buttons']['reset']['class']) ?>">
-                                                <?= htmlspecialchars($form_config['buttons']['reset']['text']) ?>
+                                    <?php if (isset($buttons['reset']) && !empty($buttons['reset']['show']) && empty($id)): ?>
+                                        <div class="<?= htmlspecialchars($buttons['reset']['div_class']) ?>">
+                                            <button type="reset" class="<?= htmlspecialchars($buttons['reset']['class']) ?>">
+                                                <?= htmlspecialchars($buttons['reset']['text']) ?>
                                             </button>
                                         </div>
                                     <?php endif; ?>
 
                                     <?php
                                     // Generic modal-driven action buttons
-                                    foreach ($form_config['buttons'] as $btn_key => $btn):
+                                    foreach ($buttons as $btn_key => $btn):
                                         if (in_array($btn_key, ['submit', 'reset'], true)) continue;
                                         if (empty($btn['show']) && $id > 0  || empty($btn['action']  && $id > 0)) continue;
                                     ?>
@@ -180,7 +187,7 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
 <?php
 // Determine if we need jsPDF
 $needs_jspdf = false;
-foreach ($form_config['buttons'] as $__btn) {
+foreach ($buttons as $__btn) {
     if (!empty($__btn['action']) && $__btn['action'] === 'client_pdf') {
         $needs_jspdf = true;
         break;

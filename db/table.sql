@@ -79,6 +79,9 @@ CREATE TABLE logs (
     PRIMARY KEY (id) USING BTREE
 );
 
+INSERT INTO logs (f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, status) VALUES 
+(0, 'Sample Log', 100.00, 'This is a sample log entry.', 'Value1', 'Value2', 'Value3', 'Value4', 'Value5', 'Value6', 'Sample Image Path', 1);   
+
 DROP Table if EXISTS run_mode;
 
 CREATE TABLE run_mode (
