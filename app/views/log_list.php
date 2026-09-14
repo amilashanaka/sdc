@@ -1,5 +1,7 @@
 <?php
-include_once './header.php';
+include_once __DIR__ . '/header.php';
+include_once __DIR__ . '/sidebar.php';
+include_once __DIR__ . '/navbar.php';
 
 $form_config = [
     'heading' => 'Log List',
@@ -12,10 +14,10 @@ $form_config = [
         'action_style'   => 'width:3%; text-align: center;',
         'id_column'      => 'id',
         'columns'        => [
-            ['name' => '#', 'link' => true],                     // Row counter (linked)
-            ['name' => 'f1', 'link' => true],  // Host name (linked)              
-            ['name' => 'f2', 'link' => false], // IP address (not linked)          
-            ['name' => 'f3', 'link' => false], // Firmware version (not linked)
+            ['name' => '#', 'link' => false],                    // Row counter
+            ['name' => 'f1', 'link' => true],                    // Device name
+            ['name' => 'f2', 'link' => false],                   // IP address
+            ['name' => 'f3', 'link' => false],                   // Firmware version
             ['name' => 'created_date', 'link' => false, 'format' => 'datetime'],
 
         ],
@@ -24,37 +26,45 @@ $form_config = [
         'table_classes'     => 'display nowrap table table-hover table-striped table-bordered',
         'table_attributes'  => 'cellspacing="0" width="100%"',
         'card_classes'      => 'card',
-        'card_body_classes' => 'card-body',
-        'card_header_classes' => 'card-header'
+        'card_body_classes' => 'card-body'
     ],
     'db_table'   => 'logs',                  // Actual database table name
     'redirect'   => 'log_list',                // Redirect page after actions
     'buttons'    => [
-        'add_new' => [
-            'text'  => 'Add New',
-            'class' => 'btn btn-app',
-            'icon'  => 'fas fa-file'
-        ],
-        'delete' => [
-            'class'    => 'btn btn-block btn-outline-danger btn-flat',
-            'icon'     => 'fa-trash',
-            'function' => 'delete_record'
-        ],
-        'activate' => [
-            'class'    => 'btn btn-block btn-outline-success btn-flat',
-            'icon'     => 'fa-check',
-            'function' => 'activate_record'
+        'view' => [
+            'show' => true,
+            'class' => 'btn btn-sm btn-info',
+            'icon' => 'fas fa-eye'
         ]
     ],
-    'permission' => [
-        'add_new' => $_SESSION['role'] < 3
+    'exports' => [
+        'csv' => [
+            'className' => 'btn btn-secondary btn-sm',
+            'text' => '<i class="fas fa-file-csv"></i> CSV',
+            'title' => 'Log List Export'
+        ],
+        'pdf' => [
+            'className' => 'btn btn-secondary btn-sm',
+            'text' => '<i class="fas fa-file-pdf"></i> PDF',
+            'title' => 'Log List Report',
+            'orientation' => 'landscape',
+            'pageSize' => 'A4'
+        ],
+        'print' => [
+            'className' => 'btn btn-secondary btn-sm',
+            'text' => '<i class="fas fa-print"></i> Print',
+            'title' => 'Log List'
+        ]
     ],
     'layout' => [
         'content_wrapper_class' => 'content-wrapper',
         'section_class'         => 'content',
         'row_class'             => 'row',
         'col_class'             => 'col-12',
-        'card_title_class'      => 'card-title'
+        'card_title_class'      => 'card-title',
+        'card_classes'          => 'card',
+        'card_body_classes'     => 'card-body',
+        'card_header_classes'   => 'card-header'
     ],
     'status' => [
         'active'   => '1',
@@ -63,4 +73,4 @@ $form_config = [
     ]
 ];
 
-include_once './page_list.php';
+include_once __DIR__ . '/page_list.php';

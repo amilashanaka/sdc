@@ -1,14 +1,17 @@
 <?php
-include_once 'header.php';
-include_once 'sidebar.php';
-include_once 'navbar.php';
+include_once __DIR__ . '/header.php';
+include_once __DIR__ . '/sidebar.php';
+include_once __DIR__ . '/navbar.php';
 $form_config = ['heading' => 'ADC Test'];
 $id = 1;
-$row = ($id > 0 && isset($setting)) ? $setting->get_by_id($id)['data'] : null;
 
 
 // Check system mode - scope requires DEBUG mode
-$modeFile = '/var/www/html/pynq/.mode';
+$pynqDirectory = getenv('SPICER_PYNQ_DIR');
+if (!$pynqDirectory) {
+    $pynqDirectory = is_dir('/var/www/html/pynq') ? '/var/www/html/pynq' : ROOT . '/pynq';
+}
+$modeFile = $pynqDirectory . '/.mode';
 $systemMode = 'RUN';
 if (file_exists($modeFile)) {
     $systemMode = trim(file_get_contents($modeFile));
@@ -237,22 +240,29 @@ if ($systemMode !== 'DEBUG') {
                     calibrationScale: 1
                 };
 
+                const MODE_ACTION_URL = <?= json_encode(rtrim(BASE_URL, '/') . '/scope/modeAction') ?>;
+
                 // ===== WebSocket Management =====
                 function connectWS() {
                     if (state.ws?.readyState === WebSocket.OPEN) return;
 
                     try {
                         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                        state.ws = new WebSocket(`${proto}//${location.host}/ws`);
-                        state.ws.binaryType = 'arraybuffer';
+                        const socket = new WebSocket(`${proto}//${location.host}/ws`);
+                        state.ws = socket;
+                        socket.binaryType = 'arraybuffer';
 
-                        state.ws.onopen = () => updateStatus('Connected', 'scope-connected', 'check-circle');
-                        state.ws.onmessage = handleMessage;
-                        state.ws.onclose = () => {
+                        socket.onopen = () => updateStatus('Connected', 'scope-connected', 'check-circle');
+                        socket.onmessage = handleMessage;
+                        socket.onclose = () => {
+                            if (state.ws !== socket) return;
                             updateStatus('Disconnected - Reconnecting...', 'scope-disconnected', 'exclamation-circle');
-                            setTimeout(connectWS, CONFIG.RECONNECT_DELAY);
+                            state.ws = null;
+                            setTimeout(() => {
+                                if (!state.ws) connectWS();
+                            }, CONFIG.RECONNECT_DELAY);
                         };
-                        state.ws.onerror = () => updateStatus('Connection Error', 'scope-disconnected', 'exclamation-triangle');
+                        socket.onerror = () => updateStatus('Connection Error', 'scope-disconnected', 'exclamation-triangle');
                     } catch (err) {
                         updateStatus('Connection Failed', 'scope-disconnected', 'times-circle');
                         setTimeout(connectWS, CONFIG.RECONNECT_DELAY);
@@ -261,7 +271,9 @@ if ($systemMode !== 'DEBUG') {
 
                 // ===== Data Processing =====
                 function handleMessage(event) {
-                    if (state.paused || !(event.data instanceof ArrayBuffer)) return;
+                    if (state.paused) return;
+                    if (typeof event.data !== 'string' && !(event.data instanceof ArrayBuffer)) return;
+                    if (typeof event.data === 'string') return;
 
                     const now = performance.now();
                     if (state.lastTime > 0) {
@@ -287,65 +299,42 @@ if ($systemMode !== 'DEBUG') {
                 function parsePacket(buf) {
                     try {
                         const view = new DataView(buf);
-                        const HEADER_SIZE = 34;
-                        
-                        if (buf.byteLength < HEADER_SIZE) return { blocks: [] };
+                        const rawFrameSize = CONFIG.BLOCK_SIZE * 2 * 16;
+                        if (buf.byteLength === rawFrameSize) return parseRawFrame(view, 16, 0);
 
-                        const headerOffset = buf.byteLength - HEADER_SIZE;
+                        const headerOffset = buf.byteLength - 34;
+                        if (headerOffset < 8) return { blocks: [] };
                         const numChannels = view.getInt16(headerOffset, false);
+                        if (numChannels < 1 || numChannels > 16) return { blocks: [] };
 
-                        if (numChannels < 1 || numChannels > 16) {
-                            return parseDefault(buf, view, headerOffset);
-                        }
-
-                        const blockSizes = Array.from({length: 16}, (_, i) => 
+                        const blockSizes = Array.from({length: 16}, (_, i) =>
                             view.getInt16(headerOffset + 2 + (i * 2), false)
                         );
+                        const expectedSize = 8 + blockSizes.reduce((sum, size) => sum + size, 0) + 34;
+                        if (expectedSize !== buf.byteLength || blockSizes.slice(0, numChannels).some(size => size !== CONFIG.BLOCK_SIZE * 2)) {
+                            return { blocks: [] };
+                        }
 
                         const samples = [];
                         let offset = 8;
-
                         for (let ch = 0; ch < numChannels; ch++) {
                             const size = blockSizes[ch];
-                            const count = size / 2;
-
-                            if (size < 0 || size > 10000 || offset + size > headerOffset) {
-                                samples.push(new Int16Array(0));
-                                continue;
-                            }
-
-                            const arr = new Int16Array(count);
-                            for (let i = 0; i < count; i++) {
-                                const val = view.getInt16(offset, true);
-                                arr[i] = (i === 0 && ch === 0) ? fixFirstSample(val, view.getInt16(offset + 2, true)) : val;
-                                offset += 2;
-                            }
-                            samples.push(arr);
+                            samples.push(parseRawFrame(view, size / 2, offset));
+                            offset += size;
                         }
-
                         return { blocks: samples };
                     } catch (err) {
                         return { blocks: [] };
                     }
                 }
 
-                function parseDefault(buf, view, headerOffset) {
-                    const samples = [];
-                    let offset = 8;
-                    
-                    for (let ch = 0; ch < 16; ch++) {
-                        if (offset + 1250 > headerOffset) break;
-                        
-                        const arr = new Int16Array(1250);
-                        for (let i = 0; i < 1250; i++) {
-                            const val = view.getInt16(offset, true);
-                            arr[i] = (i === 0 && ch === 0) ? fixFirstSample(val, view.getInt16(offset + 2, true)) : val;
-                            offset += 2;
-                        }
-                        samples.push(arr);
+                function parseRawFrame(view, count, offset) {
+                    const arr = new Int16Array(count);
+                    for (let i = 0; i < count; i++) {
+                        arr[i] = view.getInt16(offset + (i * 2), true);
                     }
-                    
-                    return { blocks: samples };
+                    if (arr.length > 1) arr[0] = fixFirstSample(arr[0], arr[1]);
+                    return arr;
                 }
 
                 function fixFirstSample(val, nextVal) {
@@ -401,6 +390,7 @@ if ($systemMode !== 'DEBUG') {
                 }
 
                 function hasDiscontinuity(existing, block) {
+                    if (block.length < 2) return false;
                     const lastVal = existing[existing.length - 1];
                     const firstVal = block[0];
                     const delta = Math.abs(lastVal - firstVal);
@@ -791,53 +781,49 @@ if ($systemMode !== 'DEBUG') {
 
             <?php if ($runModeError): ?>
             <script>
-                swal({
+                Swal.fire({
                     title: "System in RUN Mode",
                     text: "The Oscilloscope requires DEBUG mode to stream WebSocket data. The system is currently in RUN mode (TCP protocol).\n\nWould you like to switch to DEBUG mode?",
-                    type: "error",
+                    icon: "error",
                     showCancelButton: true,
                     confirmButtonText: "Switch to DEBUG",
                     cancelButtonText: "Go to Dashboard"
-                }, function(isConfirm) {
-                    if (isConfirm) {
-                        // Show loading alert
-                        swal({
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        Swal.fire({
                             title: "Switching to DEBUG Mode",
                             text: "The system is switching to DEBUG mode. Please wait...",
-                            type: "info",
+                            icon: "info",
                             allowOutsideClick: false,
                             allowEscapeKey: false,
-                            didOpen: function() {
-                                swal.showLoading();
-                            }
-                        });
-
-                        // Perform mode switch
-                        fetch('data/mode_action.php', {
+                            showConfirmButton: false,
+                            didOpen: () => Swal.showLoading()
+                        }).then(function() {
+                            return fetch(MODE_ACTION_URL, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded'
                             },
                             body: 'mode=DEBUG'
+                            });
                         })
                         .then(function(response) {
+                            if (!response.ok) throw new Error('HTTP ' + response.status);
                             return response.json();
                         })
                         .then(function(data) {
                             if (data.success) {
-                                swal({
+                                Swal.fire({
                                     title: "Success",
                                     text: "System switched to DEBUG mode. Reloading page...",
-                                    type: "success"
-                                }, function() {
-                                    location.reload();
-                                });
+                                    icon: "success"
+                                }).then(() => location.reload());
                             } else {
-                                swal("Error", "Failed to switch mode: " + (data.error || "Unknown error"), "error");
+                                Swal.fire("Error", "Failed to switch mode: " + (data.error || "Unknown error"), "error");
                             }
                         })
                         .catch(function(error) {
-                            swal("Error", "Mode switch failed: " + error, "error");
+                            Swal.fire("Error", "Mode switch failed: " + error.message, "error");
                         });
                     } else {
                         // Redirect to dashboard
@@ -850,6 +836,6 @@ if ($systemMode !== 'DEBUG') {
     </section>
 </div>
 
-<?php include_once './footer.php'; ?>
+<?php include_once __DIR__ . '/footer.php'; ?>
 </body>
 </html>

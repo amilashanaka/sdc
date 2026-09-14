@@ -1,6 +1,6 @@
 ﻿<?php
- include_once './navbar.php';
- include_once './sidebar.php';
+include_once __DIR__ . '/navbar.php';
+include_once __DIR__ . '/sidebar.php';
 
 // Fetch data based on configuration
 $id_param = $form_config['data_config']['id_param'];
@@ -18,11 +18,13 @@ if ($id_param === 1) {
 }
 
  
-$row = ($id > 0 && isset($$data_source)) ? $$data_source->$method_name($id) : null;
+$data_model = $$data_source ?? null;
+$row = ($id > 0 && is_object($data_model) && method_exists($data_model, $method_name))
+    ? $data_model->$method_name($id)
+    : null;
 
 if ($id > 0) {
-    $row = is_array($row) ? $row : [];
-    $row['id'] = $id;
+    $row = is_object($row) || is_array($row) ? $row : [];
     $form_config['inputs']['id']['value'] = $id;
 }
 
@@ -62,7 +64,7 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
     $page_title = $id > 0 ?
         $page_config['update_title_prefix'] . " $heading" :
         $page_config['new_title_prefix'] . " $heading";
-    include_once './page_header.php';
+    include_once __DIR__ . '/page_header.php';
     ?>
 
     <!-- Main Content -->
@@ -78,7 +80,9 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCSRFToken()) ?>">
 
                                 <div class="<?= htmlspecialchars($form_config['layout']['form_row_class']) ?>">
-                                    <?php renderFormElements($form_config, $row); ?>
+                                    <?php if (is_object($data_model) && method_exists($data_model, 'renderFormElements')): ?>
+                                        <?php $data_model->renderFormElements($form_config); ?>
+                                    <?php endif; ?>
                                 </div>
 
                                 <?= $form_config['layout']['separator'] ?>
@@ -171,7 +175,7 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
     </div>
 </div>
 
-<?php include_once './footer.php'; ?>
+<?php include_once __DIR__ . '/footer.php'; ?>
 
 <?php
 // Determine if we need jsPDF

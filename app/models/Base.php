@@ -250,6 +250,19 @@ HTML;
 HTML;
                 break;
 
+            case 'file':
+                $accept = !empty($input['accept']) ? 'accept="' . htmlspecialchars($input['accept']) . '"' : '';
+                $previewStyle = $value === '' ? 'display: none; max-height: 100px;' : 'max-height: 100px;';
+                echo <<<HTML
+                <div class="$divClass">
+                    $label
+                    <input type="file" class="$class" id="$key" name="$key" $accept $required $disabled>
+                    <img id="{$key}-preview" class="img-fluid mt-2" src="$value" alt="" style="$previewStyle">
+                    $validation_message_html
+                </div>
+HTML;
+                break;
+
             case 'select':
             case 'dropdown':
                 $items = $input['items'] ?? [];

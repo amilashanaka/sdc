@@ -160,7 +160,7 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
     </section>
 </div>
 
-<?php include_once 'footer.php'; ?>
+<?php include_once __DIR__ . '/footer.php'; ?>
 
 <!-- DataTables JS Initialization with Optimizations and Dark Mode Support -->
 <script>

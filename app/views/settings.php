@@ -1,9 +1,9 @@
 <?php
-include_once './header.php';
+include_once __DIR__ . '/header.php';
 
 $form_config = [
     'heading' => 'System Configuration',
-    'form_action' => 'data/register_settings.php',
+    'form_action' => BASE_URL . '/settings/save',
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
         'f1' => ['label' => 'Serial Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
@@ -14,20 +14,15 @@ $form_config = [
         'img1' => ['label' => 'favicon', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
         'img2' => ['label' => 'header logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
         'img3' => ['label' => 'footer logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
-        'img4' => ['label' => 'Backend Logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
-        'img5' => ['label' => 'backend Nav Logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
-         
     ],
 ];
 
-// Fetch work data if an ID is provided
 $id = 1;
-$row = ($id > 0 && isset($setting)) ? $setting->get_by_id($id)['data'] : null;
+/** @var Setting $setting */
+$setting = $setting ?? new Setting($id);
 
-
-
-include_once './navbar.php';
-include_once './sidebar.php';
+include_once __DIR__ . '/navbar.php';
+include_once __DIR__ . '/sidebar.php';
 ?>
 <!-- Content Wrapper -->
 <div class="content-wrapper">
@@ -35,7 +30,7 @@ include_once './sidebar.php';
     <?php
     $heading = $form_config['heading'];
     $page_title = $id > 0 ? "Update $heading" : "New $heading";
-    include_once './page_header.php';
+    include_once __DIR__ . '/page_header.php';
     ?>
     <!-- Main Content -->
     <section class="content">
@@ -47,7 +42,7 @@ include_once './sidebar.php';
                             <form action="<?= htmlspecialchars($form_config['form_action']) ?>" method="post"
                                 enctype="multipart/form-data">
                                 <div class="row">
-                                    <?php renderFormElements($form_config, $row); ?>
+                                    <?php $setting->renderFormElements($form_config); ?>
                                 </div>
 
                                 <hr>
@@ -70,11 +65,18 @@ include_once './sidebar.php';
         </div>
     </section>
 </div>
-<?php include_once './footer.php'; ?>
+<?php include_once __DIR__ . '/footer.php'; ?>
 
 <script>
-    const formConfig = <?= json_encode($form_config); ?>;
-    previewImage(formConfig);
+    document.querySelectorAll('input[type="file"]').forEach((input) => {
+        input.addEventListener('change', () => {
+            const preview = document.getElementById(`${input.id}-preview`);
+            const file = input.files[0];
+            if (!file) return;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        });
+    });
 </script>
 </body>
 

@@ -1,5 +1,5 @@
 <?php
-include_once './header.php';
+include_once __DIR__ . '/header.php';
 
 $form_config = [
     'heading' => 'Log Details',
@@ -36,15 +36,6 @@ $form_config = [
             'div_class' => 'col-lg-6 col-md-6 form-group',
             'readonly' => true
         ],
-        'device_type' => [
-            'label' => 'Device Type',
-            'type' => 'select',
-            'class' => 'form-control log-detail-field',
-            'div_class' => 'col-lg-6 col-md-6 form-group',
-            'placeholder' => ' ',
-            'items' => items_from_model($device_type),
-            'disabled' => true
-        ],
         'created_date' => [
             'label' => 'Logged At',
             'type' => 'text',
@@ -74,4 +65,4 @@ $form_config = [
     ]
 ];
 
-include_once './page.php';
+include_once __DIR__ . '/page.php';
