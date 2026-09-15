@@ -17,11 +17,16 @@ DROP TABLE IF EXISTS settings;
 CREATE TABLE settings (
  id int NOT NULL AUTO_INCREMENT,
     f1 varchar(50) DEFAULT NULL, -- Device Id 
-    f2 varchar(250) DEFAULT NULL, -- Device Type
+    f2 varchar(250) DEFAULT NULL,  -- device secret key 
     f3 varchar(50) DEFAULT NULL, -- device office 
     f4 varchar(50) DEFAULT NULL, -- device location
+    device_type INT DEFAULT 0, -- device type: 
+
     PRIMARY KEY (id) USING BTREE
 );
+
+INSERT INTO settings (f1, f2, f3, f4, device_type) VALUES 
+('SDC', 'Sample Secret Key', 'Sample Office', 'Sample Location', 0);
 
  
 

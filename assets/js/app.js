@@ -136,36 +136,6 @@
     }
 
     // SweetAlert Examples
-    function showNotifications() {
-      Swal.fire({
-        title: 'Notifications',
-        html: `
-          <div class="text-start">
-            <p><i class="fas fa-info-circle text-info"></i> New user registered</p>
-            <p><i class="fas fa-check-circle text-success"></i> Order #1234 completed</p>
-            <p><i class="fas fa-exclamation-circle text-warning"></i> Low stock alert</p>
-          </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'Close'
-      });
-    }
-
-    function showMessages() {
-      Swal.fire({
-        title: 'Messages',
-        html: `
-          <div class="text-start">
-            <p><strong>John Doe:</strong> Hello, I need help...</p>
-            <p><strong>Jane Smith:</strong> Order status?</p>
-            <p><strong>Bob Johnson:</strong> Great service!</p>
-          </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'View All'
-      });
-    }
-
     function showProfile() {
       const profileBtn = document.querySelector('.navbar-profile');
       const userId = profileBtn ? profileBtn.dataset.userId : 0;

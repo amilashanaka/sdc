@@ -1039,7 +1039,7 @@ body.debug-mode .module-debug-line {
 <div>
 
 <h1 class="daq-title">
-    PYNQ-Z1 Data Acquisition System
+    <?php echo  $settings->app_name ?? 'Device Dashboard'?>
 </h1>
 
 <div class="daq-subtitle">

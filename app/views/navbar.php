@@ -15,14 +15,6 @@
         </span>
       </label>
       
-      <button class="navbar-item" onclick="showNotifications()">
-        <i class="fas fa-bell"></i>
-        <span class="badge-notify">3</span>
-      </button>
-      <button class="navbar-item" onclick="showMessages()">
-        <i class="fas fa-envelope"></i>
-        <span class="badge-notify">5</span>
-      </button>
       <button class="navbar-item" onclick="toggleFullscreen()">
         <i class="fas fa-expand-arrows-alt"></i>
       </button>

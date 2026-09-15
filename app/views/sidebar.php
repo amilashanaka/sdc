@@ -11,6 +11,7 @@ array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog', 'url'
 array_push($side_menu, array('name' => 'Log Out', 'icon' => 'fas fa-sign-out-alt', 'url' => 'login/logout', 'submenu' => ''));
 
 $current_url = trim($_GET['url'] ?? '', '/');
+
 $system_name = isset($setting) ? ($setting->getSettings('f1') ?? '') : 'SDC';
 
 ?>
