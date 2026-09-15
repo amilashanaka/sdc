@@ -16,7 +16,7 @@ class Auth {
         }
 
         // f3 = password
-        if(!password_verify($password, $record->f3)) {
+        if(!password_verify($password, $record->f2)) {
             return false;
         }
 
