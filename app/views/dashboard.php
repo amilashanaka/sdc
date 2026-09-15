@@ -184,6 +184,7 @@ $fpga_modules = array(
     --daq-orange: #f59e0b;
     --daq-red: #ef4444;
     --daq-purple: #7c3aed;
+    --daq-cyan: #06b6d4;
 
     --daq-shadow: 0 3px 15px rgba(15,23,42,.06);
 }
@@ -222,10 +223,6 @@ body.daq-dark .daq-select {
     border-color: var(--daq-border);
 }
 
-body.daq-dark .scope-container {
-    background: #0b1220;
-}
-
 body.daq-dark .status-running {
     color: #34d399;
     background: rgba(16,185,129,.18);
@@ -247,6 +244,46 @@ body.daq-dark .health-track {
 
 body.daq-dark .module-debug-line {
     background: #0b1220;
+}
+
+body.daq-dark .health-item {
+    background: #111c31;
+    border-color: var(--daq-border);
+}
+
+body.daq-dark .module-card {
+    background: #111c31;
+    border-color: var(--daq-border);
+}
+
+body.daq-dark .channel-card {
+    background: #111c31;
+}
+
+body.daq-dark .channel-config-row {
+    background: #111c31;
+}
+
+body.daq-dark .health-icon {
+    box-shadow: 0 3px 12px rgba(0,0,0,.35);
+}
+
+body.daq-dark .health-pill-ok {
+    color: #34d399;
+    background: rgba(16,185,129,.16);
+    border-color: rgba(16,185,129,.35);
+}
+
+body.daq-dark .health-pill-warn {
+    color: #fbbf24;
+    background: rgba(245,158,11,.16);
+    border-color: rgba(245,158,11,.38);
+}
+
+body.daq-dark .health-pill-crit {
+    color: #f87171;
+    background: rgba(239,68,68,.16);
+    border-color: rgba(239,68,68,.38);
 }
 
 /* GENERAL */
@@ -351,19 +388,11 @@ body.daq-dark .module-debug-line {
 
 }
 
-.theme-button.is-active {
-
-    border-color: var(--daq-red);
-
-    color: var(--daq-red);
-
-}
-
-/* DEBUG MODE */
+/* DEBUG MODE - always active */
 
 .debug-badge {
 
-    display: none;
+    display: inline-flex;
 
     align-items: center;
     gap: 6px;
@@ -397,15 +426,7 @@ body.daq-dark .module-debug-line {
     50% { opacity: .3; }
 }
 
-body.debug-mode .debug-badge {
-    display: inline-flex;
-}
-
 .debug-only {
-    display: none;
-}
-
-body.debug-mode .debug-only {
     display: block;
 }
 
@@ -413,22 +434,174 @@ body.debug-mode span.debug-only {
     display: inline;
 }
 
-body.debug-mode .module-row {
+/* =========================================================
+   FPGA MODULE GRID
+   ========================================================= */
 
-    flex-wrap: wrap;
+.module-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fill, minmax(230px, 1fr));
+
+    gap: 12px;
+}
+
+.module-card {
+
+    position: relative;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+    padding: 13px;
+
+    background: var(--daq-bg);
+
+    border: 1px solid var(--daq-border);
+
+    border-radius: 12px;
+
+    transition: transform .18s ease,
+                border-color .18s ease,
+                box-shadow .18s ease;
+
+    overflow: hidden;
+}
+
+.module-card::before {
+
+    content: '';
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 2px;
+
+    background: transparent;
+
+    transition: background .18s ease;
+}
+
+.module-card:hover {
+
+    transform: translateY(-2px);
+
+    border-color: var(--daq-blue);
+
+    box-shadow: 0 6px 18px rgba(37,99,235,.12);
+}
+
+.module-card:hover::before {
+
+    background: linear-gradient(
+        90deg,
+        var(--daq-blue),
+        var(--daq-purple)
+    );
+}
+
+.module-card-top {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+.module-card-name {
+
+    flex: 1 1 auto;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: var(--daq-text);
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.module-icon {
+
+    flex: 0 0 30px;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 8px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(37,99,235,.1);
+
+    color: var(--daq-blue);
+
+    font-size: 13px;
+}
+
+.module-status {
+
+    flex: 0 0 auto;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    white-space: nowrap;
+}
+
+.status-running {
+
+    color: #059669;
+
+    background: rgba(16,185,129,.12);
+}
+
+.status-idle {
+
+    color: #d97706;
+
+    background: rgba(245,158,11,.13);
+}
+
+.status-disabled {
+
+    color: #64748b;
+
+    background: rgba(100,116,139,.12);
 }
 
 .module-debug-line {
 
-    display: none;
+    display: grid;
 
-    width: 100%;
+    grid-template-columns: 1fr 1fr;
 
-    margin-top: 8px;
+    gap: 4px 10px;
 
     padding: 8px 10px;
 
-    background: var(--daq-bg);
+    background: var(--daq-card);
 
     border: 1px dashed var(--daq-border);
 
@@ -438,13 +611,18 @@ body.debug-mode .module-row {
 
     font-size: 10.5px;
 
-    line-height: 1.6;
+    line-height: 1.5;
 
     color: var(--daq-muted);
 }
 
-body.debug-mode .module-debug-line {
-    display: block;
+.module-debug-line span {
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
 }
 
 .module-debug-line b {
@@ -578,102 +756,6 @@ body.debug-mode .module-debug-line {
     margin-top: 2px;
 }
 
-/* SCOPE */
-
-.scope-container {
-
-    height: 330px;
-
-    background: #f8fafc;
-
-    border-radius: 10px;
-
-    overflow: hidden;
-}
-
-/* MODULE */
-
-.module-row {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    padding: 11px 0;
-
-    border-bottom: 1px solid var(--daq-border);
-}
-
-.module-row:last-child {
-    border-bottom: 0;
-}
-
-.module-name {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 9px;
-
-    font-size: 13px;
-
-    color: var(--daq-text);
-}
-
-.module-icon {
-
-    width: 28px;
-    height: 28px;
-
-    border-radius: 7px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    background: rgba(37,99,235,.1);
-
-    color: var(--daq-blue);
-
-    font-size: 12px;
-}
-
-.module-status {
-
-    font-size: 11px;
-
-    font-weight: 600;
-
-    padding: 4px 8px;
-
-    border-radius: 20px;
-}
-
-.status-running {
-
-    color: #059669;
-
-    background: rgba(16,185,129,.12);
-}
-
-.status-idle {
-
-    color: #d97706;
-
-    background: rgba(245,158,11,.13);
-}
-
-.status-disabled {
-
-    color: #64748b;
-
-    background: rgba(100,116,139,.12);
-}
-
 /* CONFIGURATION */
 
 .config-row {
@@ -786,11 +868,13 @@ body.debug-mode .module-debug-line {
     border: 1px solid var(--daq-border);
 }
 
-/* CHANNELS */
+/* =========================================================
+   LIVE CHANNELS
+   ========================================================= */
 
 .channel-card {
 
-    background: var(--daq-card);
+    background: var(--daq-bg);
 
     border: 1px solid var(--daq-border);
 
@@ -884,17 +968,507 @@ body.debug-mode .module-debug-line {
     border-radius: 5px;
 }
 
-/* HEALTH */
+/* =========================================================
+   CHANNEL CONFIGURATION LIST
+   ========================================================= */
+
+.channel-config-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.channel-config-row {
+
+    display: grid;
+
+    grid-template-columns:
+        60px
+        100px
+        110px
+        1fr
+        90px
+        90px;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px 12px;
+
+    background: var(--daq-bg);
+
+    border: 1px solid var(--daq-border);
+
+    border-radius: 10px;
+
+    transition: border-color .15s ease,
+                box-shadow .15s ease;
+}
+
+.channel-config-row:hover {
+
+    border-color: var(--daq-blue);
+
+    box-shadow: 0 4px 12px rgba(37,99,235,.10);
+}
+
+.channel-config-tag {
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    color: #fff;
+
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    text-align: center;
+
+    letter-spacing: .5px;
+}
+
+.channel-config-field {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+    min-width: 0;
+}
+
+.channel-config-field-label {
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    color: var(--daq-muted);
+
+    text-transform: uppercase;
+
+    letter-spacing: .6px;
+}
+
+.channel-config-field-value {
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    color: var(--daq-text);
+
+    font-family: 'SFMono-Regular', 'Courier New', monospace;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.channel-config-select {
+
+    width: 100%;
+
+    height: 30px;
+
+    padding: 4px 6px;
+
+    border: 1px solid var(--daq-border);
+
+    border-radius: 6px;
+
+    background: var(--daq-card);
+
+    color: var(--daq-text);
+
+    font-size: 11.5px;
+
+    outline: none;
+}
+
+.channel-config-select:focus {
+
+    border-color: var(--daq-blue);
+
+    box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+}
+
+/* =========================================================
+   BUS BLOCKS  —  SPI / I2C
+   ========================================================= */
+
+.bus-block {
+
+    position: relative;
+
+    padding: 15px;
+
+    border-radius: 12px;
+
+    border: 1px solid var(--daq-border);
+
+    background: var(--daq-bg);
+}
+
+.bus-block + .bus-block {
+
+    margin-top: 14px;
+}
+
+.bus-block-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 12px;
+}
+
+.bus-block-icon {
+
+    width: 34px;
+    height: 34px;
+
+    border-radius: 9px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    font-size: 15px;
+
+    box-shadow: 0 4px 12px rgba(15,23,42,.18);
+}
+
+.bus-block-icon-spi {
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+}
+
+.bus-block-icon-i2c {
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+}
+
+.bus-block-title {
+
+    margin: 0;
+
+    font-size: 13.5px;
+
+    font-weight: 700;
+
+    color: var(--daq-text);
+}
+
+.bus-block-sub {
+
+    margin-top: 2px;
+
+    font-size: 10.5px;
+
+    color: var(--daq-muted);
+}
+
+.bus-device {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 9px 10px;
+
+    margin-bottom: 6px;
+
+    background: var(--daq-card);
+
+    border: 1px solid var(--daq-border);
+
+    border-radius: 9px;
+
+    transition: border-color .15s ease;
+}
+
+.bus-device:last-child {
+    margin-bottom: 0;
+}
+
+.bus-device:hover {
+    border-color: var(--daq-blue);
+}
+
+.bus-device-left {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    min-width: 0;
+}
+
+.bus-device-icon {
+
+    width: 26px;
+    height: 26px;
+
+    border-radius: 7px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(37,99,235,.1);
+
+    color: var(--daq-blue);
+
+    font-size: 11px;
+}
+
+.bus-device-name {
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    color: var(--daq-text);
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.bus-device-meta {
+
+    font-size: 10px;
+
+    color: var(--daq-muted);
+
+    font-family: 'SFMono-Regular', 'Courier New', monospace;
+}
+
+.bus-device-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex: 0 0 auto;
+}
+
+.bus-device-value {
+
+    font-size: 11.5px;
+
+    font-weight: 700;
+
+    color: var(--daq-text);
+
+    font-family: 'SFMono-Regular', 'Courier New', monospace;
+}
+
+/* =========================================================
+   DEVICE HEALTH
+   ========================================================= */
+
+.health-card {
+
+    position: relative;
+}
+
+.health-card::before {
+
+    content: '';
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 3px;
+
+    background: linear-gradient(
+        90deg,
+        var(--daq-green),
+        var(--daq-blue),
+        var(--daq-purple)
+    );
+}
+
+.health-header-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.health-header-icon {
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 9px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    font-size: 14px;
+
+    background: linear-gradient(135deg, #ef4444, #f97316);
+
+    box-shadow: 0 4px 12px rgba(239,68,68,.35);
+}
+
+.health-header-icon i {
+
+    animation: health-beat 1.8s ease-in-out infinite;
+}
+
+@keyframes health-beat {
+
+    0%, 100% { transform: scale(1); }
+    15%      { transform: scale(1.22); }
+    30%      { transform: scale(1); }
+    45%      { transform: scale(1.14); }
+    60%      { transform: scale(1); }
+}
+
+.health-overall {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    padding: 5px 11px;
+
+    border-radius: 20px;
+
+    letter-spacing: .3px;
+}
+
+.health-overall.status-running i {
+    animation: health-pulse 2s infinite;
+}
+
+@keyframes health-pulse {
+
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .35; }
+}
 
 .health-item {
 
-    padding: 12px 0;
+    display: flex;
 
-    border-bottom: 1px solid var(--daq-border);
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 11px;
+
+    margin-bottom: 10px;
+
+    border: 1px solid var(--daq-border);
+
+    border-radius: 12px;
+
+    background: var(--daq-bg);
+
+    transition: transform .18s ease,
+                border-color .18s ease,
+                box-shadow .18s ease;
 }
 
-.health-item:last-child {
-    border-bottom: 0;
+.health-item:last-of-type {
+    margin-bottom: 0;
+}
+
+.health-item:hover {
+
+    transform: translateX(3px);
+
+    border-color: var(--daq-blue);
+
+    box-shadow: 0 4px 14px rgba(37,99,235,.10);
+}
+
+.health-icon {
+
+    flex: 0 0 38px;
+
+    width: 38px;
+    height: 38px;
+
+    border-radius: 10px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    font-size: 15px;
+
+    box-shadow: 0 4px 12px rgba(15,23,42,.18);
+}
+
+.health-icon-temp {
+    background: linear-gradient(135deg, #f97316, #ef4444);
+}
+
+.health-icon-cpu {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+}
+
+.health-icon-mem {
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+}
+
+.health-icon-volt {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.health-content {
+
+    flex: 1 1 auto;
+
+    min-width: 0;
 }
 
 .health-top {
@@ -905,64 +1479,131 @@ body.debug-mode .module-debug-line {
 
     align-items: baseline;
 
-    margin-bottom: 7px;
+    margin-bottom: 6px;
+
+    gap: 6px;
 }
 
 .health-label {
 
-    font-size: 12px;
+    font-size: 11.5px;
+
+    font-weight: 600;
 
     color: var(--daq-muted);
-}
 
-.health-label i {
+    white-space: nowrap;
 
-    width: 16px;
+    overflow: hidden;
 
-    margin-right: 6px;
-
-    color: var(--daq-muted);
+    text-overflow: ellipsis;
 }
 
 .health-value {
 
     font-size: 13px;
 
-    font-weight: 700;
+    font-weight: 800;
 
     color: var(--daq-text);
+
+    font-family: 'SFMono-Regular', 'Courier New', monospace;
+
+    white-space: nowrap;
 }
 
 .health-track {
 
-    height: 6px;
+    height: 7px;
 
-    background: var(--daq-bg);
+    background: var(--daq-border);
 
-    border-radius: 4px;
+    border-radius: 5px;
 
     overflow: hidden;
+
+    box-shadow: inset 0 1px 2px rgba(15,23,42,.08);
 }
 
 .health-fill {
 
     height: 100%;
 
-    border-radius: 4px;
+    border-radius: 5px;
 
-    transition: width .3s ease;
+    transition: width .4s ease, background .3s ease;
 }
 
 .health-ok {
-    background: var(--daq-green);
+    background: linear-gradient(90deg, #10b981, #34d399);
 }
 
 .health-warn {
-    background: var(--daq-orange);
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .health-crit {
-    background: var(--daq-red);
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.health-pill {
+
+    flex: 0 0 auto;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: .6px;
+
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    text-transform: uppercase;
+
+    border: 1px solid transparent;
+}
+
+.health-pill-ok {
+
+    color: #059669;
+
+    background: rgba(16,185,129,.13);
+
+    border-color: rgba(16,185,129,.32);
+}
+
+.health-pill-warn {
+
+    color: #d97706;
+
+    background: rgba(245,158,11,.13);
+
+    border-color: rgba(245,158,11,.35);
+}
+
+.health-pill-crit {
+
+    color: #dc2626;
+
+    background: rgba(239,68,68,.13);
+
+    border-color: rgba(239,68,68,.35);
+}
+
+.health-footer {
+
+    margin-top: 14px;
+
+    padding-top: 4px;
+
+    border-top: 1px dashed var(--daq-border);
+}
+
+.health-footer .config-row {
+
+    padding: 8px 0;
 }
 
 /* LOG */
@@ -998,6 +1639,20 @@ body.debug-mode .module-debug-line {
 
 /* RESPONSIVE */
 
+@media(max-width:992px) {
+
+    .channel-config-row {
+
+        grid-template-columns:
+            60px 1fr 1fr;
+
+        grid-auto-rows: auto;
+
+        row-gap: 8px;
+    }
+
+}
+
 @media(max-width:768px) {
 
     .daq-header {
@@ -1021,9 +1676,26 @@ body.debug-mode .module-debug-line {
         padding: 12px;
     }
 
+    .module-grid {
+
+        grid-template-columns:
+            repeat(auto-fill, minmax(180px, 1fr));
+    }
+
 }
 
 </style>
+
+
+<!-- =========================================================
+     DEBUG MODE ALWAYS ON
+     ========================================================= -->
+
+<script>
+
+document.body.classList.add('debug-mode');
+
+</script>
 
 
 <div class="content-wrapper" id="contentWrapper">
@@ -1072,15 +1744,6 @@ Connected
 </span>
 
 </div>
-
-<button
-    class="theme-button"
-    id="debugToggle"
-    title="Toggle debug mode">
-
-    <i class="fas fa-bug"></i>
-
-</button>
 
 <button
     class="theme-button"
@@ -1220,69 +1883,207 @@ TLS Active
 
 
 <!-- =====================================================
-     MAIN AREA
+     1. DEVICE HEALTH + FPGA MODULES
      ===================================================== -->
 
 <div class="row">
 
 
-<!-- SCOPE -->
+<div class="col-lg-4">
 
-<div class="col-lg-8">
-
-<div class="daq-card">
+<div class="daq-card health-card">
 
 <div class="daq-card-header">
 
+<div class="health-header-title">
+
+<div class="health-header-icon">
+<i class="fas fa-heartbeat"></i>
+</div>
+
 <h3 class="daq-card-title">
-
-<i class="fas fa-chart-line"></i>
-
-Real-Time ADC
-
+Device Health
 </h3>
 
-<div>
-
-<button
-    class="daq-button button-success"
-    id="startButton">
-
-<i class="fas fa-play"></i>
-Start
-
-</button>
-
-<button
-    class="daq-button button-danger"
-    id="stopButton">
-
-<i class="fas fa-stop"></i>
-Stop
-
-</button>
-
 </div>
+
+<span
+    class="health-overall status-running"
+    id="healthOverall">
+
+<i class="fas fa-circle-check" id="healthOverallIcon"></i>
+
+<span id="healthOverallText">
+Healthy
+</span>
+
+</span>
 
 </div>
 
 <div class="daq-card-body">
 
-<div
-    id="scopeChart"
-    class="scope-container">
+
+<div class="health-item">
+
+<div class="health-icon health-icon-temp">
+<i class="fas fa-thermometer-half"></i>
+</div>
+
+<div class="health-content">
+
+<div class="health-top">
+
+<span class="health-label">
+FPGA Temperature
+</span>
+
+<span class="health-value" id="fpgaTempValue">
+42 &deg;C
+</span>
+
+</div>
+
+<div class="health-track">
+<div class="health-fill health-ok" id="fpgaTempBar" style="width:47%"></div>
+</div>
+
+</div>
+
+<span class="health-pill health-pill-ok" id="fpgaTempPill">
+OK
+</span>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-icon health-icon-cpu">
+<i class="fas fa-microchip"></i>
+</div>
+
+<div class="health-content">
+
+<div class="health-top">
+
+<span class="health-label">
+CPU Load
+</span>
+
+<span class="health-value" id="cpuUsage">
+18%
+</span>
+
+</div>
+
+<div class="health-track">
+<div class="health-fill health-ok" id="cpuBar" style="width:18%"></div>
+</div>
+
+</div>
+
+<span class="health-pill health-pill-ok" id="cpuPill">
+OK
+</span>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-icon health-icon-mem">
+<i class="fas fa-memory"></i>
+</div>
+
+<div class="health-content">
+
+<div class="health-top">
+
+<span class="health-label">
+Memory Used
+</span>
+
+<span class="health-value" id="memoryUsage">
+42%
+</span>
+
+</div>
+
+<div class="health-track">
+<div class="health-fill health-ok" id="memBar" style="width:42%"></div>
+</div>
+
+</div>
+
+<span class="health-pill health-pill-ok" id="memPill">
+OK
+</span>
+
+</div>
+
+
+<div class="health-item">
+
+<div class="health-icon health-icon-volt">
+<i class="fas fa-bolt"></i>
+</div>
+
+<div class="health-content">
+
+<div class="health-top">
+
+<span class="health-label">
+Core Voltage (1.0V)
+</span>
+
+<span class="health-value" id="coreVoltage">
+1.01 V
+</span>
+
+</div>
+
+<div class="health-track">
+<div class="health-fill health-ok" style="width:98%"></div>
+</div>
+
+</div>
+
+<span class="health-pill health-pill-ok">
+OK
+</span>
+
+</div>
+
+
+<div class="health-footer">
+
+<div class="config-row">
+<span class="config-label"><i class="fas fa-microchip" style="width:16px;margin-right:6px;"></i>FPGA</span>
+<span class="config-value">Zynq-7020</span>
+</div>
+
+<div class="config-row">
+<span class="config-label"><i class="fab fa-linux" style="width:16px;margin-right:6px;"></i>Linux</span>
+<span class="config-value">PYNQ</span>
+</div>
+
+<div class="config-row">
+<span class="config-label"><i class="fas fa-clock" style="width:16px;margin-right:6px;"></i>Uptime</span>
+<span class="config-value" id="uptime">02d 14h 32m</span>
+</div>
+
+</div>
+
+
 </div>
 
 </div>
 
 </div>
 
-</div>
 
-
-<!-- FPGA MODULES -->
-
-<div class="col-lg-4">
+<div class="col-lg-8">
 
 <div class="daq-card">
 
@@ -1297,33 +2098,42 @@ FPGA Modules
 </h3>
 
 <span class="config-value debug-only">
-<?= count($fpga_modules) ?> modules (all shown)
+<?= count($fpga_modules) ?> modules &mdash; grid view
 </span>
 
 </div>
 
 <div class="daq-card-body">
 
+<div class="module-grid">
+
 <?php foreach ($fpga_modules as $m) { ?>
 
-<div class="module-row<?= $m['primary'] ? '' : ' debug-only' ?>">
+<div class="module-card<?= $m['primary'] ? '' : ' debug-only' ?>">
 
-<div class="module-name">
+<div class="module-card-top">
 
 <div class="module-icon">
 <i class="fas <?= $m['icon'] ?>"></i>
 </div>
 
+<span class="module-card-name">
 <?= $m['name'] ?>
-
-</div>
+</span>
 
 <span class="module-status status-<?= $m['state'] ?>">
 <?= $m['label'] ?>
 </span>
 
+</div>
+
 <div class="module-debug-line">
-BASE <b><?= $m['base'] ?></b> &nbsp;|&nbsp; IRQ <b><?= $m['irq'] ?></b> &nbsp;|&nbsp; STATUS <b><?= $m['status'] ?></b> &nbsp;|&nbsp; RESET <b><?= $m['reset'] ?></b>
+
+<span>BASE <b><?= $m['base'] ?></b></span>
+<span>IRQ <b><?= $m['irq'] ?></b></span>
+<span>STATUS <b><?= $m['status'] ?></b></span>
+<span>RESET <b><?= $m['reset'] ?></b></span>
+
 </div>
 
 </div>
@@ -1338,9 +2148,11 @@ BASE <b><?= $m['base'] ?></b> &nbsp;|&nbsp; IRQ <b><?= $m['irq'] ?></b> &nbsp;|&
 
 </div>
 
+</div>
+
 
 <!-- =====================================================
-     DEBUG CONSOLE (all modules, debug mode only)
+     2. DEBUG CONSOLE
      ===================================================== -->
 
 <div class="daq-card debug-only" id="debugConsole">
@@ -1424,419 +2236,7 @@ Debug Console &mdash; All Modules
 
 
 <!-- =====================================================
-     CONFIGURATION
-     ===================================================== -->
-
-<div class="row">
-
-
-<div class="col-lg-6">
-
-<div class="daq-card">
-
-<div class="daq-card-header">
-
-<h3 class="daq-card-title">
-
-<i class="fas fa-sliders-h"></i>
-
-Acquisition Configuration
-
-</h3>
-
-<button
-    class="daq-button button-primary"
-    id="saveConfig">
-
-Save
-
-</button>
-
-</div>
-
-<div class="daq-card-body">
-
-
-<div class="config-row">
-
-<span class="config-label">
-ADC Sample Rate
-</span>
-
-<select
-    class="daq-select"
-    id="sampleRateConfig">
-
-<option value="100000">
-100 kSPS
-</option>
-
-<option value="200000" selected>
-200 kSPS
-</option>
-
-<option value="250000">
-250 kSPS
-</option>
-
-<option value="500000">
-500 kSPS
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Decimation
-</span>
-
-<select
-    class="daq-select"
-    id="decimation">
-
-<option value="1">
-x1
-</option>
-
-<option value="2">
-x2
-</option>
-
-<option value="4">
-x4
-</option>
-
-<option value="8" selected>
-x8
-</option>
-
-<option value="16">
-x16
-</option>
-
-<option value="32">
-x32
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-ADC Channels
-</span>
-
-<select
-    class="daq-select"
-    id="channelCount">
-
-<option value="4">
-4 Channels
-</option>
-
-<option value="8">
-8 Channels
-</option>
-
-<option value="16" selected>
-16 Channels
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-ADC Resolution
-</span>
-
-<select
-    class="daq-select"
-    id="adcResolution">
-
-<option>
-12-bit
-</option>
-
-<option selected>
-16-bit
-</option>
-
-<option>
-18-bit
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Buffer Size
-</span>
-
-<select
-    class="daq-select"
-    id="bufferSize">
-
-<option>
-1024 Samples
-</option>
-
-<option selected>
-4096 Samples
-</option>
-
-<option>
-8192 Samples
-</option>
-
-<option>
-16384 Samples
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Trigger
-
-</span>
-
-<select
-    class="daq-select"
-    id="triggerMode">
-
-<option selected>
-Disabled
-</option>
-
-<option>
-Rising Edge
-</option>
-
-<option>
-Falling Edge
-</option>
-
-</select>
-
-</div>
-
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- SPI -->
-
-<div class="col-lg-6">
-
-<div class="daq-card">
-
-<div class="daq-card-header">
-
-<h3 class="daq-card-title">
-
-<i class="fas fa-random"></i>
-
-SPI Modules
-
-</h3>
-
-<span class="module-status status-running">
-3 Active
-</span>
-
-</div>
-
-<div class="daq-card-body">
-
-
-<div class="module-row">
-
-<div class="module-name">
-
-<div class="module-icon">
-<i class="fas fa-microchip"></i>
-</div>
-
-SPI-1
-
-</div>
-
-<span class="module-status status-running">
-Active
-</span>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Clock
-</span>
-
-<select class="daq-select">
-
-<option>
-1 MHz
-</option>
-
-<option selected>
-5 MHz
-</option>
-
-<option>
-10 MHz
-</option>
-
-<option>
-20 MHz
-</option>
-
-</select>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Mode
-</span>
-
-<select class="daq-select">
-
-<option selected>
-Mode 0
-</option>
-
-<option>
-Mode 1
-</option>
-
-<option>
-Mode 2
-</option>
-
-<option>
-Mode 3
-</option>
-
-</select>
-
-</div>
-
-
-<div class="module-row">
-
-<div class="module-name">
-
-<div class="module-icon">
-<i class="fas fa-microchip"></i>
-</div>
-
-SPI-2
-
-</div>
-
-<span class="module-status status-running">
-Active
-</span>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Clock
-</span>
-
-<span class="config-value">
-10 MHz
-</span>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Mode
-</span>
-
-<span class="config-value">
-Mode 0
-</span>
-
-</div>
-
-
-<div class="module-row">
-
-<div class="module-name">
-
-<div class="module-icon">
-<i class="fas fa-microchip"></i>
-</div>
-
-SPI-3
-
-</div>
-
-<span class="module-status status-idle">
-Idle
-</span>
-
-</div>
-
-
-<div class="config-row">
-
-<span class="config-label">
-Clock
-</span>
-
-<span class="config-value">
-5 MHz
-</span>
-
-</div>
-
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- =====================================================
-     CHANNELS
+     3. LIVE ADC CHANNELS  (status + decimation)
      ===================================================== -->
 
 <div class="daq-card">
@@ -1929,13 +2329,8 @@ mG
 
 
 <!-- =====================================================
-     SYSTEM INFORMATION
+     4. CHANNEL CONFIGURATION LIST
      ===================================================== -->
-
-<div class="row">
-
-
-<div class="col-lg-4">
 
 <div class="daq-card">
 
@@ -1943,90 +2338,290 @@ mG
 
 <h3 class="daq-card-title">
 
-<i class="fas fa-heartbeat"></i>
+<i class="fas fa-list-ol"></i>
 
-Device Health
+Channel Configuration
 
 </h3>
 
-<span class="module-status status-running" id="healthOverall">
-Healthy
+<span class="config-value">
+Per-channel settings
 </span>
 
 </div>
 
 <div class="daq-card-body">
 
+<div class="channel-config-list">
 
-<div class="health-item">
+<?php
 
-<div class="health-top">
-<span class="health-label"><i class="fas fa-microchip"></i>FPGA Temperature</span>
-<span class="health-value" id="fpgaTempValue">42 &deg;C</span>
-</div>
+for($i = 1; $i <= 16; $i++)
+{
 
-<div class="health-track">
-<div class="health-fill health-ok" id="fpgaTempBar" style="width:47%"></div>
-</div>
+?>
 
-</div>
+<div class="channel-config-row">
 
+<span class="channel-config-tag">
+CH<?= $i ?>
+</span>
 
-<div class="health-item">
+<div class="channel-config-field">
 
-<div class="health-top">
-<span class="health-label"><i class="fas fa-tasks"></i>CPU Load</span>
-<span class="health-value" id="cpuUsage">18%</span>
-</div>
+<span class="channel-config-field-label">
+Status
+</span>
 
-<div class="health-track">
-<div class="health-fill health-ok" id="cpuBar" style="width:18%"></div>
-</div>
-
-</div>
-
-
-<div class="health-item">
-
-<div class="health-top">
-<span class="health-label"><i class="fas fa-memory"></i>Memory Used</span>
-<span class="health-value" id="memoryUsage">42%</span>
-</div>
-
-<div class="health-track">
-<div class="health-fill health-ok" id="memBar" style="width:42%"></div>
-</div>
+<span class="module-status status-running" style="display:inline-block;padding:2px 7px;font-size:10px;">
+Enabled
+</span>
 
 </div>
 
+<div class="channel-config-field">
 
-<div class="health-item">
+<span class="channel-config-field-label">
+Decimation
+</span>
 
-<div class="health-top">
-<span class="health-label"><i class="fas fa-bolt"></i>Core Voltage (1.0V)</span>
-<span class="health-value" id="coreVoltage">1.01 V</span>
+<span
+    class="channel-config-field-value ch-config-dec"
+    id="chCfgDec<?= $i ?>">
+
+&divide;8
+
+</span>
+
 </div>
 
-<div class="health-track">
-<div class="health-fill health-ok" style="width:98%"></div>
+<div class="channel-config-field">
+
+<span class="channel-config-field-label">
+Input Range
+</span>
+
+<select class="channel-config-select">
+
+<option selected>&plusmn;10 mG</option>
+<option>&plusmn;20 mG</option>
+<option>&plusmn;50 mG</option>
+<option>&plusmn;100 mG</option>
+
+</select>
+
 </div>
+
+<div class="channel-config-field">
+
+<span class="channel-config-field-label">
+Gain
+</span>
+
+<select class="channel-config-select">
+
+<option>x1</option>
+<option selected>x2</option>
+<option>x4</option>
+<option>x8</option>
+
+</select>
+
+</div>
+
+<div class="channel-config-field">
+
+<span class="channel-config-field-label">
+Coupling
+</span>
+
+<select class="channel-config-select">
+
+<option selected>DC</option>
+<option>AC</option>
+
+</select>
+
+</div>
+
+</div>
+
+<?php
+
+}
+
+?>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     5. ACQUISITION CONFIGURATION
+     ===================================================== -->
+
+<div class="daq-card">
+
+<div class="daq-card-header">
+
+<h3 class="daq-card-title">
+
+<i class="fas fa-sliders-h"></i>
+
+Acquisition Configuration
+
+</h3>
+
+<button
+    class="daq-button button-primary"
+    id="saveConfig">
+
+Save
+
+</button>
+
+</div>
+
+<div class="daq-card-body">
+
+<div class="row">
+
+<div class="col-lg-6">
+
+<div class="config-row">
+
+<span class="config-label">
+ADC Sample Rate
+</span>
+
+<select
+    class="daq-select"
+    id="sampleRateConfig">
+
+<option value="100000">
+100 kSPS
+</option>
+
+<option value="200000" selected>
+200 kSPS
+</option>
+
+<option value="250000">
+250 kSPS
+</option>
+
+<option value="500000">
+500 kSPS
+</option>
+
+</select>
 
 </div>
 
 
 <div class="config-row">
-<span class="config-label">FPGA</span>
-<span class="config-value">Zynq-7020</span>
+
+<span class="config-label">
+Decimation
+</span>
+
+<select
+    class="daq-select"
+    id="decimation">
+
+<option value="1">x1</option>
+<option value="2">x2</option>
+<option value="4">x4</option>
+<option value="8" selected>x8</option>
+<option value="16">x16</option>
+<option value="32">x32</option>
+
+</select>
+
 </div>
+
 
 <div class="config-row">
-<span class="config-label">Linux</span>
-<span class="config-value">PYNQ</span>
+
+<span class="config-label">
+ADC Channels
+</span>
+
+<select
+    class="daq-select"
+    id="channelCount">
+
+<option value="4">4 Channels</option>
+<option value="8">8 Channels</option>
+<option value="16" selected>16 Channels</option>
+
+</select>
+
 </div>
+
+
+</div>
+
+<div class="col-lg-6">
 
 <div class="config-row">
-<span class="config-label">Uptime</span>
-<span class="config-value" id="uptime">02d 14h 32m</span>
+
+<span class="config-label">
+ADC Resolution
+</span>
+
+<select
+    class="daq-select"
+    id="adcResolution">
+
+<option>12-bit</option>
+<option selected>16-bit</option>
+<option>18-bit</option>
+
+</select>
+
+</div>
+
+
+<div class="config-row">
+
+<span class="config-label">
+Buffer Size
+</span>
+
+<select
+    class="daq-select"
+    id="bufferSize">
+
+<option>1024 Samples</option>
+<option selected>4096 Samples</option>
+<option>8192 Samples</option>
+<option>16384 Samples</option>
+
+</select>
+
+</div>
+
+
+<div class="config-row">
+
+<span class="config-label">
+Trigger
+</span>
+
+<select
+    class="daq-select"
+    id="triggerMode">
+
+<option selected>Disabled</option>
+<option>Rising Edge</option>
+<option>Falling Edge</option>
+
+</select>
+
 </div>
 
 
@@ -2036,8 +2631,386 @@ Healthy
 
 </div>
 
+</div>
 
-<div class="col-lg-4">
+
+<!-- =====================================================
+     6. SPI / I2C MODULES  —  separate blocks
+     ===================================================== -->
+
+<div class="row">
+
+
+<!-- SPI BLOCK -->
+
+<div class="col-lg-6">
+
+<div class="daq-card">
+
+<div class="daq-card-header">
+
+<h3 class="daq-card-title">
+
+<i class="fas fa-random"></i>
+
+SPI Modules
+
+</h3>
+
+<span class="module-status status-running">
+3 Active
+</span>
+
+</div>
+
+<div class="daq-card-body">
+
+<div class="bus-block">
+
+<div class="bus-block-header">
+
+<div class="bus-block-icon bus-block-icon-spi">
+<i class="fas fa-broadcast-tower"></i>
+</div>
+
+<div>
+
+<h4 class="bus-block-title">
+SPI Bus
+</h4>
+
+<div class="bus-block-sub">
+Master controller &mdash; 0x44A00000
+</div>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-microchip"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+SPI-1 &mdash; ADC Front-End
+</div>
+
+<div class="bus-device-meta">
+CS0 &middot; 5 MHz &middot; Mode 0
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+1.2 Mbit/s
+</span>
+
+<span class="module-status status-running">
+Active
+</span>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-microchip"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+SPI-2 &mdash; EEPROM
+</div>
+
+<div class="bus-device-meta">
+CS1 &middot; 10 MHz &middot; Mode 0
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+480 kbit/s
+</span>
+
+<span class="module-status status-running">
+Active
+</span>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-microchip"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+SPI-3 &mdash; DAC
+</div>
+
+<div class="bus-device-meta">
+CS2 &middot; 5 MHz &middot; Mode 1
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+0 bit/s
+</span>
+
+<span class="module-status status-idle">
+Idle
+</span>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- I2C BLOCK -->
+
+<div class="col-lg-6">
+
+<div class="daq-card">
+
+<div class="daq-card-header">
+
+<h3 class="daq-card-title">
+
+<i class="fas fa-project-diagram"></i>
+
+I2C Modules
+
+</h3>
+
+<span class="module-status status-running">
+2 Active
+</span>
+
+</div>
+
+<div class="daq-card-body">
+
+<div class="bus-block">
+
+<div class="bus-block-header">
+
+<div class="bus-block-icon bus-block-icon-i2c">
+<i class="fas fa-network-wired"></i>
+</div>
+
+<div>
+
+<h4 class="bus-block-title">
+I2C Bus 0
+</h4>
+
+<div class="bus-block-sub">
+400 kHz &mdash; 0x40800000
+</div>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-thermometer-half"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+Temperature Sensor
+</div>
+
+<div class="bus-device-meta">
+ADDR 0x48 &middot; 100 kHz
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+41.8 &deg;C
+</span>
+
+<span class="module-status status-running">
+Active
+</span>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-tachometer-alt"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+IMU / Gyro
+</div>
+
+<div class="bus-device-meta">
+ADDR 0x68 &middot; 400 kHz
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+1 kHz ODR
+</span>
+
+<span class="module-status status-running">
+Active
+</span>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+<div class="bus-block">
+
+<div class="bus-block-header">
+
+<div class="bus-block-icon bus-block-icon-i2c">
+<i class="fas fa-network-wired"></i>
+</div>
+
+<div>
+
+<h4 class="bus-block-title">
+I2C Bus 1
+</h4>
+
+<div class="bus-block-sub">
+100 kHz &mdash; 0x40810000
+</div>
+
+</div>
+
+</div>
+
+
+<div class="bus-device">
+
+<div class="bus-device-left">
+
+<div class="bus-device-icon">
+<i class="fas fa-memory"></i>
+</div>
+
+<div>
+
+<div class="bus-device-name">
+RTC / NVRAM
+</div>
+
+<div class="bus-device-meta">
+ADDR 0x57 &middot; 100 kHz
+</div>
+
+</div>
+
+</div>
+
+<div class="bus-device-right">
+
+<span class="bus-device-value">
+&mdash;
+</span>
+
+<span class="module-status status-idle">
+Idle
+</span>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     7. NETWORK + DATA STREAM
+     ===================================================== -->
+
+<div class="row">
+
+
+<div class="col-lg-6">
 
 <div class="daq-card">
 
@@ -2055,7 +3028,6 @@ Network
 
 <div class="daq-card-body">
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2067,7 +3039,6 @@ Connected
 </span>
 
 </div>
-
 
 <div class="config-row">
 
@@ -2081,7 +3052,6 @@ IP Address
 
 </div>
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2093,7 +3063,6 @@ Link Speed
 </span>
 
 </div>
-
 
 <div class="config-row">
 
@@ -2107,7 +3076,6 @@ Enabled
 
 </div>
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2120,7 +3088,6 @@ Connected
 
 </div>
 
-
 </div>
 
 </div>
@@ -2128,7 +3095,7 @@ Connected
 </div>
 
 
-<div class="col-lg-4">
+<div class="col-lg-6">
 
 <div class="daq-card">
 
@@ -2146,7 +3113,6 @@ Data Stream
 
 <div class="daq-card-body">
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2158,7 +3124,6 @@ Input
 </span>
 
 </div>
-
 
 <div class="config-row">
 
@@ -2172,7 +3137,6 @@ Raw Rate
 
 </div>
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2184,7 +3148,6 @@ Output
 </span>
 
 </div>
-
 
 <div class="config-row">
 
@@ -2198,7 +3161,6 @@ TLS TCP
 
 </div>
 
-
 <div class="config-row">
 
 <span class="config-label">
@@ -2211,7 +3173,6 @@ Buffer
 
 </div>
 
-
 </div>
 
 </div>
@@ -2222,7 +3183,7 @@ Buffer
 
 
 <!-- =====================================================
-     ACTIVE CONFIGURATION SNAPSHOT
+     8. ACTIVE CONFIGURATION SNAPSHOT
      ===================================================== -->
 
 <div class="daq-card">
@@ -2297,7 +3258,7 @@ Last saved: &mdash;
 
 
 <!-- =====================================================
-     EVENT LOG
+     9. EVENT LOG
      ===================================================== -->
 
 <div class="daq-card">
@@ -2330,21 +3291,10 @@ Clear
 
 <tr>
 
-<th>
-Time
-</th>
-
-<th>
-Level
-</th>
-
-<th>
-Module
-</th>
-
-<th>
-Message
-</th>
+<th>Time</th>
+<th>Level</th>
+<th>Module</th>
+<th>Message</th>
 
 </tr>
 
@@ -2354,9 +3304,7 @@ Message
 
 <tr>
 
-<td>
-10:52:01
-</td>
+<td>10:52:01</td>
 
 <td>
 <span class="module-status status-running">
@@ -2364,21 +3312,15 @@ INFO
 </span>
 </td>
 
-<td>
-ADC
-</td>
+<td>ADC</td>
 
-<td>
-Acquisition started
-</td>
+<td>Acquisition started</td>
 
 </tr>
 
 <tr>
 
-<td>
-10:52:02
-</td>
+<td>10:52:02</td>
 
 <td>
 <span class="module-status status-running">
@@ -2386,21 +3328,15 @@ INFO
 </span>
 </td>
 
-<td>
-DMA
-</td>
+<td>DMA</td>
 
-<td>
-Buffer ready
-</td>
+<td>Buffer ready</td>
 
 </tr>
 
 <tr>
 
-<td>
-10:52:04
-</td>
+<td>10:52:04</td>
 
 <td>
 <span class="module-status status-running">
@@ -2408,13 +3344,9 @@ INFO
 </span>
 </td>
 
-<td>
-Network
-</td>
+<td>Network</td>
 
-<td>
-TLS connection established
-</td>
+<td>TLS connection established</td>
 
 </tr>
 
@@ -2432,90 +3364,7 @@ TLS connection established
 </div>
 
 
-<!-- =====================================================
-     PLOTLY
-     ===================================================== -->
-
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
 <script>
-
-/* =========================================================
-   REAL TIME SCOPE
-   ========================================================= */
-
-var scopeX = [];
-var scopeY = [];
-
-for(var i = 0; i < 500; i++)
-{
-    scopeX.push(i);
-    scopeY.push(0);
-}
-
-function scopeColors()
-{
-    const dark =
-        document.body.classList.contains('daq-dark');
-
-    return {
-        grid: dark ? '#263247' : '#dfe5ec',
-        font: dark ? '#94a3b8' : '#718096'
-    };
-}
-
-function scopeLayout()
-{
-    const c = scopeColors();
-
-    return {
-
-        margin: {
-            l: 45,
-            r: 15,
-            t: 10,
-            b: 35
-        },
-
-        xaxis: {
-            title: 'Samples',
-            gridcolor: c.grid,
-            color: c.font
-        },
-
-        yaxis: {
-            title: 'mG',
-            gridcolor: c.grid,
-            color: c.font
-        },
-
-        paper_bgcolor: 'transparent',
-
-        plot_bgcolor: 'transparent',
-
-        showlegend: false
-
-    };
-}
-
-Plotly.newPlot(
-    'scopeChart',
-    [{
-        x: scopeX,
-        y: scopeY,
-        mode: 'lines',
-        line: {
-            width: 1.5
-        },
-        name: 'CH1'
-    }],
-    scopeLayout(),
-    {
-        responsive: true,
-        displaylogo: false
-    }
-);
-
 
 /* =========================================================
    DARK / LIGHT MODE
@@ -2559,67 +3408,14 @@ themeButton.addEventListener(
             ? '<i class="fas fa-sun"></i>'
             : '<i class="fas fa-moon"></i>';
 
-        Plotly.relayout(
-            'scopeChart',
-            scopeLayout()
-        );
-
-    }
-);
-
-
-/* =========================================================
-   DEBUG MODE
-   Reveals the full module list, per-module register/status
-   lines, and the Debug Console table. Persisted so a debug
-   session survives a page reload while diagnosing a fault.
-   ========================================================= */
-
-const debugButton =
-    document.getElementById('debugToggle');
-
-const savedDebug =
-    localStorage.getItem('daqDebug');
-
-if(savedDebug === 'on')
-{
-    document.body.classList.add('debug-mode');
-    debugButton.classList.add('is-active');
-}
-
-debugButton.addEventListener(
-    'click',
-    function()
-    {
-
-        document.body.classList.toggle(
-            'debug-mode'
-        );
-
-        const debugOn =
-            document.body.classList.contains(
-                'debug-mode'
-            );
-
-        localStorage.setItem(
-            'daqDebug',
-            debugOn ? 'on' : 'off'
-        );
-
-        debugButton.classList.toggle(
-            'is-active',
-            debugOn
-        );
-
     }
 );
 
 
 /* =========================================================
    CHANNEL DECIMATION DISPLAY
-   Every channel card shows the decimation factor currently
-   applied to its data path, kept in sync with the
-   Acquisition Configuration panel.
+   Keeps the live channel badges AND the per-channel
+   configuration list in sync with the Acquisition panel.
    ========================================================= */
 
 function applyDecimationToChannels(rawValue)
@@ -2629,12 +3425,20 @@ function applyDecimationToChannels(rawValue)
 
     for(let i = 1; i <= 16; i++)
     {
-        const el =
+        const live =
             document.getElementById('chDec' + i);
 
-        if(el)
+        if(live)
         {
-            el.innerText = label;
+            live.innerText = label;
+        }
+
+        const cfg =
+            document.getElementById('chCfgDec' + i);
+
+        if(cfg)
+        {
+            cfg.innerText = label;
         }
     }
 
@@ -2692,24 +3496,8 @@ document
             configuration
         );
 
-        /*
-         * Later replace with:
-         *
-         * fetch('/api/config',{
-         *     method:'POST',
-         *     headers:{
-         *         'Content-Type':
-         *             'application/json'
-         *     },
-         *     body:
-         *         JSON.stringify(configuration)
-         * });
-         */
-
-        // Reflect the new settings on every channel card
         applyDecimationToChannels(decimationSelect.value);
 
-        // Reflect the new settings in the Active Configuration snapshot
         document.getElementById('activeSampleRate').innerText =
             sampleRateSelect.options[sampleRateSelect.selectedIndex].text.trim();
 
@@ -2728,60 +3516,14 @@ document
         document.getElementById('configLastSaved').innerText =
             'Last saved: ' + new Date().toLocaleTimeString();
 
-        alert(
-            'Configuration saved'
-        );
+        alert('Configuration saved');
 
     }
 );
 
 
-// Initialise channel decimation badges from the current
-// Acquisition Configuration selection on page load.
 applyDecimationToChannels(
     document.getElementById('decimation').value
-);
-
-
-/* =========================================================
-   START / STOP
-   ========================================================= */
-
-document
-.getElementById('startButton')
-.addEventListener(
-    'click',
-    function()
-    {
-
-        document.getElementById(
-            'adcStatus'
-        ).innerText = 'Running';
-
-        console.log(
-            'ADC START'
-        );
-
-    }
-);
-
-
-document
-.getElementById('stopButton')
-.addEventListener(
-    'click',
-    function()
-    {
-
-        document.getElementById(
-            'adcStatus'
-        ).innerText = 'Stopped';
-
-        console.log(
-            'ADC STOP'
-        );
-
-    }
 );
 
 
@@ -2805,19 +3547,14 @@ document
 
 
 /* =========================================================
-   EXAMPLE REAL-TIME DATA
-   Replace with WebSocket later
+   EXAMPLE REAL-TIME CHANNEL DATA
    ========================================================= */
 
 setInterval(
     function()
     {
 
-        for(
-            let i = 1;
-            i <= 16;
-            i++
-        )
+        for(let i = 1; i <= 16; i++)
         {
 
             const value =
@@ -2826,14 +3563,11 @@ setInterval(
                 ).toFixed(3);
 
             const element =
-                document.getElementById(
-                    'ch' + i
-                );
+                document.getElementById('ch' + i);
 
             if(element)
             {
-                element.innerText =
-                    value;
+                element.innerText = value;
             }
 
         }
@@ -2844,12 +3578,18 @@ setInterval(
 
 
 /* =========================================================
-   EXAMPLE DEVICE HEALTH UPDATES
-   Replace with real readings (sysfs, XADC, /proc, etc).
-   Bars recolor green/orange/red as thresholds are crossed.
+   DEVICE HEALTH
    ========================================================= */
 
-function setHealthBar(barId, valueId, percent, unitSuffix, warnAt, critAt)
+function setHealthBar(
+    barId,
+    valueId,
+    pillId,
+    percent,
+    displayText,
+    warnAt,
+    critAt
+)
 {
     const bar =
         document.getElementById(barId);
@@ -2857,34 +3597,56 @@ function setHealthBar(barId, valueId, percent, unitSuffix, warnAt, critAt)
     const val =
         document.getElementById(valueId);
 
-    if(!bar || !val)
+    const pill =
+        document.getElementById(pillId);
+
+    if(!bar)
     {
-        return;
+        return 'health-ok';
     }
 
-    bar.style.width = percent + '%';
+    bar.style.width =
+        Math.min(percent, 100).toFixed(1) + '%';
 
     bar.classList.remove(
         'health-ok', 'health-warn', 'health-crit'
     );
 
-    let cssClass = 'health-ok';
+    let level = 'ok';
 
     if(percent >= critAt)
     {
-        cssClass = 'health-crit';
+        level = 'crit';
     }
     else if(percent >= warnAt)
     {
-        cssClass = 'health-warn';
+        level = 'warn';
     }
 
-    bar.classList.add(cssClass);
+    bar.classList.add('health-' + level);
 
-    val.innerText =
-        percent.toFixed(0) + unitSuffix;
+    if(val && displayText !== undefined && displayText !== null)
+    {
+        val.innerText = displayText;
+    }
 
-    return cssClass;
+    if(pill)
+    {
+        pill.classList.remove(
+            'health-pill-ok',
+            'health-pill-warn',
+            'health-pill-crit'
+        );
+
+        pill.classList.add('health-pill-' + level);
+
+        pill.innerText =
+            level === 'crit'
+            ? 'CRIT'
+            : (level === 'warn' ? 'WARN' : 'OK');
+    }
+
+    return 'health-' + level;
 }
 
 setInterval(
@@ -2903,46 +3665,101 @@ setInterval(
         const tempPercent =
             (tempC / 90) * 100;
 
-        setHealthBar('cpuBar', 'cpuUsage', cpu, '%', 70, 90);
+        const cpuClass =
+            setHealthBar(
+                'cpuBar',
+                'cpuUsage',
+                'cpuPill',
+                cpu,
+                cpu.toFixed(0) + '%',
+                70,
+                90
+            );
 
-        setHealthBar('memBar', 'memoryUsage', mem, '%', 75, 90);
+        const memClass =
+            setHealthBar(
+                'memBar',
+                'memoryUsage',
+                'memPill',
+                mem,
+                mem.toFixed(0) + '%',
+                75,
+                90
+            );
 
         const tempClass =
             setHealthBar(
                 'fpgaTempBar',
                 'fpgaTempValue',
+                'fpgaTempPill',
                 tempPercent,
-                '',
+                tempC.toFixed(0) + ' \u00B0C',
                 (60 / 90) * 100,
                 (75 / 90) * 100
             );
 
-        document.getElementById('fpgaTempValue').innerText =
-            tempC.toFixed(0) + ' \u00B0C';
+        const kpiTemp =
+            document.getElementById('fpgaTemp');
+
+        if(kpiTemp)
+        {
+            kpiTemp.innerText =
+                tempC.toFixed(0) + ' \u00B0C';
+        }
 
         const overall =
             document.getElementById('healthOverall');
 
-        if(overall)
+        const overallText =
+            document.getElementById('healthOverallText');
+
+        const overallIcon =
+            document.getElementById('healthOverallIcon');
+
+        if(overall && overallText && overallIcon)
         {
             overall.classList.remove(
-                'status-running', 'status-idle', 'status-disabled'
+                'status-running',
+                'status-idle',
+                'status-disabled'
             );
 
-            if(tempClass === 'health-crit')
+            let level = 'ok';
+
+            if(
+                tempClass === 'health-crit' ||
+                cpuClass === 'health-crit' ||
+                memClass === 'health-crit'
+            )
+            {
+                level = 'crit';
+            }
+            else if(
+                tempClass === 'health-warn' ||
+                cpuClass === 'health-warn' ||
+                memClass === 'health-warn'
+            )
+            {
+                level = 'warn';
+            }
+
+            if(level === 'crit')
             {
                 overall.classList.add('status-disabled');
-                overall.innerText = 'Critical';
+                overallIcon.className = 'fas fa-circle-exclamation';
+                overallText.innerText = 'Critical';
             }
-            else if(tempClass === 'health-warn')
+            else if(level === 'warn')
             {
                 overall.classList.add('status-idle');
-                overall.innerText = 'Warning';
+                overallIcon.className = 'fas fa-triangle-exclamation';
+                overallText.innerText = 'Warning';
             }
             else
             {
                 overall.classList.add('status-running');
-                overall.innerText = 'Healthy';
+                overallIcon.className = 'fas fa-circle-check';
+                overallText.innerText = 'Healthy';
             }
         }
 

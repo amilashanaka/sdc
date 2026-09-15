@@ -12,6 +12,20 @@ INSERT INTO users (f1, f2)
 VALUES ('admin', '$2y$10$MCq3kqg5TpP5rvviemVayuO4Hvfxh3/JJ4mylf6IsX7rhT3gagTee')
 
 
+DROP TABLE IF EXISTS  device_types;
+
+CREATE TABLE device_types(
+  id int NOT NULL AUTO_INCREMENT,
+  name varchar(50) DEFAULT NULL,
+  PRIMARY KEY ( id ) USING BTREE
+);
+
+ 
+INSERT INTO device_types (name) VALUES 
+('sc28'), ('sc11basic'), ('sc11si'), ('sc26'), ('sc24');
+ 
+
+
 DROP TABLE IF EXISTS settings;
 
 CREATE TABLE settings (
