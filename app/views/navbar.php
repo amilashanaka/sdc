@@ -26,8 +26,8 @@
       <button class="navbar-item" onclick="toggleFullscreen()">
         <i class="fas fa-expand-arrows-alt"></i>
       </button>
-      <div class="navbar-profile" onclick="showProfile()">
-        <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff&size=128" alt="Profile">
+      <div class="navbar-profile" onclick="showProfile()" data-user-id="<?= $_SESSION['user_id'] ?? 0 ?>">
+        <i class="fas fa-user-circle navbar-profile-icon" aria-hidden="true"></i>
         <span class="d-none d-md-inline">Admin</span>
       </div>
     </div>

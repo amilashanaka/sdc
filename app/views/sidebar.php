@@ -5,14 +5,13 @@ $side_menu = array();
 
 array_push($side_menu, array('name' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'url' => 'dashboard', 'submenu' => ''));
 array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'url' => '#', 'submenu' => array(array('name' => 'Scope', 'icon' => 'fas fa-bullseye', 'url' => 'scope'))));
-array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'blog_list'))));
+array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'module_list'))));
 array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'log_list'))));
-array_push($side_menu, array('name' => 'Companies', 'icon' => 'fas fa-building', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'company_list'))));
 array_push($side_menu, array('name' => 'Settings', 'icon' => 'fas fa-cog', 'url' => '#', 'submenu' => array(array('name' => 'System', 'icon' => 'fas fa-list', 'url' => 'settings'))));
 array_push($side_menu, array('name' => 'Log Out', 'icon' => 'fas fa-sign-out-alt', 'url' => 'login/logout', 'submenu' => ''));
 
 $current_url = trim($_GET['url'] ?? '', '/');
-$system_name = isset($setting) ? ($setting->getSettings('f1') ?? 'SDC') : 'SDC';
+$system_name = isset($setting) ? ($setting->getSettings('f1') ?? '') : 'SDC';
 
 ?>
 
@@ -23,7 +22,7 @@ $system_name = isset($setting) ? ($setting->getSettings('f1') ?? 'SDC') : 'SDC';
 <aside class="main-sidebar sidebar sidebar-dark-primary elevation-4" id="sidebar">
     <!-- Brand Logo -->
     <a href="<?= BASE_URL; ?>/dashboard" class="brand-link">
-        <img src="<?= BASE_URL; ?>/assets/img/logo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <img src="<?= BASE_URL; ?>/assets/img/logo.png" alt="System logo" class="brand-image img-circle elevation-3" style="opacity: .8">
         <span class="brand-text font-weight-light"><?= $system_name; ?></span>
     </a>
 

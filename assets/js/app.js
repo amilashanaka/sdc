@@ -167,12 +167,14 @@
     }
 
     function showProfile() {
+      const profileBtn = document.querySelector('.navbar-profile');
+      const userId = profileBtn ? profileBtn.dataset.userId : 0;
+
       Swal.fire({
         title: 'User Profile',
         html: `
           <div class="text-center">
-            <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff&size=128" 
-                 style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 15px;">
+            <i class="fas fa-user-circle profile-modal-icon" aria-hidden="true"></i>
             <h4>Alexander Pierce</h4>
             <p class="text-muted">admin@example.com</p>
           </div>
@@ -183,7 +185,12 @@
         confirmButtonColor: '#3498db',
         cancelButtonColor: '#dc3545'
       }).then((result) => {
-        if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+        if (result.isConfirmed) {
+          // Edit Profile clicked - redirect to user edit page
+          if (userId > 0) {
+            window.location.href = BASE_URL + '/user?id=' + btoa(userId);
+          }
+        } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
           Swal.fire('Logged Out', 'You have been logged out successfully', 'success');
         }
       });

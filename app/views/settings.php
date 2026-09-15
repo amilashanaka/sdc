@@ -10,10 +10,7 @@ $form_config = [
         'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true],
         'f3' => ['label' => 'Phone Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
         'f4' => ['label' => 'owner', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f5' => ['label' => 'Address', 'type' => 'textarea', 'class' => 'form-control summernote', 'div_class' => 'col-lg-12 col-md-12 form-group'],       
-        'img1' => ['label' => 'favicon', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
-        'img2' => ['label' => 'header logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
-        'img3' => ['label' => 'footer logo', 'type' => 'file', 'accept' => 'image/*', 'preview' => true, 'div_class' => 'col-lg-4 col-md-4 form-group'],
+        'f5' => ['label' => 'Address', 'type' => 'textarea', 'class' => 'form-control summernote', 'div_class' => 'col-lg-12 col-md-12 form-group'],
     ],
 ];
 
@@ -39,8 +36,7 @@ include_once __DIR__ . '/sidebar.php';
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-body">
-                            <form action="<?= htmlspecialchars($form_config['form_action']) ?>" method="post"
-                                enctype="multipart/form-data">
+                            <form action="<?= htmlspecialchars($form_config['form_action']) ?>" method="post">
                                 <div class="row">
                                     <?php $setting->renderFormElements($form_config); ?>
                                 </div>
@@ -67,17 +63,6 @@ include_once __DIR__ . '/sidebar.php';
 </div>
 <?php include_once __DIR__ . '/footer.php'; ?>
 
-<script>
-    document.querySelectorAll('input[type="file"]').forEach((input) => {
-        input.addEventListener('change', () => {
-            const preview = document.getElementById(`${input.id}-preview`);
-            const file = input.files[0];
-            if (!file) return;
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-        });
-    });
-</script>
 </body>
 
 </html>

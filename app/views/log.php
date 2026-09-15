@@ -5,7 +5,6 @@ $form_config = [
     'heading' => 'Log Details',
     'form_action' => '#',
     'method' => 'get',
-    'enctype' => 'multipart/form-data',
     'page_config' => [
         'update_title_prefix' => 'View',
         'new_title_prefix' => 'View',

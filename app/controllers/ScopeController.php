@@ -1,10 +1,13 @@
 <?php
 
-class ScopeController 
+class ScopeController extends BaseController
 {
-    public function __construct() 
+    private $flag;
+
+    public function __construct()
     {
         $this->checkAuth();
+        $this->flag = new Flag();
     }
 
     public function index()
@@ -14,29 +17,27 @@ class ScopeController
 
     public function modeAction()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        if (!$this->isPost()) {
             $this->json(['success' => false, 'error' => 'POST required'], 405);
         }
 
-        $mode = strtoupper(trim($_POST['mode'] ?? ''));
+        $mode = strtoupper(trim($this->post('mode', '')));
         if (!in_array($mode, ['RUN', 'DEBUG'], true)) {
             $this->json(['success' => false, 'error' => 'Invalid mode'], 400);
         }
 
+        $runMode = $mode === 'DEBUG' ? 1 : 0;
+
         try {
-            $db = Database::getInstance();
-            $db->query(
-                'INSERT INTO run_mode (id, f1, status) VALUES (1, ?, 1) '
-                . 'ON DUPLICATE KEY UPDATE f1 = VALUES(f1), status = 1',
-                [$mode === 'DEBUG' ? 1 : 0]
-            );
+            if (!$this->flag->setRunMode($runMode)) {
+                throw new RuntimeException('Failed to update database');
+            }
 
             $pynqDirectory = getenv('SPICER_PYNQ_DIR');
             if (!$pynqDirectory) {
                 $pynqDirectory = is_dir('/var/www/html/pynq') ? '/var/www/html/pynq' : ROOT . '/pynq';
             }
             $modeFile = $pynqDirectory . '/.mode';
-            $modeFile .= '/.mode';
             if (@file_put_contents($modeFile, $mode . PHP_EOL) === false) {
                 throw new RuntimeException('Unable to write mode file');
             }
@@ -45,27 +46,5 @@ class ScopeController
         } catch (Throwable $exception) {
             $this->json(['success' => false, 'error' => 'Mode switch failed'], 500);
         }
-    }
-
-    private function checkAuth() 
-    {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/login');
-            exit;
-        }
-    }
-
-    private function view($file, $data = []) 
-    {
-        extract($data);
-        require VIEWS . "/{$file}.php";
-    }
-
-    private function json($data, $statusCode = 200)
-    {
-        http_response_code($statusCode);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
     }
 }

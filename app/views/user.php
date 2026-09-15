@@ -7,33 +7,10 @@ include_once 'navbar.php';
 $id = isset($_GET['id']) ? intval(base64_decode($_GET['id'])) : 0;
 $user = new User($id);
 
-$profile_image = './assets/img/profile.png';
-if ($id > 0 && !empty($user->img1) && file_exists($user->img1)) {
-    $profile_image = $user->img1;
-}
-
 $form_config = [
     'heading' => 'User',
     'form_action' => BASE_URL . '/user/save',
     'method' => 'post',
-    'enctype' => 'multipart/form-data',
-
-    'profile_image' => [
-        'enabled' => true,
-        'preview' => true,
-        'default_image' => './assets/img/profile.png',
-        'name_field' => 'img1',
-        'accepted_types' => ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
-        'accepted_types_text' => 'JPEG, PNG, or GIF',
-        'max_size' => 5242880, // 5MB in bytes
-        'max_size_text' => '5MB',
-        'validation' => [
-            'enabled' => true,
-            'show_preview' => true,
-            'show_success_message' => true,
-            'success_message_duration' => 3000, // milliseconds
-        ],
-    ],
 
     'tabs' => [
         'tab-info' => [
@@ -230,7 +207,6 @@ $form_config = [
 
     'ui' => [
         'card_classes' => 'card card-primary card-outline',
-        'profile_card_body_classes' => 'card-body box-profile text-center',
         'main_card_classes' => 'card',
         'alert_classes' => 'alert alert-{type} alert-dismissible fade show',
         'tab_nav_classes' => 'nav nav-pills',
@@ -261,44 +237,7 @@ $form_config = [
         </div>
 
         <div class="row">
-            <!-- Profile Image -->
-            <?php if ($form_config['profile_image']['enabled']): ?>
-                <div class="col-md-3">
-                    <div class="<?= $form_config['ui']['card_classes'] ?>">
-                        <div class="<?= $form_config['ui']['profile_card_body_classes'] ?>">
-                            <div class="position-relative d-inline-block">
-                                <img src="<?= htmlspecialchars($profile_image) ?>"
-                                     id="profile-preview"
-                                     class="img-fluid img-circle elevation-2"
-                                     style="width: 150px; height: 150px; object-fit: cover; cursor: pointer;"
-                                     alt="Profile"
-                                     onclick="document.getElementById('profile-image-input').click();">
-                                <div class="position-absolute" style="bottom: 5px; right: 5px;">
-                                    <button type="button" 
-                                            class="btn btn-primary btn-sm rounded-circle" 
-                                            style="width: 35px; height: 35px; padding: 0;"
-                                            onclick="document.getElementById('profile-image-input').click();">
-                                        <i class="fas fa-camera"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <h3 class="profile-username text-center mt-3">
-                                <?= htmlspecialchars($user->f5 ?? 'New User') ?>
-                            </h3>
-                            <p class="text-muted text-center"><?= htmlspecialchars($user->f2 ?? '') ?></p>
-                            
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> Click image to change
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <!-- Tabs -->
-            <div class="<?= $form_config['profile_image']['enabled'] ? 'col-md-9' : 'col-md-12' ?>">
+            <div class="col-md-12">
                 <div class="<?= $form_config['ui']['main_card_classes'] ?>">
                     <!-- Tab Navigation -->
                     <div class="card-header p-2">
@@ -325,7 +264,6 @@ $form_config = [
                     <div class="card-body">
                         <form id="userForm" action="<?= $form_config['form_action'] ?>" 
                               method="<?= $form_config['method'] ?>" 
-                              enctype="<?= $form_config['enctype'] ?>" 
                               novalidate>
                               
                             <!-- Hidden Fields -->
@@ -334,15 +272,6 @@ $form_config = [
                             <?php endforeach; ?>
                             <?php if ($id > 0): ?>
                                 <input type="hidden" name="id" value="<?= $id ?>">
-                            <?php endif; ?>
-
-                            <!-- Hidden File Input for Profile Image -->
-                            <?php if ($form_config['profile_image']['enabled']): ?>
-                                <input type="file" 
-                                       id="profile-image-input" 
-                                       name="<?= $form_config['profile_image']['name_field'] ?>" 
-                                       accept="<?= implode(',', $form_config['profile_image']['accepted_types']) ?>" 
-                                       style="display: none;">
                             <?php endif; ?>
 
                             <div class="tab-content" id="userTabContent">
@@ -415,15 +344,9 @@ $form_config = [
 // Pass PHP config to JavaScript
 const formConfig = <?= json_encode($form_config) ?>;
 const userId = <?= $id ?>;
-const originalProfileImage = '<?= htmlspecialchars($profile_image) ?>';
 
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('userForm');
-    
-    // Initialize profile image handler
-    if (formConfig.profile_image.enabled) {
-        initProfileImageHandler();
-    }
     
     // Initialize field validations
     initFieldValidations();
@@ -434,72 +357,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize form reset
     initFormReset();
 });
-
-function initProfileImageHandler() {
-    const profileImageInput = document.getElementById('profile-image-input');
-    const profilePreview = document.getElementById('profile-preview');
-    
-    if (!profileImageInput || !profilePreview) return;
-    
-    const config = formConfig.profile_image;
-    
-    profileImageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        
-        if (!file) return;
-        
-        // Validate file type
-        const fileType = file.type.toLowerCase();
-        if (!config.accepted_types.includes(fileType)) {
-            alert(`Please select a valid image file (${config.accepted_types_text})`);
-            this.value = '';
-            return;
-        }
-        
-        // Validate file size
-        if (file.size > config.max_size) {
-            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            alert(`Image size must not exceed ${config.max_size_text}. Your file is ${fileSizeMB}MB`);
-            this.value = '';
-            return;
-        }
-        
-        // Preview image
-        if (config.validation.show_preview) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                profilePreview.src = e.target.result;
-                
-                // Show success message
-                if (config.validation.show_success_message) {
-                    showSuccessMessage(profilePreview.closest('.card-body'), config.validation.success_message_duration);
-                }
-            };
-            
-            reader.onerror = function() {
-                alert('Error reading file. Please try again.');
-                profileImageInput.value = '';
-            };
-            
-            reader.readAsDataURL(file);
-        }
-    });
-}
-
-function showSuccessMessage(container, duration) {
-    const successMsg = document.createElement('div');
-    successMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
-    successMsg.innerHTML = '<i class="fas fa-check-circle"></i> Image selected successfully!';
-    successMsg.style.fontSize = '0.85rem';
-    successMsg.style.padding = '0.5rem';
-    
-    const existingAlert = container.querySelector('.alert');
-    if (existingAlert) existingAlert.remove();
-    
-    container.appendChild(successMsg);
-    
-    setTimeout(() => successMsg.remove(), duration);
-}
 
 function initFieldValidations() {
     // Iterate through all tabs and their inputs
@@ -670,25 +527,6 @@ function initFormSubmission() {
             });
         });
         
-        // Validate profile image if selected
-        if (formConfig.profile_image.enabled) {
-            const profileImageInput = document.getElementById('profile-image-input');
-            if (profileImageInput && profileImageInput.files.length > 0) {
-                const file = profileImageInput.files[0];
-                const config = formConfig.profile_image;
-                
-                if (!config.accepted_types.includes(file.type.toLowerCase())) {
-                    alert(`Please select a valid image file (${config.accepted_types_text})`);
-                    isValid = false;
-                }
-                
-                if (file.size > config.max_size) {
-                    alert(`Image size must not exceed ${config.max_size_text}`);
-                    isValid = false;
-                }
-            }
-        }
-        
         if (!isValid) {
             e.preventDefault();
             e.stopPropagation();
@@ -734,17 +572,6 @@ function initFormReset() {
         if (formConfig.validation.bootstrap_validation_classes) {
             form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
             form.querySelectorAll('.is-valid').forEach(el => el.classList.remove('is-valid'));
-        }
-        
-        // Reset profile preview to original
-        if (formConfig.profile_image.enabled) {
-            const profilePreview = document.getElementById('profile-preview');
-            const profileImageInput = document.getElementById('profile-image-input');
-            
-            if (profilePreview && profileImageInput) {
-                profilePreview.src = originalProfileImage;
-                profileImageInput.value = '';
-            }
         }
     });
 }

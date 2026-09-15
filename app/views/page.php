@@ -845,7 +845,7 @@ foreach ($buttons as $__btn) {
                             }
                         });
 
-                        // Merge settings values (e.g. {{img3}} for letterhead)
+                        // Merge settings values into the template
                         if (formConfig.settings) {
                             Object.keys(formConfig.settings).forEach(function(key) {
                                 fieldValues[key] = formConfig.settings[key] || '';

@@ -18,10 +18,12 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 
- 
 
   <link rel="stylesheet" href="./assets/css/main.css">
   <link rel="stylesheet" href="./assets/css/validation.css">
 
+  <script>
+    window.BASE_URL = '<?= BASE_URL ?>';
+  </script>
 </head>
 <body>

@@ -5,17 +5,9 @@ include_once __DIR__ . '/navbar.php';
 $form_config = ['heading' => 'ADC Test'];
 $id = 1;
 
-
 // Check system mode - scope requires DEBUG mode
-$pynqDirectory = getenv('SPICER_PYNQ_DIR');
-if (!$pynqDirectory) {
-    $pynqDirectory = is_dir('/var/www/html/pynq') ? '/var/www/html/pynq' : ROOT . '/pynq';
-}
-$modeFile = $pynqDirectory . '/.mode';
-$systemMode = 'RUN';
-if (file_exists($modeFile)) {
-    $systemMode = trim(file_get_contents($modeFile));
-}
+$flag = new Flag();
+$systemMode = $flag->isDebugMode() ? 'DEBUG' : 'RUN';
 
 // If in RUN mode, show error and redirect after user acknowledges
 $runModeError = false;

@@ -2,7 +2,7 @@
 """
 Spicer DAQ mode manager.
 
-Watches daq.run_mode.f1 forever:
+Watches daq.flags.run_mode forever:
   0 = RUN mode   -> ./startup
   1 = DEBUG mode -> /usr/bin/python3 server.py
 
@@ -118,26 +118,21 @@ def db_execute(sql: str, fetch: bool = False) -> Optional[str]:
 
 def init_database() -> None:
     create_sql = """
-        CREATE TABLE IF NOT EXISTS run_mode (
+        CREATE TABLE IF NOT EXISTS flags (
             id INT NOT NULL AUTO_INCREMENT,
-            f1 INT DEFAULT 0,
-            created_by INT DEFAULT NULL,
-            created_date datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_by INT DEFAULT NULL,
-            updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            status INT DEFAULT 1,
+            run_mode INT DEFAULT 0,
             PRIMARY KEY (id) USING BTREE
         )
     """
     db_execute(create_sql)
-    db_execute("INSERT IGNORE INTO run_mode (id, f1, status) VALUES (1, 0, 1)")
+    db_execute("INSERT IGNORE INTO flags (run_mode) VALUES (0)")
 
 
 def read_db_mode() -> Optional[str]:
     try:
-        value = db_execute("SELECT f1 FROM run_mode WHERE id=1 LIMIT 1", fetch=True)
+        value = db_execute("SELECT run_mode FROM flags WHERE id=1 LIMIT 1", fetch=True)
     except Exception as exc:
-        logging.warning("Could not read run_mode.f1 from database: %s", exc)
+        logging.warning("Could not read flags.run_mode from database: %s", exc)
         return None
 
     if value == "":
@@ -149,11 +144,11 @@ def write_db_mode(mode: str) -> None:
     flag = flag_from_mode(mode)
     try:
         db_execute(
-            "INSERT INTO run_mode (id, f1, status) VALUES (1, {flag}, 1) "
-            "ON DUPLICATE KEY UPDATE f1={flag}, status=1".format(flag=flag)
+            "INSERT INTO flags (run_mode) VALUES ({flag}) "
+            "ON DUPLICATE KEY UPDATE run_mode={flag}".format(flag=flag)
         )
     except Exception as exc:
-        logging.warning("Could not write run_mode.f1 to database: %s", exc)
+        logging.warning("Could not write flags.run_mode to database: %s", exc)
 
 
 def read_file_mode() -> str:

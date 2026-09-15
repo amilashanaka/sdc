@@ -24,7 +24,7 @@
                 <div class="col-lg-5 left-illustration d-flex flex-column justify-content-center p-5">
                     <div class="mb-4 d-flex align-items-center gap-3">
                         <div class="brand-logo">
-                            <img src="./assets/img/logo.png" alt="Spicer Consulting Logo">
+                            <img src="<?= BASE_URL; ?>/assets/img/logo.png" alt="System logo">
                         </div>
                         <div>
                             <h5 class="mb-0 fw-semibold">Spicer Consulting</h5>

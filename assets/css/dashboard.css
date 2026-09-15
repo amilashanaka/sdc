@@ -305,11 +305,15 @@
       cursor: pointer;
     }
 
-    .navbar-profile img {
+    .navbar-profile-icon {
       width: 35px;
       height: 35px;
       border-radius: 50%;
       border: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-color);
     }
 
     /* Theme Switch */

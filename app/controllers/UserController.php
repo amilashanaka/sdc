@@ -73,16 +73,6 @@ class UserController extends BaseController
             $userData['f3'] = $passwordResult['password'];
         }
 
-        // Handle profile image upload
-        $imageResult = $this->handleProfileImage($userId);
-        if ($imageResult['error']) {
-            $this->setFlash('danger', $imageResult['message']);
-            $this->redirectBack($userId);
-        }
-        if ($imageResult['filename']) {
-            $userData['img1'] = $imageResult['filepath'];
-        }
-
         // Check for duplicate username/email
         if (!$this->checkDuplicates($userData, $userId)) {
             $this->setFlash('danger', implode('<br>', $this->validationErrors));
@@ -264,66 +254,6 @@ class UserController extends BaseController
                 'time_cost'   => 4,
                 'threads'     => 3
             ])
-        ];
-    }
-
-    /**
-     * Handle profile image upload with validation
-     */
-    private function handleProfileImage(int $userId): array
-    {
-        if (!isset($_FILES['img1']) || $_FILES['img1']['error'] === UPLOAD_ERR_NO_FILE) {
-            return ['error' => false, 'filename' => null];
-        }
-
-        if ($_FILES['img1']['error'] !== UPLOAD_ERR_OK) {
-            return [
-                'error'   => true,
-                'message' => 'File upload error. Please try again.'
-            ];
-        }
-
-        // Validate file type
-        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $_FILES['img1']['tmp_name']);
-        finfo_close($finfo);
-
-        if (!in_array($mimeType, $allowedTypes)) {
-            return [
-                'error'   => true,
-                'message' => 'Invalid file type. Only JPEG, PNG, and GIF images are allowed.'
-            ];
-        }
-
-        // Upload file
-        $upload = $this->uploadFile(
-            $_FILES['img1'],
-            'uploads/profiles/',
-            $allowedTypes
-        );
-
-        if (!$upload['success']) {
-            return [
-                'error'   => true,
-                'message' => 'Profile image upload failed: ' . $upload['message']
-            ];
-        }
-
-        // Delete old image if exists
-        if ($userId > 0) {
-            $oldUser = new User($userId);
-            if (!empty($oldUser->img1) && 
-                file_exists($oldUser->img1) && 
-                $oldUser->img1 !== $upload['filepath']) {
-                @unlink($oldUser->img1);
-            }
-        }
-
-        return [
-            'error'    => false,
-            'filename' => $upload['filename'],
-            'filepath' => $upload['filepath']
         ];
     }
 
