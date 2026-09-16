@@ -29,11 +29,28 @@ class DashboardController {
             ];
         }
 
+        $healthModel = new Health();
+        $health_data = $healthModel->get_all();
+        $health_items = [];
+        foreach ($health_data as $h) {
+            $is_active = ($h->status == 1);
+            $health_items[] = [
+                'name'        => $h->f1,
+                'sequence'    => $h->f2,
+                'description' => $h->f3,
+                'value'       => $h->f4,
+                'icon'        => $h->f5,
+                'state'       => $is_active ? 'running' : 'idle',
+                'label'       => $is_active ? 'OK' : 'Idle',
+            ];
+        }
+
         $this->view('dashboard', [
             'user' => $currentUser,
             'users' => $users,
             'title' => 'Dashboard',
             'fpga_modules' => $fpga_modules,
+            'health_items' => $health_items,
         ]);
     }
 
@@ -61,10 +78,27 @@ class DashboardController {
             ];
         }
 
+        $healthModel = new Health();
+        $health_data = $healthModel->get_all();
+        $health_items = [];
+        foreach ($health_data as $h) {
+            $is_active = ($h->status == 1);
+            $health_items[] = [
+                'name'        => $h->f1,
+                'sequence'    => $h->f2,
+                'description' => $h->f3,
+                'value'       => $h->f4,
+                'icon'        => $h->f5,
+                'state'       => $is_active ? 'running' : 'idle',
+                'label'       => $is_active ? 'OK' : 'Idle',
+            ];
+        }
+
         $this->view('dashboard', [
             'user' => $currentUser,
             'title' => 'Profile',
             'fpga_modules' => $fpga_modules,
+            'health_items' => $health_items,
         ]);
     }
 

@@ -206,10 +206,20 @@ $kpi_cards = array(
                     <div class="daq-card-body">
 
 
+                        <?php
+                        $healthIconColors = [
+                            'FPGA Temperature' => 'temp',
+                            'CPU Load' => 'cpu',
+                            'Memory Used' => 'mem',
+                            'Core Voltage' => 'volt',
+                        ];
+                        foreach ($health_items as $index => $h):
+                            $colorClass = $healthIconColors[$h['name']] ?? $index;
+                        ?>
                         <div class="health-item">
 
-                            <div class="health-icon health-icon-temp">
-                                <i class="fas fa-thermometer-half"></i>
+                            <div class="health-icon health-icon-<?= $colorClass ?>">
+                                <i class="fas <?= $h['icon'] ?>"></i>
                             </div>
 
                             <div class="health-content">
@@ -217,125 +227,27 @@ $kpi_cards = array(
                                 <div class="health-top">
 
                                     <span class="health-label">
-                                        FPGA Temperature
+                                        <?= $h['name'] ?>
                                     </span>
 
-                                    <span class="health-value" id="fpgaTempValue">
-                                        42 &deg;C
-                                    </span>
-
-                                </div>
-
-                                <div class="health-track">
-                                    <div class="health-fill health-ok" id="fpgaTempBar" style="width:47%"></div>
-                                </div>
-
-                            </div>
-
-                            <span class="health-pill health-pill-ok" id="fpgaTempPill">
-                                OK
-                            </span>
-
-                        </div>
-
-
-                        <div class="health-item">
-
-                            <div class="health-icon health-icon-cpu">
-                                <i class="fas fa-microchip"></i>
-                            </div>
-
-                            <div class="health-content">
-
-                                <div class="health-top">
-
-                                    <span class="health-label">
-                                        CPU Load
-                                    </span>
-
-                                    <span class="health-value" id="cpuUsage">
-                                        18%
+                                    <span class="health-value" id="<?= 'health' . $index . 'Value' ?>">
+                                        <?= $h['value'] ?>
                                     </span>
 
                                 </div>
 
                                 <div class="health-track">
-                                    <div class="health-fill health-ok" id="cpuBar" style="width:18%"></div>
+                                    <div class="health-fill health-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Bar' ?>" style="width:<?= $h['value'] ?>%"></div>
                                 </div>
 
                             </div>
 
-                            <span class="health-pill health-pill-ok" id="cpuPill">
-                                OK
+                            <span class="health-pill health-pill-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Pill' ?>">
+                                <?= $h['label'] ?>
                             </span>
 
                         </div>
-
-
-                        <div class="health-item">
-
-                            <div class="health-icon health-icon-mem">
-                                <i class="fas fa-memory"></i>
-                            </div>
-
-                            <div class="health-content">
-
-                                <div class="health-top">
-
-                                    <span class="health-label">
-                                        Memory Used
-                                    </span>
-
-                                    <span class="health-value" id="memoryUsage">
-                                        42%
-                                    </span>
-
-                                </div>
-
-                                <div class="health-track">
-                                    <div class="health-fill health-ok" id="memBar" style="width:42%"></div>
-                                </div>
-
-                            </div>
-
-                            <span class="health-pill health-pill-ok" id="memPill">
-                                OK
-                            </span>
-
-                        </div>
-
-
-                        <div class="health-item">
-
-                            <div class="health-icon health-icon-volt">
-                                <i class="fas fa-bolt"></i>
-                            </div>
-
-                            <div class="health-content">
-
-                                <div class="health-top">
-
-                                    <span class="health-label">
-                                        Core Voltage (1.0V)
-                                    </span>
-
-                                    <span class="health-value" id="coreVoltage">
-                                        1.01 V
-                                    </span>
-
-                                </div>
-
-                                <div class="health-track">
-                                    <div class="health-fill health-ok" style="width:98%"></div>
-                                </div>
-
-                            </div>
-
-                            <span class="health-pill health-pill-ok">
-                                OK
-                            </span>
-
-                        </div>
+                        <?php endforeach; ?>
 
 
                         <div class="health-footer">

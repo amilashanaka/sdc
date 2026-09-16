@@ -4,6 +4,7 @@
 $side_menu = array();
 
 array_push($side_menu, array('name' => 'Dashboard', 'icon' => 'fas fa-tachometer-alt', 'url' => 'dashboard', 'submenu' => ''));
+array_push($side_menu, array('name' => 'Health', 'icon' => 'fas fa-heartbeat', 'url' => 'health', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'health_list'))));
 array_push($side_menu, array('name' => 'ADC', 'icon' => 'fas fa-wave-square', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'channel_list'))));
 array_push($side_menu, array('name' => 'Modules', 'icon' => 'fas fa-cubes', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'module_list'))));
 array_push($side_menu, array('name' => 'Logs', 'icon' => 'fas fa-list', 'url' => '#', 'submenu' => array(array('name' => 'List', 'icon' => 'fas fa-list', 'url' => 'log_list'))));

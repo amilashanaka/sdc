@@ -74,10 +74,14 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
 
                     <!-- Card Body -->
                     <div class="<?= htmlspecialchars($layout['card_body_classes'] ?? 'card-body p-0') ?>"> <!-- Removed padding for cleaner look -->
+                  
+
                         <div class="table-responsive"> <!-- Added for better mobile handling -->
+                            
                             <table id="<?= htmlspecialchars($table_id) ?>"
                                    class="<?= htmlspecialchars($tableClasses) ?>"
                                    <?= htmlspecialchars($table_config['table_attributes'] ?? 'width="100%"') ?>>
+                                   
 
                                 <thead> <!-- Improved header styling -->
                                     <tr>
@@ -85,6 +89,7 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                             <th><?= htmlspecialchars($th) ?></th>
                                         <?php endforeach; ?>
                                     </tr>
+                                          
                                 </thead>
 
                                 <tbody>

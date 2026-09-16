@@ -109,13 +109,13 @@ CREATE TABLE channels(
 DROP TABLE IF EXISTS  modules;
 
 CREATE TABLE modules(
-  id int NOT NULL AUTO_INCREMENT, 
-  f1 varchar(50) DEFAULT NULL,  
-  f2 int DEFAULT 0,  
-  f3 TEXT DEFAULT NULL,  
-  f5 VARCHAR(100) DEFAULT NULL, 
-  f6 VARCHAR(50) DEFAULT NULL,  
-  status int DEFAULT 0, 
+  id int NOT NULL AUTO_INCREMENT,  
+  f1 varchar(50) DEFAULT NULL,  -- module name 
+  f2 int DEFAULT 0,   -- module squence number
+  f3 TEXT DEFAULT NULL,  -- module description
+  f5 VARCHAR(100) DEFAULT NULL, -- module base address
+  f6 VARCHAR(50) DEFAULT NULL,  -- module icon
+  status int DEFAULT 0,  -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
 
@@ -137,11 +137,11 @@ DROP TABLE IF EXISTS  health;
 
 CREATE TABLE health(
   id int NOT NULL AUTO_INCREMENT,
-  f1 varchar(50) DEFAULT NULL, --health name
-  f2 int DEFAULT 0, --health squence number
-  f3 TEXT DEFAULT NULL, --health description
-  f4 DECIMAL(10,2)  DEFAULT 0.00, --health value
-  f5 VARCHAR(100) DEFAULT NULL, --health icon
-  status int DEFAULT 0, --1=active, 0=inactive
+  f1 varchar(50) DEFAULT NULL, -- health name
+  f2 int DEFAULT 0, -- health squence number
+  f3 TEXT DEFAULT NULL, -- health description
+  f4 DECIMAL(10,2)  DEFAULT 0.00, -- health value
+  f5 VARCHAR(100) DEFAULT NULL, -- health icon
+  status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
