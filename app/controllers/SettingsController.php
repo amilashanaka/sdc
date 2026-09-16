@@ -25,14 +25,20 @@ class SettingsController extends BaseController
             $this->redirect('settings');
         }
 
+        // Get all POST data and filter to allowed fields
+        $allowedFields = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'device_type'];
+        $postData = $this->post();
+        
         $data = [];
-        foreach (['f1', 'f3', 'f4', 'f5'] as $field) {
-            $data[$field] = trim((string) $this->post($field, ''));
+        foreach ($postData as $key => $value) {
+            if (in_array($key, $allowedFields)) {
+                $data[$key] = trim((string) $value);
+            }
         }
 
-        $secret = trim((string) $this->post('f2', ''));
-        if ($secret !== '') {
-            $data['f2'] = $secret;
+        // Handle secret key separately - only update if provided
+        if (empty($data['f2'])) {
+            unset($data['f2']);
         }
 
         if ($this->settings->row) {
