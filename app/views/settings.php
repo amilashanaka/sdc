@@ -1,16 +1,19 @@
 <?php
 include_once __DIR__ . '/header.php';
+$device_types = new DeviceType();
 
 $form_config = [
     'heading' => 'System Configuration',
     'form_action' => BASE_URL . '/settings/save',
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
-        'f1' => ['label' => 'Serial Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true],
-        'f3' => ['label' => 'Phone Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f4' => ['label' => 'owner', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f5' => ['label' => 'Address', 'type' => 'textarea', 'class' => 'form-control summernote', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f1' => ['label' => 'Host Name', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true, 'copy' => true],
+        'f3' => ['label' => 'Device Office', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f4' => ['label' => 'Device Local IP', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f5' => ['label' => 'Device Firmware Version', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'f6' => ['label' => 'Device Serial Number', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
+        'device_type' => ['label' => 'Device Type', 'type' => 'select', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'items' => $device_types->get_items()],
     ],
 ];
 

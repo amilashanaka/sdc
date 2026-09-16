@@ -232,3 +232,68 @@
         loader.classList.add('hidden');
       }, 1000);
     }
+
+    function setupPasswordFieldControls() {
+      document.querySelectorAll('[data-password-toggle]').forEach(button => {
+        button.addEventListener('click', () => {
+          const input = document.getElementById(button.dataset.passwordToggle);
+          if (!input) {
+            return;
+          }
+
+          const isHidden = input.type === 'password';
+          input.type = isHidden ? 'text' : 'password';
+
+          const icon = button.querySelector('i');
+          if (icon) {
+            icon.classList.toggle('fa-eye', isHidden);
+            icon.classList.toggle('fa-eye-slash', !isHidden);
+          }
+
+          const label = button.dataset.passwordLabel || 'password';
+          const action = isHidden ? `Show ${label}` : `Hide ${label}`;
+          button.setAttribute('aria-label', action);
+          button.title = action;
+        });
+      });
+
+      document.querySelectorAll('[data-password-copy]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const input = document.getElementById(button.dataset.passwordCopy);
+          if (!input || input.value === '') {
+            return;
+          }
+
+          const icon = button.querySelector('i');
+          const originalIconClass = icon ? icon.className : '';
+          const label = button.dataset.passwordLabel || 'password';
+          const setIcon = (className, title) => {
+            if (icon) {
+              icon.className = className;
+            }
+            button.title = title;
+          };
+
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(input.value);
+            } else {
+              input.focus();
+              input.select();
+              input.setSelectionRange(0, input.value.length);
+              if (typeof document.execCommand !== 'function' || !document.execCommand('copy')) {
+                throw new Error('Copy failed');
+              }
+            }
+
+            setIcon('fas fa-check', `Copied ${label}`);
+            window.setTimeout(() => setIcon(originalIconClass, `Copy ${label}`), 1500);
+          } catch {
+            setIcon('fas fa-times', `Unable to copy ${label}`);
+            window.setTimeout(() => setIcon(originalIconClass, `Copy ${label}`), 1500);
+          }
+        });
+      });
+    }
+
+    setupPasswordFieldControls();

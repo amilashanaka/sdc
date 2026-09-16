@@ -33,14 +33,17 @@ CREATE TABLE settings (
     f1 varchar(50) DEFAULT NULL, -- Device Id 
     f2 varchar(250) DEFAULT NULL,  -- device secret key 
     f3 varchar(50) DEFAULT NULL, -- device office 
-    f4 varchar(50) DEFAULT NULL, -- device location
+    f4 varchar(50) DEFAULT NULL, -- device local Ip Address
+    f5 VARCHAR(50) DEFAULT NULL, -- device Firmware Version
+    f6 VARCHAR(50) DEFAULT NULL, -- device Serial Number
+
     device_type INT DEFAULT 0, -- device type: 
 
     PRIMARY KEY (id) USING BTREE
 );
 
-INSERT INTO settings (f1, f2, f3, f4, device_type) VALUES 
-('SDC', 'Sample Secret Key', 'Sample Office', 'Sample Location', 0);
+INSERT INTO settings (f1, f2, f3, f4, device_type, f5, f6) VALUES 
+('SDC', 'Sample Secret Key', 'Sample Office', '192.168.2.99', 1, '1.0.0', 'SN123456');
 
  
 
@@ -59,10 +62,6 @@ CREATE TABLE logs (
     f9 varchar(50) DEFAULT NULL,
     f10 varchar(50) DEFAULT NULL,
     f11 varchar(255) DEFAULT NULL,
-    created_by int DEFAULT NULL,
-    created_date datetime DEFAULT CURRENT_TIMESTAMP,
-    updated_by int DEFAULT NULL,
-    updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status int DEFAULT 0,
     PRIMARY KEY (id) USING BTREE
 );
@@ -88,3 +87,6 @@ CREATE TABLE error_codes(
   message varchar(250) DEFAULT NULL,
   PRIMARY KEY ( id ) USING BTREE
 );
+
+INSERT INTO error_codes (code, message) VALUES 
+(0, 'No error'), (1, 'Error 1'), (2, 'Error 2'), (3, 'Error 3'), (4, 'Error 4'), (5, 'Error 5'), (6, 'Error 6'), (7, 'Error 7'), (8, 'Error 8'), (9, 'Error 9'), (10, 'Error 10');

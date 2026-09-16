@@ -42,7 +42,7 @@ class Base {
 
     public function update($id, array $data) {
         if ($this->timestamps) {
-            $data['updated_date'] = date('Y-m-d H:i:s');
+            // $data['updated_date'] = date('Y-m-d H:i:s');
         }
         return $this->db->update($this->table, $data, "id = $id");
     }
@@ -71,6 +71,17 @@ class Base {
             return $this->update($ex->id, $data);
         }
         return $this->insert($data);
+    }
+
+
+public function get_items($valueColumn = 'id', $labelColumn = 'name') {
+        $data = [];
+        foreach ($this->all() as $item) {
+            $value = is_object($item) ? $item->$valueColumn : $item[$valueColumn];
+            $label = is_object($item) ? $item->$labelColumn : $item[$labelColumn];
+            $data[] = ['value' => $value, 'label' => $label];
+        }
+        return $data;
     }
 
     /**
@@ -148,11 +159,31 @@ HTML;
 
             case 'password':
                 $placeholder = !empty($input['placeholder']) ? 'placeholder="' . htmlspecialchars($input['placeholder']) . '"' : '';
+                $showToggle = !empty($input['toggle']);
+                $showCopy = !empty($input['copy']);
+                $fieldLabel = htmlspecialchars($input['label'] ?? 'password');
+                $inputGroup = $showToggle || $showCopy ? '<div class="input-group">' : '';
+                $inputGroupEnd = $showToggle || $showCopy ? '</div>' : '';
+                $toggleButton = '';
+                $copyButton = '';
+
+                if ($showToggle) {
+                    $toggleButton = '<button type="button" class="btn btn-outline-secondary" data-password-toggle="' . htmlspecialchars($key) . '" data-password-label="' . $fieldLabel . '" aria-label="Show ' . $fieldLabel . '" title="Show ' . $fieldLabel . '"><i class="fas fa-eye" aria-hidden="true"></i></button>';
+                }
+
+                if ($showCopy) {
+                    $copyButton = '<button type="button" class="btn btn-outline-secondary" data-password-copy="' . htmlspecialchars($key) . '" data-password-label="' . $fieldLabel . '" aria-label="Copy ' . $fieldLabel . '" title="Copy ' . $fieldLabel . '"><i class="fas fa-copy" aria-hidden="true"></i></button>';
+                }
+
                 echo <<<HTML
                 <div class="$divClass">
                     $label $requiredStar
+                    $inputGroup
                     <input type="password" class="$class" id="$key" name="$key" value="" 
                            $required $validationAttrs $placeholder $readonly $disabled autocomplete="new-password">
+                    $toggleButton
+                    $copyButton
+                    $inputGroupEnd
                     $validation_message_html
                 </div>
 HTML;

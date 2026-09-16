@@ -40,85 +40,7 @@ $form_config = [
                         ]
                     ]
                 ],
-                'f2' => [
-                    'label' => 'Email',
-                    'type' => 'email',
-                    'class' => 'form-control',
-                    'div_class' => 'form-group col-md-6',
-                    'required' => true,
-                    'validation_message' => 'Please enter a valid email address',
-                    'validation' => [
-                        'type' => 'email',
-                        'rules' => [
-                            'pattern' => '^[^\s@]+@[^\s@]+\.[^\s@]+$'
-                        ]
-                    ]
-                ],
-                'f5' => [
-                    'label' => 'Full Name',
-                    'type' => 'text',
-                    'class' => 'form-control',
-                    'div_class' => 'form-group col-md-6',
-                    'required' => true,
-                    'minlength' => 2,
-                    'maxlength' => 100,
-                    'validation_message' => 'Please enter full name (2-100 characters)',
-                    'validation' => [
-                        'type' => 'text',
-                        'rules' => [
-                            'minlength' => 2,
-                            'maxlength' => 100
-                        ]
-                    ]
-                ],
-                'f6' => [
-                    'label' => 'Phone (Primary)',
-                    'type' => 'tel',
-                    'class' => 'form-control',
-                    'div_class' => 'form-group col-md-6',
-                    'placeholder' => '+1 234 567 8900',
-                    'pattern' => '^\+?[0-9\s\-\(\)]{10,20}$',
-                    'validation_message' => 'Please enter a valid phone number (10-20 digits)',
-                    'validation' => [
-                        'type' => 'tel',
-                        'rules' => [
-                            'pattern' => '^\+?[0-9\s\-\(\)]{10,20}$',
-                            'minlength' => 10,
-                            'maxlength' => 20
-                        ]
-                    ]
-                ],
-                'f8' => [
-                    'label' => 'Phone (Secondary)',
-                    'type' => 'tel',
-                    'class' => 'form-control',
-                    'div_class' => 'form-group col-md-6',
-                    'placeholder' => '+1 234 567 8900',
-                    'pattern' => '^\+?[0-9\s\-\(\)]{10,20}$',
-                    'validation_message' => 'Please enter a valid phone number (10-20 digits)',
-                    'validation' => [
-                        'type' => 'tel',
-                        'rules' => [
-                            'pattern' => '^\+?[0-9\s\-\(\)]{10,20}$',
-                            'minlength' => 10,
-                            'maxlength' => 20
-                        ]
-                    ]
-                ],
-                'f7' => [
-                    'label' => 'Address',
-                    'type' => 'textarea',
-                    'class' => 'form-control',
-                    'div_class' => 'form-group col-md-12',
-                    'rows' => 4,
-                    'maxlength' => 500,
-                    'validation' => [
-                        'type' => 'text',
-                        'rules' => [
-                            'maxlength' => 500
-                        ]
-                    ]
-                ],
+       
             ],
         ],
 
@@ -129,7 +51,7 @@ $form_config = [
             'type' => 'form',
             'info_message' => 'Password must contain at least 8 characters with uppercase, lowercase, and numbers.',
             'inputs' => [
-                'f3' => [
+                'f2' => [
                     'label' => 'New Password',
                     'type' => 'password',
                     'class' => 'form-control',
@@ -152,7 +74,7 @@ $form_config = [
                         'realtime' => true
                     ]
                 ],
-                'f3_confirm' => [
+                'f2_confirm' => [
                     'label' => 'Confirm Password',
                     'type' => 'password',
                     'class' => 'form-control',
