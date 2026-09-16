@@ -8,21 +8,63 @@ class DashboardController {
         $user = new User();
         $currentUser = $user->find_by_id($_SESSION['user_id']);
         $users = $user->all();
-        
+
+        $moduleModel = new Module();
+        $modules_data = $moduleModel->get_all();
+        $fpga_modules = [];
+        foreach ($modules_data as $idx => $m) {
+            $is_active = ($m->status == 1);
+            $fpga_modules[] = [
+                'key'     => strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $m->f1)),
+                'primary' => true,
+                'name'    => $m->f1,
+                'icon'    => $m->f6,
+                'base'    => $m->f5,
+                'irq'     => '-',
+                'status'  => $is_active ? '0x00000001' : '0x00000000',
+                'reset'   => 'De-asserted',
+                'state'   => $is_active ? 'running' : 'idle',
+                'label'   => $is_active ? 'Running' : 'Idle',
+                'url'     => '',
+            ];
+        }
+
         $this->view('dashboard', [
             'user' => $currentUser,
             'users' => $users,
-            'title' => 'Dashboard'
+            'title' => 'Dashboard',
+            'fpga_modules' => $fpga_modules,
         ]);
     }
 
     public function profile() {
         $user = new User();
         $currentUser = $user->find_by_id($_SESSION['user_id']);
-        
+
+        $moduleModel = new Module();
+        $modules_data = $moduleModel->get_all();
+        $fpga_modules = [];
+        foreach ($modules_data as $idx => $m) {
+            $is_active = ($m->status == 1);
+            $fpga_modules[] = [
+                'key'     => strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $m->f1)),
+                'primary' => true,
+                'name'    => $m->f1,
+                'icon'    => $m->f6,
+                'base'    => $m->f5,
+                'irq'     => '-',
+                'status'  => $is_active ? '0x00000001' : '0x00000000',
+                'reset'   => 'De-asserted',
+                'state'   => $is_active ? 'running' : 'idle',
+                'label'   => $is_active ? 'Running' : 'Idle',
+                'url'     => '',
+            ];
+        }
+
         $this->view('dashboard', [
             'user' => $currentUser,
-            'title' => 'Profile'
+            'title' => 'Profile',
+            'fpga_modules' => $fpga_modules,
         ]);
     }
 

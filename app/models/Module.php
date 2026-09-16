@@ -1,13 +1,12 @@
-<?php 
+<?php
 
 require_once 'Base.php';
 
-class DeviceType extends Base {
-    protected $table = 'device_types';
+class Module extends Base {
+    protected $table = 'modules';
 
     public function get_all(): array
     {
         return $this->all();
     }
 }
-

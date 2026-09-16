@@ -4,29 +4,31 @@ include_once __DIR__ . '/sidebar.php';
 include_once __DIR__ . '/navbar.php';
 
 $form_config = [
-    'heading' => 'Device Type List',
+    'heading' => 'Module List',
     'title'   => 'list',
-    'new'     => 'device_type',
-    'model'   => 'DeviceType',         // Model/class name for data operations
+    'new'     => 'module',
+    'model'   => 'Module',         // Model/class name for data operations
     'method'  => 'get_all',     // Method to call on the model
     'table'   => [
-        'th'             => ['#', 'Name',  'Action'],
+        'th'             => ['#', 'Icon', 'Name', 'Sequence', 'Base Address', 'Action'],
         'action_style'   => 'width:3%; text-align: center;',
         'id_column'      => 'id',
         'columns'        => [
             ['name' => '#', 'link' => false],                    // Row counter
-            ['name' => 'name', 'link' => true],                    // Device name
-
+            ['name' => 'f6', 'link' => false, 'type' => 'icon'], // Icon
+            ['name' => 'f1', 'link' => true],                    // Module name
+            ['name' => 'f2', 'link' => false],                   // Sequence
+            ['name' => 'f5', 'link' => false],                   // Base Address
         ],
-        'link_base'         => 'device_type',                             // Base URL for links
+        'link_base'         => 'module',                             // Base URL for links
         'table_id'          => 'example23',
         'table_classes'     => 'display nowrap table table-hover table-striped table-bordered',
         'table_attributes'  => 'cellspacing="0" width="100%"',
         'card_classes'      => 'card',
         'card_body_classes' => 'card-body'
     ],
-    'db_table'   => 'device_types',                  // Actual database table name
-    'redirect'   => 'device_type_list',                // Redirect page after actions
+    'db_table'   => 'modules',                  // Actual database table name
+    'redirect'   => 'module_list',                // Redirect page after actions
     'buttons'    => [
         'add_new' => [
             'show' => true,
@@ -54,19 +56,19 @@ $form_config = [
         'csv' => [
             'className' => 'btn btn-secondary btn-sm',
             'text' => '<i class="fas fa-file-csv"></i> CSV',
-            'title' => 'Log List Export'
+            'title' => 'Module List Export'
         ],
         'pdf' => [
             'className' => 'btn btn-secondary btn-sm',
             'text' => '<i class="fas fa-file-pdf"></i> PDF',
-            'title' => 'Log List Report',
+            'title' => 'Module List Report',
             'orientation' => 'landscape',
             'pageSize' => 'A4'
         ],
         'print' => [
             'className' => 'btn btn-secondary btn-sm',
             'text' => '<i class="fas fa-print"></i> Print',
-            'title' => 'Log List'
+            'title' => 'Module List'
         ]
     ],
     'layout' => [

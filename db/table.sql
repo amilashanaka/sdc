@@ -1,5 +1,5 @@
 -- Active: 1717229315063@@127.0.0.1@3306@daq
- 
+  
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users`  (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -20,10 +20,10 @@ CREATE TABLE device_types(
   PRIMARY KEY ( id ) USING BTREE
 );
 
- 
+  
 INSERT INTO device_types (name) VALUES 
 ('sc28'), ('sc11basic'), ('sc11si'), ('sc26'), ('sc24');
- 
+  
 
 
 DROP TABLE IF EXISTS settings;
@@ -45,7 +45,7 @@ CREATE TABLE settings (
 INSERT INTO settings (f1, f2, f3, f4, device_type, f5, f6) VALUES 
 ('SDC', 'Sample Secret Key', 'Sample Office', '192.168.2.99', 1, '1.0.0', 'SN123456');
 
- 
+  
 
 drop TABLE if EXISTS logs;
 
@@ -92,7 +92,7 @@ INSERT INTO error_codes (f1, f2) VALUES
 (100, 'Sample Error Message 1'),
 (200, 'Sample Error Message 2'),
 (300, 'Sample Error Message 3');
- 
+  
 DROP TABLE IF EXISTS  channels;
 
 CREATE TABLE channels(
@@ -109,16 +109,29 @@ CREATE TABLE channels(
 DROP TABLE IF EXISTS  modules;
 
 CREATE TABLE modules(
-  id int NOT NULL AUTO_INCREMENT,
-  f1 varchar(50) DEFAULT NULL, --module name
-  f2 int DEFAULT 0, --module squence number
-  f3 TEXT DEFAULT NULL, --module description
-  f5 VARCHAR(100) DEFAULT NULL, --module base address 
-  f6 VARCHAR(50) DEFAULT NULL, --module icon
-  status int DEFAULT 0, --1=active, 0=inactive
+  id int NOT NULL AUTO_INCREMENT, 
+  f1 varchar(50) DEFAULT NULL,  
+  f2 int DEFAULT 0,  
+  f3 TEXT DEFAULT NULL,  
+  f5 VARCHAR(100) DEFAULT NULL, 
+  f6 VARCHAR(50) DEFAULT NULL,  
+  status int DEFAULT 0, 
   PRIMARY KEY ( id ) USING BTREE
 );
 
+INSERT INTO modules (f1, f2, f3, f5, f6, status) VALUES
+('ADC Core', 1, NULL, '0x43C00000', 'fa-wave-square', 1),
+('DMA Engine', 2, NULL, '0x40400000', 'fa-exchange-alt', 1),
+('Digital Filter', 3, NULL, '0x43C10000', 'fa-filter', 1),
+('Trigger', 4, NULL, '0x41200000', 'fa-bolt', 1),
+('SPI Controller', 5, NULL, '0x44A00000', 'fa-broadcast-tower', 1),
+('TLS Server', 6, NULL, 'PS (software)', 'fa-lock', 1),
+('AXI Interconnect', 7, NULL, 'Fabric', 'fa-sitemap', 1),
+('Clocking Wizard', 8, NULL, '0x43C20000', 'fa-clock', 1),
+('Processor Sys Reset', 9, NULL, 'PS7', 'fa-power-off', 1),
+('AXI GPIO', 10, NULL, '0x41220000', 'fa-toggle-on', 1),
+('Interrupt Controller', 11, NULL, '0x41800000', 'fa-project-diagram', 1),
+('DMA FIFO / BRAM', 12, NULL, '0x43C30000', 'fa-memory', 1);
 
 DROP TABLE IF EXISTS  health;
 
@@ -132,4 +145,3 @@ CREATE TABLE health(
   status int DEFAULT 0, --1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
-

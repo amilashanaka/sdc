@@ -83,7 +83,7 @@ $detail_id = $upload_config['detail_id'] ?? 'upload-progress-detail';
                         <div class="<?= htmlspecialchars($page_config['card_body_class']) ?>">
                             <form action="<?= htmlspecialchars($form_config['form_action']) ?>"
                                 method="<?= htmlspecialchars($form_config['method']) ?>"
-                                enctype="<?= htmlspecialchars($form_config['enctype']) ?>">
+                                enctype="<?= htmlspecialchars($form_config['enctype'] ?? '') ?>">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
 
                                 <div class="<?= htmlspecialchars($form_config['layout']['form_row_class']) ?>">

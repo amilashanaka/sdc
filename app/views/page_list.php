@@ -101,6 +101,8 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                         <td <?php if ($type === 'status_badge'): ?>data-order="<?= htmlspecialchars($row->{$status['column'] ?? 'status'} ?? '') ?>"<?php endif; ?>>
                                             <?php if ($field === '#'): ?>
                                                 <?= $rowNum++ ?>
+                                            <?php elseif ($type === 'icon' && isset($row->$field)): ?>
+                                                <i class="fas <?= htmlspecialchars($row->$field ?? '') ?>"></i>
                                             <?php elseif ($type === 'status_badge' && isset($status['column'])): 
                                                 $val = $row->{$status['column']} ?? '';
                                                 $isActive = $val == ($status['active'] ?? '1');
