@@ -35,7 +35,7 @@ class HealthController extends BaseController
             ];
         }
 
-        $this->view('health', [
+        $this->view('health_monitor', [
             'user' => $user,
             'title' => 'Health Monitor',
             'health_items' => $health_items,
@@ -46,7 +46,7 @@ class HealthController extends BaseController
     {
         $id = (int) base64_decode((string) ($_GET['id'] ?? ''));
         $health = $id > 0 ? new Health($id) : new Health();
-        $this->view('health_detail', ['health' => $health]);
+        $this->view('health', ['health' => $health]);
     }
 
     public function save(): void
