@@ -97,13 +97,32 @@ DROP TABLE IF EXISTS  channels;
 
 CREATE TABLE channels(
   id int NOT NULL AUTO_INCREMENT,
-  f1 varchar(50) DEFAULT NULL, --channel name
-  f2 int DEFAULT 0, --channel squence number
-  f3 int DEFAULT 0, --desimation factor
-  f4 int DEFAULT 0, --sample rate 
-  status int DEFAULT 0, --1=active, 0=inactive
+  f1 varchar(50) DEFAULT NULL, -- channel name
+  f2 int DEFAULT 0, -- channel squence number
+  f3 int DEFAULT 0, -- desimation factor
+  f4 int DEFAULT 0, -- sample rate 
+  status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
+
+INSERT INTO channels (f1, f2, f3, f4, status) VALUES
+('Channel 1', 1, 1, 1000, 1),
+('Channel 2', 2, 2, 500, 1),
+('Channel 3', 3, 4, 250, 1),
+('Channel 4', 4, 8, 125, 1),
+('Channel 5', 5, 16, 62, 1),
+('Channel 6', 6, 32, 31, 1),
+('Channel 7', 7, 64, 15, 1),
+('Channel 8', 8, 128, 7, 1),
+('Channel 9', 9, 4, 250, 0),
+('Channel 10', 10, 8, 125, 0),
+('Channel 11', 11, 16, 62, 0),
+('Channel 12', 12, 32, 31, 0),
+('Channel 13', 13, 64, 15, 0),
+('Channel 14', 14, 128, 7, 0),
+('Channel 15', 15, 2, 500, 1),
+('Channel 16', 16, 1, 1000, 0);
+
 
 
 DROP TABLE IF EXISTS  modules;
@@ -142,8 +161,16 @@ CREATE TABLE health(
   f3 TEXT DEFAULT NULL, -- health description
   f4 DECIMAL(10,2)  DEFAULT 0.00, -- health value
   f5 VARCHAR(100) DEFAULT NULL, -- health icon
+  f6 VARCHAR(50) DEFAULT NULL, -- icon color
   status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
+
+INSERT INTO health (f1, f2, f3, f4, f5, f6, status) VALUES
+('Temperature', 1, 'Device temperature in Celsius', 25.00, 'fa-thermometer-half', '#ef4444', 1),
+('Voltage', 2, 'Device voltage in Volts', 3.30, 'fa-bolt', '#f59e0b', 1),
+('Current', 3, 'Device current in Amperes', 0.50, 'fa-plug', '#10b981', 1),
+('Power', 4, 'Device power in Watts', 12.00, 'fa-bolt', '#3b82f6', 1),
+('Clock', 5, 'Device clock frequency in MHz', 100.00, 'fa-clock', '#f43f5e', 1);
 
 

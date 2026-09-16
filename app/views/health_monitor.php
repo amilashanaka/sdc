@@ -117,23 +117,15 @@ include_once 'navbar.php';
 
                     </div>
 
-                    <div class="daq-card-body">
+<div class="daq-card-body">
 
-
-                        <?php
-                        $healthIconColors = [
-                            'FPGA Temperature' => 'temp',
-                            'CPU Load' => 'cpu',
-                            'Memory Used' => 'mem',
-                            'Core Voltage' => 'volt',
-                        ];
-                        foreach ($health_items as $index => $h):
-                            $colorClass = $healthIconColors[$h['name']] ?? $index;
+                        <?php foreach ($health_items as $index => $h):
+                            $color = $h['color'] ?? '#2563eb';
                         ?>
                         <div class="health-item">
 
-                            <div class="health-icon health-icon-<?= $colorClass ?>">
-                                <i class="fas <?= $h['icon'] ?>"></i>
+                            <div class="health-icon" style="background:linear-gradient(135deg, <?= $color ?>, <?= $color ?>88);box-shadow:0 4px 12px <?= $color ?>55;">
+                                <i class="fas <?= $h['icon'] ?>" style="color:#fff;"></i>
                             </div>
 
                             <div class="health-content">
@@ -225,12 +217,14 @@ include_once 'navbar.php';
 
                     <tbody>
 
-                        <?php foreach ($health_items as $h): ?>
+                        <?php foreach ($health_items as $index => $h):
+                            $color = $h['color'] ?? '#2563eb';
+                        ?>
 
                             <tr>
 
                                 <td>
-                                    <i class="fas <?= $h['icon'] ?>" style="color:var(--daq-blue);margin-right:6px;"></i>
+                                    <i class="fas <?= $h['icon'] ?>" style="color:<?= $color ?>;margin-right:6px;"></i>
                                     <?= $h['name'] ?>
                                 </td>
 

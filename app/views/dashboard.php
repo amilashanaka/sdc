@@ -7,42 +7,65 @@ include_once 'navbar.php';
 
 /* FPGA modules are loaded from the database via DashboardController */
 
-$kpi_cards = array(
+$kpi_cards = array();
 
-    array(
+    $active_channels = 0;
+    $total_channels = count($channels);
+    foreach ($channels as $ch) {
+        if ($ch['status'] == 1) {
+            $active_channels++;
+        }
+    }
+
+    $kpi_cards[] = array(
         'icon'   => 'fa fa-wave-square',
         'color'  => 'green',
         'label'  => 'Active ADC',
-        'value'  => 'Live',
+        'value'  => $active_channels . '/' . $total_channels,
         'id'     => 'adcStatus',
         'url'    => 'scope',
-    ),
-    array(
+    );
+
+    $max_sample_rate = 0;
+    foreach ($channels as $ch) {
+        if ($ch['sample_rate'] > $max_sample_rate) {
+            $max_sample_rate = $ch['sample_rate'];
+        }
+    }
+    $sample_rate_k = $max_sample_rate >= 1000 ? ($max_sample_rate / 1000) . ' kSPS' : $max_sample_rate . ' SPSS';
+    $kpi_cards[] = array(
         'icon'   => 'fa fa-tachometer-alt',
         'color'  => 'blue',
         'label'  => 'Sample Rate',
-        'value'  => '200 kSPS',
+        'value'  => $sample_rate_k,
         'id'     => 'sampleRate',
         'url'    => 'channel_list',
-    ),
-    array(
+    );
+
+    $fpga_temp = 42;
+    foreach ($health_items as $h) {
+        if (strtolower($h['name']) === 'temperature') {
+            $fpga_temp = $h['value'];
+            break;
+        }
+    }
+    $kpi_cards[] = array(
         'icon'   => 'fa fa-microchip',
         'color'  => 'orange',
         'label'  => 'FPGA Temperature',
-        'value'  => '42 °C',
+        'value'  => $fpga_temp . ' °C',
         'id'     => 'fpgaTemp',
         'url'    => 'module_list',
-    ),
-    array(
+    );
+
+    $kpi_cards[] = array(
         'icon'   => 'fas fa-shield-alt',
         'color'  => 'purple',
         'label'  => 'Connection',
         'value'  => 'TLS Active',
         'id'     => '',
         'url'    => 'settings',
-    ),
-
-);
+    );
 
 ?>
 
@@ -71,16 +94,16 @@ $kpi_cards = array(
             <div>
 
                 <h1 class="daq-title">
-                    <?php echo  $settings->app_name ?? 'Device Dashboard' ?>
+                    <?php echo htmlspecialchars($settings->app_name ?? 'Device Dashboard') ?>
                 </h1>
 
                 <div class="daq-subtitle">
 
                     SPICER DAQ
                     &nbsp;•&nbsp;
-                    Serial: SP-0001
+                    Serial: <?php echo htmlspecialchars($settings->f6 ?? 'SP-0001') ?>
                     &nbsp;•&nbsp;
-                    FW: 1.0.0
+                    FW: <?php echo htmlspecialchars($settings->f5 ?? '1.0.0') ?>
                     &nbsp;•&nbsp;
                     FPGA: 2.0.1
 
@@ -203,23 +226,15 @@ $kpi_cards = array(
 
                     </div>
 
-                    <div class="daq-card-body">
+<div class="daq-card-body">
 
-
-                        <?php
-                        $healthIconColors = [
-                            'FPGA Temperature' => 'temp',
-                            'CPU Load' => 'cpu',
-                            'Memory Used' => 'mem',
-                            'Core Voltage' => 'volt',
-                        ];
-                        foreach ($health_items as $index => $h):
-                            $colorClass = $healthIconColors[$h['name']] ?? $index;
+                        <?php foreach ($health_items as $index => $h):
+                            $color = $h['color'] ?? '#2563eb';
                         ?>
                         <div class="health-item">
 
-                            <div class="health-icon health-icon-<?= $colorClass ?>">
-                                <i class="fas <?= $h['icon'] ?>"></i>
+                            <div class="health-icon" style="background:linear-gradient(135deg, <?= $color ?>, <?= $color ?>88);box-shadow:0 4px 12px <?= $color ?>55;">
+                                <i class="fas <?= $h['icon'] ?>" style="color:#fff;"></i>
                             </div>
 
                             <div class="health-content">
@@ -446,7 +461,7 @@ $kpi_cards = array(
                 </h3>
 
                 <span class="config-value">
-                    16 Channels
+                    <?= count($channels) ?> Channels
                 </span>
 
             </div>
@@ -455,10 +470,8 @@ $kpi_cards = array(
 
                 <div class="row">
 
-                    <?php
-
-                    for ($i = 1; $i <= 16; $i++) {
-
+                    <?php foreach ($channels as $index => $ch):
+                        $is_active = ($ch['status'] == 1);
                     ?>
 
                         <div class="col-xl-3 col-lg-3 col-md-4 col-6">
@@ -469,17 +482,18 @@ $kpi_cards = array(
 
                                     <span class="channel-name">
 
-                                        CH<?= $i ?>
+                                        CH<?= $index + 1 ?>
 
                                     </span>
 
-                                    <span class="channel-status"></span>
+                                    <span class="channel-status status-<?= $is_active ? 'running' : 'idle' ?>" title="<?= $is_active ? 'Active' : 'Inactive' ?>">
+                                    </span>
 
                                 </div>
 
                                 <div
                                     class="channel-value"
-                                    id="ch<?= $i ?>">
+                                    id="ch<?= $index + 1 ?>">
 
                                     0.000
 
@@ -495,10 +509,10 @@ $kpi_cards = array(
 
                                     <span
                                         class="channel-decimation"
-                                        id="chDec<?= $i ?>"
+                                        id="chDec<?= $index + 1 ?>"
                                         title="Active decimation factor">
 
-                                        &divide;8
+                                        &divide;<?= $ch['decimation'] ?: 8 ?>
 
                                     </span>
 
@@ -508,11 +522,7 @@ $kpi_cards = array(
 
                         </div>
 
-                    <?php
-
-                    }
-
-                    ?>
+                    <?php endforeach; ?>
 
                 </div>
 
@@ -547,16 +557,14 @@ $kpi_cards = array(
 
                 <div class="channel-config-list">
 
-                    <?php
-
-                    for ($i = 1; $i <= 16; $i++) {
-
+                    <?php foreach ($channels as $index => $ch):
+                        $is_active = ($ch['status'] == 1);
                     ?>
 
                         <div class="channel-config-row">
 
                             <span class="channel-config-tag">
-                                CH<?= $i ?>
+                                CH<?= $index + 1 ?>
                             </span>
 
                             <div class="channel-config-field">
@@ -565,8 +573,8 @@ $kpi_cards = array(
                                     Status
                                 </span>
 
-                                <span class="module-status status-running" style="display:inline-block;padding:2px 7px;font-size:10px;">
-                                    Enabled
+                                <span class="module-status status-<?= $is_active ? 'running' : 'idle' ?>" style="display:inline-block;padding:2px 7px;font-size:10px;">
+                                    <?= $is_active ? 'Enabled' : 'Disabled' ?>
                                 </span>
 
                             </div>
@@ -579,9 +587,9 @@ $kpi_cards = array(
 
                                 <span
                                     class="channel-config-field-value ch-config-dec"
-                                    id="chCfgDec<?= $i ?>">
+                                    id="chCfgDec<?= $index + 1 ?>">
 
-                                    &divide;8
+                                    &divide;<?= $ch['decimation'] ?: 8 ?>
 
                                 </span>
 
@@ -638,11 +646,7 @@ $kpi_cards = array(
 
                         </div>
 
-                    <?php
-
-                    }
-
-                    ?>
+                    <?php endforeach; ?>
 
                 </div>
 
@@ -748,7 +752,7 @@ $kpi_cards = array(
 
                                 <option value="4">4 Channels</option>
                                 <option value="8">8 Channels</option>
-                                <option value="16" selected>16 Channels</option>
+                                <option value="16" <?= count($channels) == 16 ? 'selected' : '' ?>>16 Channels</option>
 
                             </select>
 
@@ -1312,7 +1316,7 @@ $kpi_cards = array(
                             </span>
 
                             <span class="config-value">
-                                16 CH
+                                <?= count($channels) ?> CH
                             </span>
 
                         </div>
@@ -1558,8 +1562,10 @@ $kpi_cards = array(
 
 <script>
     /* =========================================================
-   DARK / LIGHT MODE
-   ========================================================= */
+       DARK / LIGHT MODE
+       ========================================================= */
+
+    const channelCount = <?= count($channels) ?>;
 
     const themeButton =
         document.getElementById('themeToggle');
@@ -1611,7 +1617,7 @@ $kpi_cards = array(
         const label =
             '\u00F7' + rawValue;
 
-        for (let i = 1; i <= 16; i++) {
+        for (let i = 1; i <= channelCount; i++) {
             const live =
                 document.getElementById('chDec' + i);
 
@@ -1735,7 +1741,7 @@ $kpi_cards = array(
     setInterval(
         function() {
 
-            for (let i = 1; i <= 16; i++) {
+            for (let i = 1; i <= channelCount; i++) {
 
                 const value =
                     (

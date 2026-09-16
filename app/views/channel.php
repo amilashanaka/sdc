@@ -2,31 +2,31 @@
 include_once __DIR__ . '/header.php';
 
 $form_config = [
-    'heading' => 'Health Parameter',
-    'form_action' => BASE_URL . '/health/save',
+    'heading' => 'Channel',
+    'form_action' => BASE_URL . '/channel/save',
     'method' => 'post',
     'page_config' => [
         'update_title_prefix' => 'Edit',
         'new_title_prefix' => 'Add New',
         'container_class' => 'container-fluid',
-        'card_class' => 'card health-detail-card shadow-sm border-0',
+        'card_class' => 'card channel-card shadow-sm border-0',
         'card_body_class' => 'card-body p-4 p-lg-5'
     ],
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
         'f1' => [
-            'label' => 'Parameter Name',
+            'label' => 'Channel Name',
             'type' => 'text',
             'class' => 'form-control',
             'div_class' => 'col-12 form-group',
             'required' => true,
             'minlength' => 1,
-            'maxlength' => 100,
-            'placeholder' => 'Enter parameter name (e.g. FPGA Temperature)',
+            'maxlength' => 50,
+            'placeholder' => 'Enter channel name',
             'validation' => [
                 'type' => 'pattern',
                 'rules' => [
-                    'pattern' => '^[a-zA-Z0-9_\-\s]{1,100}$'
+                    'pattern' => '^[a-zA-Z0-9_\\-\\s]{1,50}$'
                 ]
             ]
         ],
@@ -41,45 +41,40 @@ $form_config = [
             'placeholder' => 'Enter display sequence',
         ],
         'f3' => [
-            'label' => 'Description',
-            'type' => 'textarea',
-            'class' => 'form-control',
-            'div_class' => 'col-12 form-group',
-            'required' => false,
-            'rows' => 4,
-            'placeholder' => 'Enter parameter description',
-        ],
-        'f4' => [
-            'label' => 'Value',
+            'label' => 'Decimation Factor',
             'type' => 'number',
             'class' => 'form-control',
             'div_class' => 'col-12 form-group',
+            'required' => false,
+            'min' => 0,
+            'max' => 999999,
+            'placeholder' => 'Enter decimation factor',
+        ],
+        'f4' => [
+            'label' => 'Sample Rate',
+            'type' => 'number',
+            'class' => 'form-control',
+            'div_class' => 'col-12 form-group',
+            'required' => false,
+            'min' => 0,
+            'max' => 99999999,
+            'placeholder' => 'Enter sample rate',
+        ],
+        'status' => [
+            'label' => 'Status',
+            'type' => 'select',
+            'class' => 'form-control',
+            'div_class' => 'col-12 form-group',
             'required' => true,
-            'step' => '0.01',
-            'placeholder' => 'Enter current value (e.g. 42.5)',
-        ],
-        'f5' => [
-            'label' => 'Icon',
-            'type' => 'text',
-            'class' => 'form-control',
-            'div_class' => 'col-12 form-group',
-            'required' => false,
-            'maxlength' => 100,
-            'placeholder' => 'Enter icon class (e.g. fa-thermometer-half)',
-        ],
-        'f6' => [
-            'label' => 'Icon Color',
-            'type' => 'text',
-            'class' => 'form-control',
-            'div_class' => 'col-12 form-group',
-            'required' => false,
-            'maxlength' => 20,
-            'placeholder' => 'Enter color (e.g. #ef4444 or text-danger)',
+            'items' => [
+                ['value' => '1', 'label' => 'Active'],
+                ['value' => '0', 'label' => 'Inactive'],
+            ],
         ],
     ],
     'data_config' => [
         'id_param' => 'id',
-        'data_source' => 'health',
+        'data_source' => 'channel',
         'method_name' => 'find_by_id'
     ],
     'layout' => [
@@ -91,10 +86,10 @@ $form_config = [
     'buttons' => [
         'submit' => [
             'div_class' => 'col-md-3',
-            'create_text' => 'Add Parameter',
+            'create_text' => 'Add Channel',
             'create_class' => 'btn btn-block btn-success',
             'create_icon' => 'fas fa-save',
-            'update_text' => 'Update Parameter',
+            'update_text' => 'Update Channel',
             'update_class' => 'btn btn-block btn-primary',
             'update_icon' => 'fas fa-save',
             'loading_text' => 'Saving...',

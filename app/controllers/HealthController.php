@@ -30,6 +30,7 @@ class HealthController extends BaseController
                 'description' => $h->f3,
                 'value'       => $h->f4,
                 'icon'        => $h->f5,
+                'color'       => $h->f6,
                 'state'       => $is_active ? 'running' : 'idle',
                 'label'       => $is_active ? 'OK' : 'Idle',
             ];
@@ -61,10 +62,11 @@ class HealthController extends BaseController
         $seq = (int) ($data['f2'] ?? 0);
         $desc = trim((string) ($data['f3'] ?? ''));
         $value = trim((string) ($data['f4'] ?? ''));
-        $icon = trim((string) ($data['f5'] ?? ''));
+$icon = trim((string) ($data['f5'] ?? ''));
+        $color = trim((string) ($data['f6'] ?? ''));
 
         if (empty($name)) {
-            $this->setFlash('danger', 'Health parameter name is required.');
+            $this->setQuery('danger', 'Health parameter name is required.');
             $this->redirect($id > 0 ? 'health?id=' . base64_encode($id) : 'health');
         }
 
@@ -74,6 +76,7 @@ class HealthController extends BaseController
             'f3' => $desc,
             'f4' => $value,
             'f5' => $icon,
+            'f6' => $color,
         ];
 
         if ($id > 0) {

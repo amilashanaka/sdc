@@ -40,10 +40,27 @@ class DashboardController {
                 'description' => $h->f3,
                 'value'       => $h->f4,
                 'icon'        => $h->f5,
+                'color'       => $h->f6,
                 'state'       => $is_active ? 'running' : 'idle',
                 'label'       => $is_active ? 'OK' : 'Idle',
             ];
         }
+
+        $channelModel = new Channel();
+        $channels_data = $channelModel->get_all();
+        $channels = [];
+        foreach ($channels_data as $c) {
+            $channels[] = [
+                'name'       => $c->f1,
+                'sequence'   => $c->f2,
+                'decimation' => $c->f3,
+                'sample_rate'=> $c->f4,
+                'status'     => $c->status,
+            ];
+        }
+
+        $settingModel = new Setting();
+        $settings = $settingModel->find_by_id(1);
 
         $this->view('dashboard', [
             'user' => $currentUser,
@@ -51,6 +68,8 @@ class DashboardController {
             'title' => 'Dashboard',
             'fpga_modules' => $fpga_modules,
             'health_items' => $health_items,
+            'channels' => $channels,
+            'settings' => $settings,
         ]);
     }
 
@@ -89,16 +108,35 @@ class DashboardController {
                 'description' => $h->f3,
                 'value'       => $h->f4,
                 'icon'        => $h->f5,
+                'color'       => $h->f6,
                 'state'       => $is_active ? 'running' : 'idle',
                 'label'       => $is_active ? 'OK' : 'Idle',
             ];
         }
+
+        $channelModel = new Channel();
+        $channels_data = $channelModel->get_all();
+        $channels = [];
+        foreach ($channels_data as $c) {
+            $channels[] = [
+                'name'       => $c->f1,
+                'sequence'   => $c->f2,
+                'decimation' => $c->f3,
+                'sample_rate'=> $c->f4,
+                'status'     => $c->status,
+            ];
+        }
+
+        $settingModel = new Setting();
+        $settings = $settingModel->find_by_id(1);
 
         $this->view('dashboard', [
             'user' => $currentUser,
             'title' => 'Profile',
             'fpga_modules' => $fpga_modules,
             'health_items' => $health_items,
+            'channels' => $channels,
+            'settings' => $settings,
         ]);
     }
 
