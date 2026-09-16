@@ -1,4 +1,4 @@
-    // Theme Toggle
+// Theme Toggle
     function toggleTheme() {
       const html = document.documentElement;
       const currentTheme = html.getAttribute('data-theme');
@@ -27,6 +27,7 @@
       } else {
         // Desktop view - collapse/expand
         sidebar.classList.toggle('collapsed');
+        document.body.classList.toggle('sidebar-collapsed');
       }
     }
 
@@ -161,7 +162,18 @@
             window.location.href = BASE_URL + '/user?id=' + btoa(userId);
           }
         } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-          Swal.fire('Logged Out', 'You have been logged out successfully', 'success');
+          Swal.fire({
+            icon: 'success',
+            title: 'Logged out',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 1200,
+            timerProgressBar: true
+          });
+          setTimeout(() => {
+            window.location.href = BASE_URL + '/login/logout';
+          }, 700);
         }
       });
     }

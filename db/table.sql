@@ -83,10 +83,53 @@ DROP TABLE IF EXISTS  error_codes;
 
 CREATE TABLE error_codes(
   id int NOT NULL AUTO_INCREMENT,
-  code int DEFAULT 0,
-  message varchar(250) DEFAULT NULL,
+  f1 int DEFAULT 0, -- code
+  f2 varchar(250) DEFAULT NULL, -- message
   PRIMARY KEY ( id ) USING BTREE
 );
 
-INSERT INTO error_codes (code, message) VALUES 
-(0, 'No error'), (1, 'Error 1'), (2, 'Error 2'), (3, 'Error 3'), (4, 'Error 4'), (5, 'Error 5'), (6, 'Error 6'), (7, 'Error 7'), (8, 'Error 8'), (9, 'Error 9'), (10, 'Error 10');
+INSERT INTO error_codes (f1, f2) VALUES 
+(100, 'Sample Error Message 1'),
+(200, 'Sample Error Message 2'),
+(300, 'Sample Error Message 3');
+ 
+DROP TABLE IF EXISTS  channels;
+
+CREATE TABLE channels(
+  id int NOT NULL AUTO_INCREMENT,
+  f1 varchar(50) DEFAULT NULL, --channel name
+  f2 int DEFAULT 0, --channel squence number
+  f3 int DEFAULT 0, --desimation factor
+  f4 int DEFAULT 0, --sample rate 
+  status int DEFAULT 0, --1=active, 0=inactive
+  PRIMARY KEY ( id ) USING BTREE
+);
+
+
+DROP TABLE IF EXISTS  modules;
+
+CREATE TABLE modules(
+  id int NOT NULL AUTO_INCREMENT,
+  f1 varchar(50) DEFAULT NULL, --module name
+  f2 int DEFAULT 0, --module squence number
+  f3 TEXT DEFAULT NULL, --module description
+  f5 VARCHAR(100) DEFAULT NULL, --module base address 
+  f6 VARCHAR(50) DEFAULT NULL, --module icon
+  status int DEFAULT 0, --1=active, 0=inactive
+  PRIMARY KEY ( id ) USING BTREE
+);
+
+
+DROP TABLE IF EXISTS  health;
+
+CREATE TABLE health(
+  id int NOT NULL AUTO_INCREMENT,
+  f1 varchar(50) DEFAULT NULL, --health name
+  f2 int DEFAULT 0, --health squence number
+  f3 TEXT DEFAULT NULL, --health description
+  f4 DECIMAL(10,2)  DEFAULT 0.00, --health value
+  f5 VARCHAR(100) DEFAULT NULL, --health icon
+  status int DEFAULT 0, --1=active, 0=inactive
+  PRIMARY KEY ( id ) USING BTREE
+);
+
