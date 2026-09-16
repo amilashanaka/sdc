@@ -1,15 +1,26 @@
 <?php
-class HealthController {
-    public function __construct() {
+
+class HealthController extends BaseController
+{
+    private Health $health;
+
+    public function __construct()
+    {
         $this->checkAuth();
+        $this->health = new Health();
     }
 
-    public function index() {
-        $user = new User();
-        $currentUser = $user->find_by_id($_SESSION['user_id']);
+    public function index(): void
+    {
+        // Check if detail view requested via ?id= parameter
+        if (isset($_GET['id']) && !empty($_GET['id'])) {
+            $this->detail();
+            return;
+        }
 
-        $healthModel = new Health();
-        $health_data = $healthModel->get_all();
+        $user = $this->getCurrentUser();
+
+        $health_data = $this->health->get_all();
         $health_items = [];
         foreach ($health_data as $h) {
             $is_active = ($h->status == 1);
@@ -25,21 +36,54 @@ class HealthController {
         }
 
         $this->view('health', [
-            'user' => $currentUser,
+            'user' => $user,
             'title' => 'Health Monitor',
             'health_items' => $health_items,
         ]);
     }
 
-    private function checkAuth() {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/login');
-            exit;
-        }
+    public function detail(): void
+    {
+        $id = (int) base64_decode((string) ($_GET['id'] ?? ''));
+        $health = $id > 0 ? new Health($id) : new Health();
+        $this->view('health_detail', ['health' => $health]);
     }
 
-    private function view($view, $data = []) {
-        extract($data);
-        require VIEWS . "/$view.php";
+    public function save(): void
+    {
+        if (!$this->isPost()) {
+            $this->redirect('health_list');
+        }
+
+        $data = $this->post();
+        $id = !empty($data['id']) ? (int) $data['id'] : 0;
+        $name = trim((string) ($data['f1'] ?? ''));
+        $seq = (int) ($data['f2'] ?? 0);
+        $desc = trim((string) ($data['f3'] ?? ''));
+        $value = trim((string) ($data['f4'] ?? ''));
+        $icon = trim((string) ($data['f5'] ?? ''));
+
+        if (empty($name)) {
+            $this->setFlash('danger', 'Health parameter name is required.');
+            $this->redirect($id > 0 ? 'health?id=' . base64_encode($id) : 'health');
+        }
+
+        $saveData = [
+            'f1' => $name,
+            'f2' => $seq,
+            'f3' => $desc,
+            'f4' => $value,
+            'f5' => $icon,
+        ];
+
+        if ($id > 0) {
+            $this->health->update($id, $saveData);
+            $this->setFlash('success', 'Health parameter updated successfully.');
+        } else {
+            $this->health->insert($saveData);
+            $this->setFlash('success', 'Health parameter created successfully.');
+        }
+
+        $this->redirect('health_list');
     }
 }

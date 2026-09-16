@@ -145,3 +145,5 @@ CREATE TABLE health(
   status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
+
+
