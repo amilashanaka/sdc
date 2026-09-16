@@ -69,9 +69,9 @@ $form_config = [
         ],
         'f6' => [
             'label' => 'Icon Color',
-            'type' => 'text',
+            'type' => 'color',
             'class' => 'form-control',
-            'div_class' => 'col-12 form-group',
+            'div_class' => 'col-1 form-group',
             'required' => false,
             'maxlength' => 20,
             'placeholder' => 'Enter color (e.g. #ef4444 or text-danger)',

@@ -335,6 +335,18 @@ HTML;
 HTML;
                 break;
 
+            case 'color':
+                $placeholder = !empty($input['placeholder']) ? 'placeholder="' . htmlspecialchars($input['placeholder']) . '"' : '';
+                echo <<<HTML
+                <div class="$divClass">
+                    $label $requiredStar
+                    <input type="color" class="$class" id="$key" name="$key" value="$value"
+                           $required $validationAttrs $placeholder $readonly $disabled>
+                    $validation_message_html
+                </div>
+HTML;
+                break;
+
             case 'hidden':
                 echo '<input type="hidden" id="' . $key . '" name="' . $key . '" value="' . $value . '">';
                 break;
