@@ -179,7 +179,7 @@ HTML;
                 <div class="$divClass">
                     $label $requiredStar
                     $inputGroup
-                    <input type="password" class="$class" id="$key" name="$key" value="" 
+                    <input type="password" class="$class" id="$key" name="$key" value="$value"
                            $required $validationAttrs $placeholder $readonly $disabled autocomplete="new-password">
                     $toggleButton
                     $copyButton

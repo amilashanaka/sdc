@@ -8,7 +8,7 @@ $form_config = [
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
         'f1' => ['label' => 'Host Name', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
-        'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true, 'copy' => true],
+        'f2' => ['label' => 'Secret Key', 'type' => 'password', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group', 'toggle' => true, 'copy' => true, 'disabled'=>true],
         'f3' => ['label' => 'Device Office', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
         'f4' => ['label' => 'Device Local IP', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
         'f5' => ['label' => 'Device Firmware Version', 'type' => 'text', 'class' => 'form-control', 'div_class' => 'col-lg-12 col-md-12 form-group'],
