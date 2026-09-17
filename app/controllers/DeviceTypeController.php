@@ -17,6 +17,28 @@ class DeviceTypeController extends BaseController
         $this->view('device_type', ['device_type' => $device_type]);
     }
 
+    public function activate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->deviceType->update($decodedId, ['status' => 1]);
+            $this->setFlash('success', 'Device type activated successfully');
+        }
+        $redirect = $this->get('redirect', 'device_type_list');
+        $this->redirect($redirect);
+    }
+
+    public function deactivate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->deviceType->update($decodedId, ['status' => 0]);
+            $this->setFlash('success', 'Device type deactivated successfully');
+        }
+        $redirect = $this->get('redirect', 'device_type_list');
+        $this->redirect($redirect);
+    }
+
     public function save(): void
     {
         if (!$this->isPost()) {

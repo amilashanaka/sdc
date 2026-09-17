@@ -230,10 +230,25 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                                    class="<?= $class ?>" data-bs-toggle="tooltip" title="<?= $title ?>">
                                                     <i class="<?= $icon ?>"></i>
                                                 </a>
-                                            <?php endif; ?>
-                                            
-                                            <?php 
-                                            // Custom action buttons (dynamic based on row data)
+                             <?php endif; ?>
+
+                             <?php if (!empty($buttons['toggle_status'])): ?>
+                                 <?php 
+                                     $statusCol = $status['column'] ?? 'status';
+                                     $isActive = ($row->$statusCol ?? '') == ($status['active'] ?? '1');
+                                     $action = $isActive ? 'deactivate' : 'activate';
+                                     $icon = $isActive ? 'fas fa-pause-circle' : 'fas fa-play-circle';
+                                     $title = $isActive ? 'Deactivate' : 'Activate';
+                                     $class = $isActive ? 'btn btn-sm btn-warning' : 'btn btn-sm btn-success';
+                                 ?>
+                                 <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>/<?= $action ?>/<?= base64_encode((string) ($row->id ?? '')) ?>"
+                                    class="<?= $class ?>" data-bs-toggle="tooltip" title="<?= $title ?>">
+                                     <i class="<?= $icon ?>"></i>
+                                 </a>
+                             <?php endif; ?>
+
+                                             <?php 
+                                             // Custom action buttons (dynamic based on row data)
                                             foreach ($custom_buttons as $btnKey => $btnConfig):
                                                 // Skip header-only buttons in action column
                                                 if (!empty($btnConfig['header']) && $btnConfig['header'] === true) {

@@ -17,6 +17,28 @@ class ModuleController extends BaseController
         $this->view('module', ['module' => $module]);
     }
 
+    public function activate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->module->update($decodedId, ['status' => 1]);
+            $this->setFlash('success', 'Module activated successfully');
+        }
+        $redirect = $this->get('redirect', 'module_list');
+        $this->redirect($redirect);
+    }
+
+    public function deactivate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->module->update($decodedId, ['status' => 0]);
+            $this->setFlash('success', 'Module deactivated successfully');
+        }
+        $redirect = $this->get('redirect', 'module_list');
+        $this->redirect($redirect);
+    }
+
     public function save(): void
     {
         if (!$this->isPost()) {

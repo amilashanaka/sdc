@@ -51,6 +51,9 @@ $form_config = [
             'show' => true,
             'class' => 'btn btn-sm btn-danger',
             'icon' => 'fas fa-trash'
+        ],
+        'toggle_status' => [
+            'show' => true,
         ]
     ],
     'exports' => [

@@ -43,6 +43,28 @@ class HealthController extends BaseController
         ]);
     }
 
+    public function activate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->health->update($decodedId, ['status' => 1]);
+            $this->setFlash('success', 'Health parameter activated successfully');
+        }
+        $redirect = $this->get('redirect', 'health_list');
+        $this->redirect($redirect);
+    }
+
+    public function deactivate($id): void
+    {
+        $decodedId = (int) base64_decode((string) $id);
+        if ($decodedId > 0) {
+            $this->health->update($decodedId, ['status' => 0]);
+            $this->setFlash('success', 'Health parameter deactivated successfully');
+        }
+        $redirect = $this->get('redirect', 'health_list');
+        $this->redirect($redirect);
+    }
+
     public function detail(): void
     {
         $id = (int) base64_decode((string) ($_GET['id'] ?? ''));

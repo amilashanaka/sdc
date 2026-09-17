@@ -17,12 +17,20 @@ DROP TABLE IF EXISTS  device_types;
 CREATE TABLE device_types(
   id int NOT NULL AUTO_INCREMENT,
   name varchar(50) DEFAULT NULL,
+  status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
 
+INSERT INTO device_types (name, status) VALUES 
+('sc28', 1),
+('sc11si', 1),
+('sc11basic', 0),
+('sc24', 1),
+('sc26', 1);
+ 
+
   
-INSERT INTO device_types (name) VALUES 
-('sc28'), ('sc11basic'), ('sc11si'), ('sc26'), ('sc24');
+ 
   
 
 
