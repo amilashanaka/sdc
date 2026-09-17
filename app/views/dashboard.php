@@ -55,16 +55,16 @@ $kpi_cards = array();
         'label'  => 'FPGA Temperature',
         'value'  => $fpga_temp . ' °C',
         'id'     => 'fpgaTemp',
-        'url'    => 'module_list',
+        'url'    => 'health_monitor',
     );
 
     $kpi_cards[] = array(
-        'icon'   => 'fas fa-shield-alt',
+        'icon'   => 'fas fa-list',
         'color'  => 'purple',
-        'label'  => 'Connection',
-        'value'  => 'TLS Active',
+        'label'  => 'System',
+        'value'  => 'Logs',
         'id'     => '',
-        'url'    => 'settings',
+        'url'    => 'log_list',
     );
 
 ?>
