@@ -8,16 +8,43 @@ $model        = $form_config['model'] ?? null;
 $method       = $form_config['method'] ?? 'get_all';
 $table_config = $form_config['table'] ?? [];
 $buttons      = $form_config['buttons'] ?? [];
+$custom_buttons = $form_config['custom_buttons'] ?? []; // New: Custom buttons for header/actions
 $status       = $form_config['status'] ?? [];
 $layout       = $form_config['layout'] ?? [];
 $exports      = $form_config['exports'] ?? []; // New: Export config from form_config
+$method_params = $form_config['method_params'] ?? []; // New: Parameters to pass to model method
 
 // Fetch data efficiently
 $data = [];
 if ($model && class_exists(ucfirst($model))) {
     $modelObj = new (ucfirst($model))(); // Ensure model name is capitalized
     if (method_exists($modelObj, $method)) {
-        $data = $modelObj->$method();
+        $data = $modelObj->$method(...$method_params);
+    }
+}
+
+// Pre-load foreign key data for columns with fk => true
+$fkCache = [];
+foreach ($table_config['columns'] ?? [] as $col) {
+    if (!empty($col['fk']) && !empty($col['model']) && !empty($col['show'])) {
+        $fkModelName = ucfirst($col['model']);
+        $fkShowField = $col['show'];
+        $fkKeyField = $col['fk_key'] ?? 'id'; // Default to 'id' as the key field
+        
+        if (class_exists($fkModelName) && !isset($fkCache[$col['model']])) {
+            $fkModelObj = new $fkModelName();
+            if (method_exists($fkModelObj, 'get_all')) {
+                $fkData = $fkModelObj->get_all();
+                $fkCache[$col['model']] = [];
+                foreach ($fkData as $item) {
+                    $key = $item->$fkKeyField ?? '';
+                    $value = $item->$fkShowField ?? '';
+                    if ($key !== '') {
+                        $fkCache[$col['model']][$key] = $value;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -62,14 +89,31 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                             <i class="fas fa-list me-2"></i> <?= htmlspecialchars($heading) ?>
                         </h3>
 
-                        <!-- Add New Button -->
-                        <?php if (!empty($buttons['add_new'])): ?>
-                        <a href="<?= BASE_URL . '/' . ($form_config['new'] ?? '') ?>"
-                           class="<?= htmlspecialchars($buttons['add_new']['class'] ?? 'btn btn-light') ?>">
-                            <i class="<?= htmlspecialchars($buttons['add_new']['icon'] ?? 'fas fa-plus') ?>"></i>
-                            <?= htmlspecialchars($buttons['add_new']['text'] ?? 'Add New') ?>
-                        </a>
-                        <?php endif; ?>
+                        <div class="d-flex gap-2">
+                            <!-- Custom Header Buttons -->
+                            <?php foreach ($custom_buttons as $btnKey => $btnConfig): 
+                                if (!empty($btnConfig['header']) && $btnConfig['header'] === true):
+                                    $url = $btnConfig['url'] ?? '#';
+                                    $btnClass = $btnConfig['class'] ?? 'btn btn-light btn-sm';
+                                    $btnIcon = $btnConfig['icon'] ?? 'fas fa-cog';
+                                    $btnText = $btnConfig['text'] ?? $btnKey;
+                            ?>
+                            <a href="<?= htmlspecialchars($url) ?>"
+                               class="<?= htmlspecialchars($btnClass) ?>">
+                                <i class="<?= htmlspecialchars($btnIcon) ?> me-1"></i>
+                                <?= htmlspecialchars($btnText) ?>
+                            </a>
+                            <?php endif; endforeach; ?>
+
+                            <!-- Add New Button -->
+                            <?php if (!empty($buttons['add_new'])): ?>
+                            <a href="<?= BASE_URL . '/' . ($form_config['new'] ?? '') ?>"
+                               class="<?= htmlspecialchars($buttons['add_new']['class'] ?? 'btn btn-light') ?>">
+                                <i class="<?= htmlspecialchars($buttons['add_new']['icon'] ?? 'fas fa-plus') ?>"></i>
+                                <?= htmlspecialchars($buttons['add_new']['text'] ?? 'Add New') ?>
+                            </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <!-- Card Body -->
@@ -96,26 +140,67 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                     <?php $rowNum = 1; ?>
                                     <?php foreach ($data as $row): ?>
                                     <tr>
-                                        <?php
-                                        $colIndex = 0;
-                                        foreach ($table_config['columns'] ?? [] as $col):
-                                            $field = $col['name'];
-                                            $isLink = $col['link'] ?? false;
-                                            $type = $col['type'] ?? 'text';
-                                        ?>
+<?php
+                                          $colIndex = 0;
+                                          foreach ($table_config['columns'] ?? [] as $col):
+                                              $field = $col['name'];
+                                              $isLink = $col['link'] ?? false;
+                                              $isFk = !empty($col['fk']);
+                                              $type = $isFk ? 'fk' : ($col['type'] ?? $col['format'] ?? 'text');
+                                          ?>
                                         <td <?php if ($type === 'status_badge'): ?>data-order="<?= htmlspecialchars($row->{$status['column'] ?? 'status'} ?? '') ?>"<?php endif; ?>>
                                             <?php if ($field === '#'): ?>
                                                 <?= $rowNum++ ?>
                                             <?php elseif ($type === 'icon' && isset($row->$field)): ?>
                                                 <i class="fas <?= htmlspecialchars($row->$field ?? '') ?>"></i>
-                                            <?php elseif ($type === 'status_badge' && isset($status['column'])): 
-                                                $val = $row->{$status['column']} ?? '';
-                                                $isActive = $val == ($status['active'] ?? '1');
-                                            ?>
-                                                <span class="badge <?= $isActive ? htmlspecialchars($status['badge_active'] ?? 'bg-success') : htmlspecialchars($status['badge_inactive'] ?? 'bg-danger') ?>">
-                                                    <?= $isActive ? htmlspecialchars($status['text_active'] ?? 'Active') : htmlspecialchars($status['text_inactive'] ?? 'Inactive') ?>
-                                                </span>
-                                            <?php else: 
+<?php elseif ($type === 'status_badge' && isset($status['column'])): 
+                                                  $val = $row->{$status['column']} ?? '';
+                                                  $isActive = $val == ($status['active'] ?? '1');
+                                              ?>
+                                                  <span class="badge <?= $isActive ? htmlspecialchars($status['badge_active'] ?? 'bg-success') : htmlspecialchars($status['badge_inactive'] ?? 'bg-danger') ?>">
+                                                      <?= $isActive ? htmlspecialchars($status['text_active'] ?? 'Active') : htmlspecialchars($status['text_inactive'] ?? 'Inactive') ?>
+                                                  </span>
+                                             <?php elseif ($type === 'priority_badge' && isset($row->$field)): 
+                                                  $priority = $row->$field ?? 0;
+                                                  $priorityConfig = [
+                                                      0 => ['class' => 'bg-info', 'text' => 'Info'],
+                                                      1 => ['class' => 'bg-warning', 'text' => 'Warning'],
+                                                      2 => ['class' => 'bg-danger', 'text' => 'Error'],
+                                                  ];
+                                                  $p = $priorityConfig[$priority] ?? $priorityConfig[0];
+                                              ?>
+                                                  <span class="badge <?= htmlspecialchars($p['class']) ?>"><?= htmlspecialchars($p['text']) ?></span>
+<?php elseif ($type === 'datetime' && isset($row->$field)):
+                                                  $value = $row->$field;
+                                                  if ($value) {
+                                                      $dt = new DateTime($value);
+                                                      $displayValue = htmlspecialchars($dt->format('Y-m-d H:i:s'));
+                                                  } else {
+                                                      $displayValue = '';
+                                                  }
+                                                  if ($isLink && !empty($table_config['link_base']) && !empty($table_config['id_column'])):
+                                                      $id = base64_encode(urlencode($row->{$table_config['id_column']} ?? ''));
+                                              ?>
+                                                      <a href="<?= htmlspecialchars($table_config['link_base']) ?>?id=<?= $id ?>" class="text-decoration-none">
+                                                          <?= $displayValue ?>
+                                                      </a>
+                                              <?php else: ?>
+                                                      <?= $displayValue ?>
+                                              <?php endif; ?>
+                                              <?php elseif ($type === 'fk' && isset($row->$field)):
+                                                  $fkValue = $row->$field;
+                                                  $fkModel = $col['model'] ?? '';
+                                                  $displayValue = $fkCache[$fkModel][$fkValue] ?? $fkValue;
+                                                  if ($isLink && !empty($table_config['link_base']) && !empty($table_config['id_column'])):
+                                                      $id = base64_encode(urlencode($row->{$table_config['id_column']} ?? ''));
+                                              ?>
+                                                      <a href="<?= htmlspecialchars($table_config['link_base']) ?>?id=<?= $id ?>" class="text-decoration-none">
+                                                          <?= htmlspecialchars($displayValue) ?>
+                                                      </a>
+                                              <?php else: ?>
+                                                      <?= htmlspecialchars($displayValue) ?>
+                                              <?php endif; ?>
+                                              <?php else:
                                                 $value = htmlspecialchars($row->$field ?? '');
                                                 if ($isLink && !empty($table_config['link_base']) && !empty($table_config['id_column'])):
                                                     $id = base64_encode(urlencode($row->{$table_config['id_column']} ?? ''));
@@ -132,28 +217,47 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
 
                                         <!-- Action Column with tooltips -->
                                         <td class="text-center action-column" style="<?= htmlspecialchars($table_config['action_style'] ?? '') ?>">
-                                            <?php if (!empty($buttons['view'])): ?>
-                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>?id=<?= base64_encode((string) ($row->id ?? '')) ?>"
-                                               class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="View">
-                                                <i class="fas fa-eye"></i>
+                                            <?php if (!empty($buttons['archive'])): ?>
+                                                <?php 
+                                                    $statusCol = $status['column'] ?? 'status';
+                                                    $isActive = ($row->$statusCol ?? '') == ($status['active'] ?? '1');
+                                                    $action = $isActive ? 'archive' : 'unarchive';
+                                                    $icon = $isActive ? 'fas fa-archive' : 'fas fa-box-open';
+                                                    $title = $isActive ? 'Archive' : 'Restore';
+                                                    $class = $isActive ? 'btn btn-sm btn-warning' : 'btn btn-sm btn-success';
+                                                ?>
+                                                <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>/<?= $action ?>/<?= base64_encode((string) ($row->id ?? '')) ?>"
+                                                   class="<?= $class ?>" data-bs-toggle="tooltip" title="<?= $title ?>">
+                                                    <i class="<?= $icon ?>"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php 
+                                            // Custom action buttons (dynamic based on row data)
+                                            foreach ($custom_buttons as $btnKey => $btnConfig):
+                                                // Skip header-only buttons in action column
+                                                if (!empty($btnConfig['header']) && $btnConfig['header'] === true) {
+                                                    continue;
+                                                }
+                                                $condition = $btnConfig['condition'] ?? null;
+                                                $show = true;
+                                                if ($condition) {
+                                                    eval('$show = ' . $condition . ';');
+                                                }
+                                                if ($show):
+                                                    $url = $btnConfig['url'] ?? '#';
+                                                    // Replace placeholders
+                                                    $url = str_replace('{id}', base64_encode((string)($row->id ?? '')), $url);
+                                                    $url = str_replace('{link_base}', $table_config['link_base'] ?? '', $url);
+                                                    $btnClass = $btnConfig['class'] ?? 'btn btn-sm btn-secondary';
+                                                    $btnIcon = $btnConfig['icon'] ?? 'fas fa-cog';
+                                                    $btnTitle = $btnConfig['title'] ?? $btnKey;
+                                            ?>
+                                            <a href="<?= htmlspecialchars($url) ?>"
+                                               class="<?= htmlspecialchars($btnClass) ?>" data-bs-toggle="tooltip" title="<?= htmlspecialchars($btnTitle) ?>">
+                                                <i class="<?= htmlspecialchars($btnIcon) ?>"></i>
                                             </a>
-                                            <?php endif; ?>
-
-                                            <?php if (!empty($buttons['edit'])): ?>
-                                            <a href="<?= htmlspecialchars($table_config['link_base'] ?? '') ?>?id=<?= base64_encode((string) ($row->id ?? '')) ?>"
-                                               class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <?php endif; ?>
-
-                                            <?php if (!empty($buttons['delete'])): ?>
-                                            <button class="btn btn-sm btn-danger delete-btn"
-                                                    data-id="<?= htmlspecialchars($row->id ?? '') ?>"
-                                                    data-redirect="<?= htmlspecialchars($form_config['redirect'] ?? '') ?>"
-                                                    data-bs-toggle="tooltip" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
+                                            <?php endif; endforeach; ?>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

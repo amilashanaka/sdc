@@ -37,16 +37,7 @@ $form_config = [
             'icon' => 'fas fa-plus',
             'text' => 'Add New'
         ],
-        'view' => [
-            'show' => true,
-            'class' => 'btn btn-sm btn-info',
-            'icon' => 'fas fa-eye'
-        ],
-        'edit' => [
-            'show' => true,
-            'class' => 'btn btn-sm btn-warning',
-            'icon' => 'fas fa-edit'
-        ],
+
         'delete' => [
             'show' => true,
             'class' => 'btn btn-sm btn-danger',

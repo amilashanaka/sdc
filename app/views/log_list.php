@@ -3,38 +3,61 @@ include_once __DIR__ . '/header.php';
 include_once __DIR__ . '/sidebar.php';
 include_once __DIR__ . '/navbar.php';
 
+// Determine view mode (active or archived)
+$view = $_GET['view'] ?? 'active';
+$statusFilter = ($view === 'archived') ? 0 : 1;
+$toggleView = ($view === 'archived') ? 'active' : 'archived';
+$toggleText = ($view === 'archived') ? 'Show Active' : 'Show Archived';
+$toggleIcon = ($view === 'archived') ? 'fas fa-list' : 'fas fa-archive';
+$toggleClass = ($view === 'archived') ? 'btn btn-light btn-sm' : 'btn btn-outline-light btn-sm';
+
 $form_config = [
-    'heading' => 'Log List',
+    'heading' => 'Log List' . ($view === 'archived' ? ' - Archived' : ''),
     'title'   => 'list',
     'new'     => '',
-    'model'   => 'log',         // Model/class name for data operations
-    'method'  => 'get_all',     // Method to call on the model
+    'model'   => 'Log',
+    'method'  => 'get_all',
+    'method_params' => [$statusFilter],
     'table'   => [
-        'th'             => ['#', 'Device Name', 'IP Address', 'Firmware Version', 'Date',  'Action'],
+        'th'             => ['#', 'Time Stamp', 'Priority', 'Message', 'Module', 'Error Code', 'Action'],
         'action_style'   => 'width:3%; text-align: center;',
         'id_column'      => 'id',
         'columns'        => [
-            ['name' => '#', 'link' => false],                    // Row counter
-            ['name' => 'f1', 'link' => true],                    // Device name
-            ['name' => 'f2', 'link' => false],                   // IP address
-            ['name' => 'f3', 'link' => false],                   // Firmware version
-            ['name' => 'created_date', 'link' => false, 'format' => 'datetime'],
-
+            ['name' => '#', 'link' => false],
+            ['name' => 'created_date', 'link' => true, 'format' => 'datetime'],
+            ['name' => 'f1', 'link' => false, 'type' => 'priority_badge'],
+            ['name' => 'f2', 'link' => false],
+        
+            [
+                'name'  => 'module',
+                'link'  => false,
+                'fk'    => true,
+                'model' => 'module',
+                'show'  => 'f1'
+            ],
+            ['name' => 'error', 'link' => false],
         ],
-        'link_base'         => 'log',                             // Base URL for links
-        'table_id'          => 'example23',
+        'link_base'         => 'log',
+        'table_id'          => 'logListTable',
         'table_classes'     => 'display nowrap table table-hover table-striped table-bordered',
         'table_attributes'  => 'cellspacing="0" width="100%"',
         'card_classes'      => 'card',
         'card_body_classes' => 'card-body'
     ],
-    'db_table'   => 'logs',                  // Actual database table name
-    'redirect'   => 'log_list',                // Redirect page after actions
+    'db_table'   => 'logs',
+    'redirect'   => 'log_list',
     'buttons'    => [
-        'view' => [
+        'archive' => [
             'show' => true,
-            'class' => 'btn btn-sm btn-info',
-            'icon' => 'fas fa-eye'
+        ]
+    ],
+    'custom_buttons' => [
+        'toggle_view' => [
+            'header' => true,
+            'url' => "log_list?view={$toggleView}",
+            'class' => ($view === 'archived') ? 'btn btn-success btn-sm' : 'btn btn-warning btn-sm',
+            'icon' => $toggleIcon,
+            'text' => $toggleText
         ]
     ],
     'exports' => [

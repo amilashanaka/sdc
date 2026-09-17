@@ -15,21 +15,29 @@ $form_config = [
     'inputs' => [
         'id' => ['type' => 'hidden', 'value' => ''],
         'f1' => [
-            'label' => 'Hostname',
+            'label' => 'Priority',
             'type' => 'text',
             'class' => 'form-control log-detail-field',
             'div_class' => 'col-lg-6 col-md-6 form-group',
             'readonly' => true
         ],
         'f2' => [
-            'label' => 'IP Address',
+            'label' => 'Message',
+            'type' => 'textarea',
+            'class' => 'form-control log-detail-field',
+            'div_class' => 'col-12 form-group',
+            'rows' => 4,
+            'readonly' => true
+        ],
+        'error' => [
+            'label' => 'Error Code',
             'type' => 'text',
             'class' => 'form-control log-detail-field',
             'div_class' => 'col-lg-6 col-md-6 form-group',
             'readonly' => true
         ],
-        'f3' => [
-            'label' => 'Firmware Version',
+        'module_name' => [
+            'label' => 'Module',
             'type' => 'text',
             'class' => 'form-control log-detail-field',
             'div_class' => 'col-lg-6 col-md-6 form-group',
@@ -42,12 +50,11 @@ $form_config = [
             'div_class' => 'col-lg-6 col-md-6 form-group',
             'readonly' => true
         ],
-        'f4' => [
-            'label' => 'Log Content',
-            'type' => 'textarea',
-            'class' => 'form-control log-content-field',
-            'div_class' => 'col-12 form-group',
-            'rows' => 16,
+        'status' => [
+            'label' => 'Status',
+            'type' => 'text',
+            'class' => 'form-control log-detail-field',
+            'div_class' => 'col-lg-6 col-md-6 form-group',
             'readonly' => true
         ],
     ],

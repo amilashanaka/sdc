@@ -51,23 +51,21 @@ drop TABLE if EXISTS logs;
 
 CREATE TABLE logs (
     id int NOT NULL AUTO_INCREMENT,
-    f1 int DEFAULT 0,  
-    f2 varchar(50) DEFAULT NULL,
-    f3 DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    f4  text DEFAULT NULL,
-    f5 varchar(50) DEFAULT NULL,
-    f6 varchar(50) DEFAULT NULL,
-    f7 varchar(50) DEFAULT NULL,
-    f8 varchar(50) DEFAULT NULL,
-    f9 varchar(50) DEFAULT NULL,
-    f10 varchar(50) DEFAULT NULL,
-    f11 varchar(255) DEFAULT NULL,
-    status int DEFAULT 0,
+    f1 int DEFAULT 0,  -- Priority level 0=Info, 1=Warning, 2=Error 
+    f2 varchar(255) DEFAULT NULL, -- log message
+    error int DEFAULT 0, -- associated error code
+    module INT DEFAULT 0, -- module id
+     created_date datetime DEFAULT CURRENT_TIMESTAMP,
+    status int DEFAULT 0, -- 1=active, 0=archived
     PRIMARY KEY (id) USING BTREE
 );
 
-INSERT INTO logs (f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, status) VALUES 
-(0, 'Sample Log', 100.00, 'This is a sample log entry.', 'Value1', 'Value2', 'Value3', 'Value4', 'Value5', 'Value6', 'Sample Image Path', 1);   
+INSERT INTO logs (f1, f2, error, module, status) VALUES 
+(0, 'System initialized successfully', 0, 0, 1),
+(1, 'Warning: High temperature detected', 100, 1, 1),
+(2, 'Error: Sensor failure', 200, 2, 1);
+
+ 
 
 DROP TABLE IF EXISTS  flags;
 
