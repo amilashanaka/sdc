@@ -1,5 +1,5 @@
 -- Active: 1717229315063@@127.0.0.1@3306@daq
-  
+ 
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users`  (
   `id` int NOT NULL AUTO_INCREMENT,
