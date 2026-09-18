@@ -200,17 +200,17 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                               <?php else: ?>
                                                       <?= htmlspecialchars($displayValue) ?>
                                               <?php endif; ?>
-                                              <?php else:
-                                                $value = htmlspecialchars($row->$field ?? '');
-                                                if ($isLink && !empty($table_config['link_base']) && !empty($table_config['id_column'])):
-                                                    $id = base64_encode(urlencode($row->{$table_config['id_column']} ?? ''));
-                                            ?>
-                                                <a href="<?= htmlspecialchars($table_config['link_base']) ?>?id=<?= $id ?>" class="text-decoration-none">
-                                                    <?= $value ?>
-                                                </a>
-                                            <?php else: ?>
-                                                <?= $value ?>
-                                            <?php endif; ?>
+<?php else:
+  $value = htmlspecialchars($row->$field ?? '');
+  if ($isLink && !empty($table_config['link_base']) && !empty($table_config['id_column'])):
+      $id = base64_encode(urlencode($row->{$table_config['id_column']} ?? ''));
+?>
+    <a href="<?= htmlspecialchars($table_config['link_base']) ?>?id=<?= $id ?>" class="text-decoration-none">
+        <?= $value ?>
+    </a>
+<?php else: ?>
+    <?= $value ?>
+<?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                         <?php $colIndex++; endforeach; ?>
@@ -265,11 +265,19 @@ $cardHeaderClasses = $layout['card_header_classes'] ?? $defaultCardHeaderClasses
                                                     $url = str_replace('{id}', base64_encode((string)($row->id ?? '')), $url);
                                                     $url = str_replace('{link_base}', $table_config['link_base'] ?? '', $url);
                                                     $btnClass = $btnConfig['class'] ?? 'btn btn-sm btn-secondary';
+                                                    if (!empty($btnConfig['confirm']) && strpos($btnClass, 'delete-btn') === false) {
+                                                        $btnClass .= ' delete-btn';
+                                                    }
+                                                    $dataAttributes = '';
+                                                    if (!empty($btnConfig['confirm'])) {
+                                                        $dataAttributes = ' data-id="' . base64_encode((string) ($row->id ?? '')) . '"'
+                                                            . ' data-redirect="' . htmlspecialchars($form_config['redirect'] ?? '') . '"';
+                                                    }
                                                     $btnIcon = $btnConfig['icon'] ?? 'fas fa-cog';
                                                     $btnTitle = $btnConfig['title'] ?? $btnKey;
                                             ?>
                                             <a href="<?= htmlspecialchars($url) ?>"
-                                               class="<?= htmlspecialchars($btnClass) ?>" data-bs-toggle="tooltip" title="<?= htmlspecialchars($btnTitle) ?>">
+                                               class="<?= htmlspecialchars($btnClass) ?>" data-bs-toggle="tooltip" title="<?= htmlspecialchars($btnTitle) ?>"<?= $dataAttributes ?>>
                                                 <i class="<?= htmlspecialchars($btnIcon) ?>"></i>
                                             </a>
                                             <?php endif; endforeach; ?>

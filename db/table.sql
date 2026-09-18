@@ -89,12 +89,13 @@ DROP TABLE IF EXISTS  error_codes;
 
 CREATE TABLE error_codes(
   id int NOT NULL AUTO_INCREMENT,
-  f1 int DEFAULT 0, -- code
-  f2 varchar(250) DEFAULT NULL, -- message
+  code int DEFAULT 0,
+  message varchar(250) DEFAULT NULL,
+    status int DEFAULT 0, -- 1=active, 0=inactive
   PRIMARY KEY ( id ) USING BTREE
 );
 
-INSERT INTO error_codes (f1, f2) VALUES 
+INSERT INTO error_codes (code, message) VALUES 
 (100, 'Sample Error Message 1'),
 (200, 'Sample Error Message 2'),
 (300, 'Sample Error Message 3');
