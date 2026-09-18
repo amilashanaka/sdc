@@ -9,63 +9,63 @@ include_once 'navbar.php';
 
 $kpi_cards = array();
 
-    $active_channels = 0;
-    $total_channels = count($channels);
-    foreach ($channels as $ch) {
-        if ($ch['status'] == 1) {
-            $active_channels++;
-        }
+$active_channels = 0;
+$total_channels = count($channels);
+foreach ($channels as $ch) {
+    if ($ch['status'] == 1) {
+        $active_channels++;
     }
+}
 
-    $kpi_cards[] = array(
-        'icon'   => 'fa fa-wave-square',
-        'color'  => 'green',
-        'label'  => 'Active ADC',
-        'value'  => $active_channels . '/' . $total_channels,
-        'id'     => 'adcStatus',
-        'url'    => 'scope',
-    );
+$kpi_cards[] = array(
+    'icon'   => 'fa fa-wave-square',
+    'color'  => 'green',
+    'label'  => 'Active ADC',
+    'value'  => $active_channels . '/' . $total_channels,
+    'id'     => 'adcStatus',
+    'url'    => 'scope',
+);
 
-    $max_sample_rate = 0;
-    foreach ($channels as $ch) {
-        if ($ch['sample_rate'] > $max_sample_rate) {
-            $max_sample_rate = $ch['sample_rate'];
-        }
+$max_sample_rate = 0;
+foreach ($channels as $ch) {
+    if ($ch['sample_rate'] > $max_sample_rate) {
+        $max_sample_rate = $ch['sample_rate'];
     }
-    $sample_rate_k = $max_sample_rate >= 1000 ? ($max_sample_rate / 1000) . ' kSPS' : $max_sample_rate . ' SPSS';
-    $kpi_cards[] = array(
-        'icon'   => 'fa fa-tachometer-alt',
-        'color'  => 'blue',
-        'label'  => 'Sample Rate',
-        'value'  => $sample_rate_k,
-        'id'     => 'sampleRate',
-        'url'    => 'channel_list',
-    );
+}
+$sample_rate_k = $max_sample_rate >= 1000 ? ($max_sample_rate / 1000) . ' kSPS' : $max_sample_rate . ' SPSS';
+$kpi_cards[] = array(
+    'icon'   => 'fa fa-tachometer-alt',
+    'color'  => 'blue',
+    'label'  => 'Sample Rate',
+    'value'  => $sample_rate_k,
+    'id'     => 'sampleRate',
+    'url'    => 'channel_list',
+);
 
-    $fpga_temp = 42;
-    foreach ($health_items as $h) {
-        if (strtolower($h['name']) === 'temperature') {
-            $fpga_temp = $h['value'];
-            break;
-        }
+$fpga_temp = 42;
+foreach ($health_items as $h) {
+    if (strtolower($h['name']) === 'temperature') {
+        $fpga_temp = $h['value'];
+        break;
     }
-    $kpi_cards[] = array(
-        'icon'   => 'fa fa-microchip',
-        'color'  => 'orange',
-        'label'  => 'FPGA Temperature',
-        'value'  => $fpga_temp . ' °C',
-        'id'     => 'fpgaTemp',
-        'url'    => 'health_monitor',
-    );
+}
+$kpi_cards[] = array(
+    'icon'   => 'fa fa-microchip',
+    'color'  => 'orange',
+    'label'  => 'FPGA Temperature',
+    'value'  => $fpga_temp . ' °C',
+    'id'     => 'fpgaTemp',
+    'url'    => 'health_monitor',
+);
 
-    $kpi_cards[] = array(
-        'icon'   => 'fas fa-list',
-        'color'  => 'purple',
-        'label'  => 'System',
-        'value'  => 'Logs',
-        'id'     => '',
-        'url'    => 'log_list',
-    );
+$kpi_cards[] = array(
+    'icon'   => 'fas fa-list',
+    'color'  => 'purple',
+    'label'  => 'System',
+    'value'  => 'Logs',
+    'id'     => '',
+    'url'    => 'log_list',
+);
 
 ?>
 
@@ -101,13 +101,18 @@ $kpi_cards = array();
 
                     SPICER DAQ
                     &nbsp;•&nbsp;
-                    Serial: <?php echo htmlspecialchars($settings->f6 ?? 'SP-0001') ?>
+                    <i class="fas fa-computer" style="width:16px;margin-right:6px;"></i>Serial: <?php echo htmlspecialchars($settings->f6 ?? 'SP-0001') ?>
                     &nbsp;•&nbsp;
-                    FW: <?php echo htmlspecialchars($settings->f5 ?? '1.0.0') ?>
+                    <i class="fas fa-code" style="width:16px;margin-right:6px;"></i>FW: <?php echo htmlspecialchars($settings->f5 ?? '1.0.0') ?>
                     &nbsp;•&nbsp;
-                    FPGA: 2.0.1
-
+                    <i class="fas fa-microchip" style="width:16px;margin-right:6px;"></i>FPGA: 2.0.1
+                    &nbsp;•&nbsp;
+                    <i class="fab fa-linux" style="width:16px;margin-right:6px;"></i>Linux: PYNQ
+                    &nbsp;•&nbsp;
+                    <i class="fas fa-clock" style="width:16px;margin-right:6px;"></i>Uptime: 02d 14h 32m
                 </div>
+
+
 
             </div>
 
@@ -152,8 +157,8 @@ $kpi_cards = array();
                 <div class="col-lg-3 col-md-6">
 
                     <a class="kpi-card-link"
-                       href="<?= BASE_URL . '/' . ltrim($k['url'], '/') ?>"
-                       style="text-decoration:none; color:inherit;">
+                        href="<?= BASE_URL . '/' . ltrim($k['url'], '/') ?>"
+                        style="text-decoration:none; color:inherit;">
 
                         <div class="kpi-card">
 
@@ -169,7 +174,9 @@ $kpi_cards = array();
 
                                 <div
                                     class="kpi-value"
-                                    <?php if (!empty($k['id'])) { echo 'id="' . $k['id'] . '"'; } ?>>
+                                    <?php if (!empty($k['id'])) {
+                                        echo 'id="' . $k['id'] . '"';
+                                    } ?>>
 
                                     <?= $k['value'] ?>
 
@@ -226,63 +233,44 @@ $kpi_cards = array();
 
                     </div>
 
-<div class="daq-card-body">
+                    <div class="daq-card-body">
 
                         <?php foreach ($health_items as $index => $h):
                             $color = $h['color'] ?? '#2563eb';
                         ?>
-                        <div class="health-item">
+                            <div class="health-item">
 
-                            <div class="health-icon" style="background:linear-gradient(135deg, <?= $color ?>, <?= $color ?>88);box-shadow:0 4px 12px <?= $color ?>55;">
-                                <i class="fas <?= $h['icon'] ?>" style="color:#fff;"></i>
-                            </div>
+                                <div class="health-icon" style="background:linear-gradient(135deg, <?= $color ?>, <?= $color ?>88);box-shadow:0 4px 12px <?= $color ?>55;">
+                                    <i class="fas <?= $h['icon'] ?>" style="color:#fff;"></i>
+                                </div>
 
-                            <div class="health-content">
+                                <div class="health-content">
 
-                                <div class="health-top">
+                                    <div class="health-top">
 
-                                    <span class="health-label">
-                                        <?= $h['name'] ?>
-                                    </span>
+                                        <span class="health-label">
+                                            <?= $h['name'] ?>
+                                        </span>
 
-                                    <span class="health-value" id="<?= 'health' . $index . 'Value' ?>">
-                                        <?= $h['value'] ?>
-                                    </span>
+                                        <span class="health-value" id="<?= 'health' . $index . 'Value' ?>">
+                                            <?= $h['value'] ?>
+                                        </span>
+
+                                    </div>
+
+                                    <div class="health-track">
+                                        <div class="health-fill health-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Bar' ?>" style="width:<?= $h['value'] ?>%"></div>
+                                    </div>
 
                                 </div>
 
-                                <div class="health-track">
-                                    <div class="health-fill health-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Bar' ?>" style="width:<?= $h['value'] ?>%"></div>
-                                </div>
+                                <span class="health-pill health-pill-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Pill' ?>">
+                                    <?= $h['label'] ?>
+                                </span>
 
                             </div>
-
-                            <span class="health-pill health-pill-<?= $h['state'] === 'running' ? 'ok' : 'warn' ?>" id="<?= 'health' . $index . 'Pill' ?>">
-                                <?= $h['label'] ?>
-                            </span>
-
-                        </div>
                         <?php endforeach; ?>
 
-
-                        <div class="health-footer">
-
-                            <div class="config-row">
-                                <span class="config-label"><i class="fas fa-microchip" style="width:16px;margin-right:6px;"></i>FPGA</span>
-                                <span class="config-value">Zynq-7020</span>
-                            </div>
-
-                            <div class="config-row">
-                                <span class="config-label"><i class="fab fa-linux" style="width:16px;margin-right:6px;"></i>Linux</span>
-                                <span class="config-value">PYNQ</span>
-                            </div>
-
-                            <div class="config-row">
-                                <span class="config-label"><i class="fas fa-clock" style="width:16px;margin-right:6px;"></i>Uptime</span>
-                                <span class="config-value" id="uptime">02d 14h 32m</span>
-                            </div>
-
-                        </div>
 
 
                     </div>
