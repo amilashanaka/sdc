@@ -32,6 +32,9 @@ class LoginController
                 $_SESSION['user_id']  = $user->id;
                 $_SESSION['username'] = $user->username;
 
+                $flag = new Flag();
+                $flag->setRunMode(0);
+
                 return $this->redirect('/dashboard');
             }
 
@@ -45,6 +48,9 @@ class LoginController
 
     public function logout()
     {
+        $flag = new Flag();
+        $flag->setRunMode(1);
+
         $_SESSION = [];
         session_destroy();
         return $this->redirect('/login');
