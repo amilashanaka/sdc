@@ -5,7 +5,7 @@ return [
         'host' => 'localhost',
         'name' => 'daq',
         'user' => 'root',
-        'pass' => '',
+        'pass' => 'daq',
         'charset' => 'utf8mb4'
     ],
     

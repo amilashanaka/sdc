@@ -15,6 +15,12 @@ class ScopeController extends BaseController
         $this->view('scope');
     }
 
+    /**
+     * Put the device into DEBUG mode so the oscilloscope can stream.
+     *
+     * Only flags.run_mode is written; mode_manager.py watches that column and
+     * stops RUN mode / starts DEBUG mode on its own.
+     */
     public function modeAction()
     {
         if (!$this->isPost()) {
@@ -26,25 +32,10 @@ class ScopeController extends BaseController
             $this->json(['success' => false, 'error' => 'Invalid mode'], 400);
         }
 
-        $runMode = $mode === 'DEBUG' ? 1 : 0;
-
-        try {
-            if (!$this->flag->setRunMode($runMode)) {
-                throw new RuntimeException('Failed to update database');
-            }
-
-            $pynqDirectory = getenv('SPICER_PYNQ_DIR');
-            if (!$pynqDirectory) {
-                $pynqDirectory = is_dir('/var/www/html/pynq') ? '/var/www/html/pynq' : ROOT . '/pynq';
-            }
-            $modeFile = $pynqDirectory . '/.mode';
-            if (@file_put_contents($modeFile, $mode . PHP_EOL) === false) {
-                throw new RuntimeException('Unable to write mode file');
-            }
-
-            $this->json(['success' => true, 'mode' => $mode]);
-        } catch (Throwable $exception) {
+        if (!$this->flag->setRunMode($mode === 'DEBUG' ? Flag::DEBUG : Flag::RUN)) {
             $this->json(['success' => false, 'error' => 'Mode switch failed'], 500);
         }
+
+        $this->json(['success' => true, 'mode' => $mode]);
     }
 }

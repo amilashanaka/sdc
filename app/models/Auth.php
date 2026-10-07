@@ -8,14 +8,14 @@ class Auth {
         
         $User = new User();
 
-        // f1 = login
+        // f1 = username
         $record = $User->whereFirst('f1', $username);
 
         if(!$record){
             return false;
         }
 
-        // f3 = password
+        // f2 = password
         if(!password_verify($password, $record->f2)) {
             return false;
         }

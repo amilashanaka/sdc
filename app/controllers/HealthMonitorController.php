@@ -109,8 +109,8 @@ class HealthMonitorController extends BaseController
             ];
         }
 
-        $flags_model = new Flag();
-        $flags_row = $flags_model->find_by_id(1);
+        $flag_model = new Flag();
+        $run_mode = $flag_model->getRunMode();
 
         $overall_healthy = ($error_count === 0 && $warning_count <= 2);
         $overall_status = $overall_healthy ? 'running' : 'idle';
@@ -129,7 +129,7 @@ class HealthMonitorController extends BaseController
             'logs'           => $logs,
             'error_count'    => $error_count,
             'warning_count'  => $warning_count,
-            'flags'          => $flags_row,
+            'run_mode'       => $run_mode,
             'overall_status' => $overall_status,
             'overall_label'  => $overall_label,
             'overall_icon'   => $overall_icon,

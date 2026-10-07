@@ -1,5 +1,5 @@
--- Active: 1717229315063@@127.0.0.1@3306@daq
- 
+
+  
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users`  (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -9,7 +9,7 @@ CREATE TABLE `users`  (
 ) ;
 
 INSERT INTO users (f1, f2) 
-VALUES ('admin', '$2y$10$MCq3kqg5TpP5rvviemVayuO4Hvfxh3/JJ4mylf6IsX7rhT3gagTee')
+VALUES ('admin', '$2y$10$MCq3kqg5TpP5rvviemVayuO4Hvfxh3/JJ4mylf6IsX7rhT3gagTee');
 
 
 DROP TABLE IF EXISTS  device_types;
@@ -77,13 +77,18 @@ INSERT INTO logs (f1, f2, error, module, status) VALUES
 
 DROP TABLE IF EXISTS  flags;
 
+-- Single-row table holding the device operating mode.
+-- pynq/mode_manager.py polls this column and keeps the running services in sync:
+--   run_mode = 0 -> RUN    -> ./startup  (main.py + udp.py, legacy TCP)
+--   run_mode = 1 -> DEBUG  -> server.py  (FastAPI/WebSocket, web streaming)
+-- Row id = 1 is the controlling row; do not add other rows.
 CREATE TABLE flags(
   id int NOT NULL AUTO_INCREMENT,
   run_mode int DEFAULT 0, -- current device mode: 0=RUN, 1=DEBUG
   PRIMARY KEY ( id ) USING BTREE
 );
 
-INSERT INTO flags (run_mode) VALUES (0); -- Default to RUN mode
+INSERT INTO flags (id, run_mode) VALUES (1, 0); -- Default to RUN mode
 
 DROP TABLE IF EXISTS  error_codes;
 

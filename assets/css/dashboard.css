@@ -251,6 +251,8 @@
 
         text-transform: uppercase;
         letter-spacing: .5px;
+        cursor: pointer;
+        transition: filter .2s ease;
     }
 
     .debug-badge i {
@@ -272,10 +274,45 @@
         }
     }
 
-    .debug-only {
-        display: block;
+    .debug-badge-ok {
+
+        background: rgba(16, 185, 129, .12);
+
+        color: var(--daq-green);
+
+        border-color: rgba(16, 185, 129, .35);
+
     }
 
+    .debug-badge-warn {
+
+        background: rgba(239, 68, 68, .12);
+
+        color: var(--daq-red);
+
+        border-color: rgba(239, 68, 68, .35);
+
+    }
+
+    .debug-badge:hover:not(:disabled) {
+
+        filter: brightness(1.12);
+
+    }
+
+    .debug-badge:disabled {
+
+        opacity: .55;
+
+        cursor: not-allowed;
+
+    }
+
+    .debug-only {
+
+        display: block;
+
+    }
     body.debug-mode span.debug-only {
         display: inline;
     }

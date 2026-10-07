@@ -32,8 +32,10 @@ class LoginController
                 $_SESSION['user_id']  = $user->id;
                 $_SESSION['username'] = $user->username;
 
-                $flag = new Flag();
-                $flag->setRunMode(0);
+                // Web session started: ask mode_manager.py to stop the RUN
+                // services and start server.py (DEBUG). Only the flag is
+                // written; a DB failure must never block the login.
+                (new Flag())->setRunMode(Flag::DEBUG);
 
                 return $this->redirect('/dashboard');
             }
@@ -48,8 +50,10 @@ class LoginController
 
     public function logout()
     {
-        $flag = new Flag();
-        $flag->setRunMode(1);
+        // Web session ended: hand the device back to RUN mode.
+        if (!empty($_SESSION['user_id'])) {
+            (new Flag())->setRunMode(Flag::RUN);
+        }
 
         $_SESSION = [];
         session_destroy();

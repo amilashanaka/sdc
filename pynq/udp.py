@@ -2,8 +2,6 @@
 import socket
 import time
 import ipc
-import subprocess
-import sys
 
 
 # Global constants
@@ -12,7 +10,6 @@ UDP_PORT = 53555 # Port for UDP handshake
 UDP_BUFFER_SIZE = 30
 UDP_PACKET_IN = "ScHelloDevice" # ID string for incomming UDP handshake. Max UDP_BUFFER_SIZE
 DEVICE_NAME = "SC28/SI"
-STARTUP = '/home/pi/sc/startup'
 
 # Exception for UDP
 class UdpError(Exception):
@@ -66,9 +63,12 @@ class Udp:
             serial_number = "12345"
             # Check if device is connected to TCP
             connected = udp_check_tcp(ipc_client)
-            # If Main process has crashed, attempt to restart both processes
+            # If Main process has crashed, report it. This process never
+            # restarts the firmware itself: startup is owned by RUN mode only
+            # and mode_manager.py restarts the pair, so a discovery packet can
+            # never bring main.py back while DEBUG mode is active.
             if connected == "None":
-                udp_restart()
+                print("Main process unavailable; mode_manager.py will restart RUN mode")
             # Send the reply string in ASCII
             reply = DEVICE_NAME + ",20" + serial_number + "," + "2.21"+ "," + connected
             try:
@@ -108,16 +108,6 @@ def udp_check_tcp(ipc_client):
     if connected == "None":
         print("Error: SC28 main process has crashed")
     return connected
-
-def udp_restart():
-    """Restart both SC28 programs"""
-    print("Restarting firmware...")
-    try:
-        p = subprocess.Popen(['/bin/sh', '-c', STARTUP])
-    except OSError:
-        raise UdpError("Error restarting firmware")
-    # Quit this process and never return
-    sys.exit(0)
 
 def udp_main():
     """Main program of SC28 UDP process"""

@@ -6,13 +6,13 @@ include_once 'navbar.php';
 
 $settings = $settings ?? new Setting(1);
 $deviceType = $deviceType ?? new DeviceType(0);
+$health_items = $health_items ?? [];
 $modules = $modules ?? [];
 $channels = $channels ?? [];
 $active_channel_count = $active_channel_count ?? 0;
 $logs = $logs ?? [];
 $error_count = $error_count ?? 0;
 $warning_count = $warning_count ?? 0;
-$flags_row = $flags_row ?? null;
 $overall_status = $overall_status ?? 'running';
 $overall_label = $overall_label ?? 'Healthy';
 $overall_icon = $overall_icon ?? 'fa-circle-check';
@@ -24,12 +24,16 @@ $local_ip = $settings->f4 ?? 'N/A';
 $office = $settings->f3 ?? 'N/A';
 $device_type_name = $deviceType->name ?? 'Unknown';
 
-$run_mode = 0;
-if ($flags_row && isset($flags_row->run_mode)) {
-    $run_mode = (int) $flags_row->run_mode;
+// flags.run_mode is the source of truth for RUN/DEBUG; fall back to the
+// model when a controller renders this view without passing it.
+if (!isset($run_mode)) {
+    $flag = new Flag();
+    $run_mode = $flag->getRunMode();
 }
+$run_mode = (int) $run_mode;
 $run_mode_label = $run_mode === 1 ? 'Debug' : 'Run';
 $run_mode_class = $run_mode === 1 ? 'warn' : 'ok';
+$mode_action_url = rtrim(BASE_URL, '/') . '/flag/setMode';
 ?>
 
 <link rel="stylesheet" href="./assets/css/dashboard.css">
@@ -69,12 +73,20 @@ $run_mode_class = $run_mode === 1 ? 'warn' : 'ok';
 
             </div>
 
-            <div class="daq-header-right">
+                <div class="daq-header-right">
 
-                <div class="debug-badge" id="debugBadge">
-                    <i class="fas fa-circle"></i>
-                    <?php echo $run_mode_label; ?> Mode
-                </div>
+                    <button
+                        type="button"
+                        class="debug-badge debug-badge-<?= $run_mode_class ?>"
+                        id="debugBadge"
+                        title="Click to switch operating mode"
+                        data-mode="<?= $run_mode === 1 ? 'DEBUG' : 'RUN' ?>">
+
+                        <i class="fas fa-circle"></i>
+                        <span id="debugBadgeText"><?php echo $run_mode_label; ?></span> Mode
+
+                    </button>
+
 
                 <div class="connection-status">
 
@@ -625,6 +637,118 @@ $run_mode_class = $run_mode === 1 ? 'warn' : 'ok';
 
         }
     );
+    /* =========================================================
+   OPERATING MODE TOGGLE
+   Writes flags.run_mode only. The mode manager service reacts
+   to that column and restarts the matching processes.
+   ========================================================= */
+
+    (function() {
+
+        const badge =
+            document.getElementById('debugBadge');
+
+        if (!badge) return;
+
+        const badgeText =
+            document.getElementById('debugBadgeText');
+
+        const url = <?= json_encode($mode_action_url) ?>;
+
+        function setBadge(debug) {
+
+            badge.dataset.mode =
+                debug ? 'DEBUG' : 'RUN';
+
+            badge.classList.toggle(
+                'debug-badge-warn', debug
+            );
+
+            badge.classList.toggle(
+                'debug-badge-ok', !debug
+            );
+
+            badgeText.textContent =
+                debug ? 'Debug' : 'Run';
+
+        }
+
+        badge.addEventListener(
+            'click',
+            async function() {
+
+                const next =
+                    badge.dataset.mode === 'DEBUG' ?
+                        'RUN' : 'DEBUG';
+
+                badge.disabled = true;
+
+                try {
+
+                    const response =
+                        await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type':
+                                    'application/x-www-form-urlencoded'
+                            },
+                            body: 'mode=' +
+                                encodeURIComponent(next)
+                        });
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'HTTP ' + response.status
+                        );
+                    }
+
+                    const data =
+                        await response.json();
+
+                    if (!data.success) {
+                        throw new Error(
+                            data.error ||
+                            'Mode switch failed'
+                        );
+                    }
+
+                    setBadge(next === 'DEBUG');
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: next + ' Mode Requested',
+                        text: 'run_mode set to ' +
+                            data.run_mode +
+                            '. The mode manager is restarting the services now.',
+                        timer: 4000,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end',
+                        customClass: {
+                            popup: 'colored-toast'
+                        }
+                    });
+
+                } catch (error) {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Mode Switch Failed',
+                        text: error.message
+                    });
+
+                } finally {
+
+                    badge.disabled = false;
+
+                }
+
+            }
+        );
+
+    })();
+
 </script>
 
 <?php include_once 'footer.php'; ?>

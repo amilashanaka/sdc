@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Spicer DAQ WebSocket Server
+Spicer DAQ WebSocket Server (DEBUG mode only)
 
-The HTTPS web interface is served by Apache on port 443 and proxies /ws to
-this FastAPI process. When the web interface is used, this process asks
-main.py to enter debug mode so the legacy TCP protocol stops and releases DAQ.
+mode_manager.py starts this process only when flags.run_mode = 1 and starts
+main.py + udp.py only when flags.run_mode = 0, so the two never run together
+and this process is the sole owner of the DAQ while it is alive.
+
+The HTTPS web interface is served by Apache on port 443 and proxies /ws here.
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uvicorn
 import asyncio
+import os
 import sys
 import traceback
 import time
@@ -17,12 +20,15 @@ from threading import Lock
 
 app = FastAPI()
 
-# Global DAQ instance. It is intentionally lazy so starting this service does
-# not take DAQ away from the legacy TCP process until the web UI is opened.
+# Global DAQ instance. It stays lazy so the FPGA is only programmed once a
+# browser actually connects, but it is never shared with the RUN mode
+# processes: those are not running while this process is up.
 daq = None
 daq_initialized = False
 daq_lock = Lock()
-last_debug_request = 0
+
+# Fake data is only used for bench testing without FPGA hardware.
+SIMULATE = os.environ.get("SPICER_SIMULATE", "0") == "1"
 
 # Track active WebSocket connections
 active_connections = set()
@@ -30,38 +36,6 @@ active_connections = set()
 print("=== Spicer DAQ WebSocket Server ===", file=sys.stderr)
 print(f"Python: {sys.executable}", file=sys.stderr)
 print(f"Python version: {sys.version}", file=sys.stderr)
-
-
-def request_main_debug_mode(force=False):
-    """Ask main.py to close legacy TCP and release DAQ for web streaming."""
-    global last_debug_request
-    now = time.time()
-    if not force and now - last_debug_request < 5:
-        return True
-
-    last_debug_request = now
-    try:
-        import ipc
-        client = ipc.Ipc(ipc.IPC_CLIENT)
-        client.send("DebugOn")
-        reply, _ = client.receive()
-        client.close()
-        return reply == "1"
-    except Exception as e:
-        print(f"Unable to request main debug mode: {e}", file=sys.stderr)
-        return False
-
-
-def release_main_debug_mode():
-    """Tell main.py the web UI has released DAQ and TCP can resume."""
-    try:
-        import ipc
-        client = ipc.Ipc(ipc.IPC_CLIENT)
-        client.send("DebugOff")
-        client.receive()
-        client.close()
-    except Exception as e:
-        print(f"Unable to release main debug mode: {e}", file=sys.stderr)
 
 
 class SimulatedDAQ:
@@ -117,7 +91,7 @@ class SimulatedDAQ:
 
 
 def get_daq():
-    """Lazy-start DAQ after web access has put main.py into debug mode."""
+    """Start DAQ once a browser connects. No other process holds the FPGA here."""
     global daq
     global daq_initialized
 
@@ -128,24 +102,23 @@ def get_daq():
         if daq is not None:
             return daq
 
-        request_main_debug_mode(force=True)
+        if SIMULATE:
+            daq = SimulatedDAQ()
+            daq.start_background()
+            daq_initialized = False
+            print("Running in simulation mode (SPICER_SIMULATE=1)", file=sys.stderr)
+            return daq
+
         try:
-            import pynq
-            print("PYNQ module loaded", file=sys.stderr)
-
             from daq import Daq
-            print("DAQ module loaded", file=sys.stderr)
-
-            print("Initializing FPGA DAQ in web debug mode...", file=sys.stderr)
+            print("Initializing FPGA DAQ...", file=sys.stderr)
             daq = Daq(debug_mode=True)
             daq.start_background()
             daq_initialized = True
-            print("FPGA DAQ initialized for web debug mode", file=sys.stderr)
+            print("FPGA DAQ initialized", file=sys.stderr)
         except Exception as e:
             print(f"FPGA DAQ unavailable: {e}", file=sys.stderr)
-            print("Running in simulation mode", file=sys.stderr)
-            daq = SimulatedDAQ()
-            daq.start_background()
+            daq = None
             daq_initialized = False
 
         return daq
@@ -168,7 +141,6 @@ def release_daq_if_idle():
             print(f"Unable to close web DAQ: {e}", file=sys.stderr)
         daq = None
         daq_initialized = False
-        release_main_debug_mode()
 
 
 @app.websocket("/ws")
@@ -180,15 +152,18 @@ async def websocket_endpoint(websocket: WebSocket):
     client_id = f"{websocket.client.host}:{websocket.client.port}"
 
     try:
-        request_main_debug_mode(force=True)
         stream_daq = get_daq()
         await websocket.accept()
         active_connections.add(client_id)
         print(f"WebSocket connected: {client_id} (total: {len(active_connections)})", file=sys.stderr)
 
         while True:
-            request_main_debug_mode()
-            data = stream_daq.read_streaming() if stream_daq else None
+            if stream_daq is None:
+                await websocket.send_json({"type": "error", "message": "DAQ unavailable"})
+                await asyncio.sleep(1.0)
+                continue
+
+            data = stream_daq.read_streaming()
 
             if data:
                 await websocket.send_bytes(data)
@@ -211,7 +186,6 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    request_main_debug_mode()
     return {
         "status": "healthy",
         "daq_mode": "hardware" if daq_initialized else "simulation",
@@ -224,13 +198,12 @@ async def health_check():
 @app.get("/")
 async def root():
     """Root endpoint - redirect info."""
-    request_main_debug_mode()
     return {
         "service": "Spicer DAQ WebSocket Server",
         "version": "2.0",
         "websocket": "wss://<device-ip>/ws",
         "health": "/health",
-        "note": "HTTPS web access enables debug mode and suspends legacy TCP",
+        "note": "DEBUG mode service; main.py and udp.py run only in RUN mode",
     }
 
 

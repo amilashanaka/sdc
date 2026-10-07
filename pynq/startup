@@ -1,22 +1,72 @@
 #!/bin/bash
-# Spicer DAQ Startup Script for RUN Mode
-# This runs the legacy TCP server (main.py and udp.py) when not in DEBUG mode
+# Spicer DAQ startup script for RUN mode.
+# Runs the legacy TCP services (main.py, udp.py) that own the DAQ.
+# mode_manager.py starts this only while flags.run_mode = 0, and server.py is
+# never running at the same time.
 
-set -e  # Exit on error
+set -e
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Spicer DAQ in RUN mode..."
+APP_DIR="/var/www/html/pynq"
+MODE_FILE="${APP_DIR}/.mode"
 
-# Change to pynq directory
-cd /var/www/html/pynq || exit 1
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
 
-# Ensure scripts are executable
+log "Starting Spicer DAQ in RUN mode..."
+
+cd "$APP_DIR" || exit 1
+
+# The mode cache is written by mode_manager.py before it starts a mode. If it
+# says DEBUG the device must not serve the legacy TCP protocol, so exit and
+# let mode_manager.py run server.py instead.
+if [ -f "$MODE_FILE" ] && [ "$(tr -d '[:space:]' < "$MODE_FILE")" = "DEBUG" ]; then
+    log "Mode flag is DEBUG; not starting main.py/udp.py"
+    exit 0
+fi
+
+# Use the PYNQ virtual environment when it is present; pynq/daq.py need it
+PYTHON_BIN="${SPICER_PYTHON:-}"
+if [ -z "$PYTHON_BIN" ]; then
+    if [ -x /usr/local/share/pynq-venv/bin/python ]; then
+        PYTHON_BIN=/usr/local/share/pynq-venv/bin/python
+    else
+        PYTHON_BIN=/usr/bin/python3
+    fi
+fi
+
+# Clear any leftover DEBUG mode process so the FPGA is only claimed once.
+if pgrep -f "python3? .*server\.py" > /dev/null 2>&1; then
+    log "Stopping leftover DEBUG mode process before starting RUN mode"
+    pkill -f "python3? .*server\.py" 2>/dev/null || true
+    sleep 2
+    pkill -9 -f "python3? .*server\.py" 2>/dev/null || true
+fi
+
 chmod +x main.py udp.py 2>/dev/null || true
 
-# Run main.py and udp.py in background (TCP mode - startup)
-/usr/bin/python3 main.py &
-/usr/bin/python3 udp.py &
+# TCP mode: main.py serves the SI/PC protocol, udp.py serves discovery
+"$PYTHON_BIN" main.py &
+MAIN_PID=$!
+"$PYTHON_BIN" udp.py &
+UDP_PID=$!
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Spicer DAQ startup processes started"
+log "Spicer DAQ startup processes started (main=$MAIN_PID udp=$UDP_PID)"
 
-# Wait for all background processes
-wait
+# Supervise both processes. If either one exits the RUN group is torn down and
+# this script exits, so mode_manager.py restarts RUN mode cleanly instead of
+# leaving a half-started pair holding the DAQ.
+cleanup() {
+    log "Stopping RUN mode processes"
+    kill "$UDP_PID" "$MAIN_PID" 2>/dev/null || true
+    wait "$UDP_PID" "$MAIN_PID" 2>/dev/null || true
+}
+
+trap 'cleanup; exit 0' TERM INT
+
+while kill -0 "$MAIN_PID" 2>/dev/null && kill -0 "$UDP_PID" 2>/dev/null; do
+    sleep 1
+done
+
+log "A RUN mode process exited; shutting down the group"
+exit 1
